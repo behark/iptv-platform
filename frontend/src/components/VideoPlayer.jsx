@@ -19,14 +19,6 @@ const VideoPlayer = ({
 
   useEffect(() => {
     const video = videoRef.current
-    if (!video) return
-    if (!streamUrl) {
-      const message = 'Stream unavailable. Please try again.'
-      setIsLoading(false)
-      setErrorMessage(message)
-      onStreamError?.(message)
-      return
-    }
     setIsLoading(true)
     setErrorMessage('')
 
