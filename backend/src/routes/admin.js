@@ -805,6 +805,83 @@ router.delete('/plans/:id',
   }
 );
 
+// @route   POST /api/admin/plans/:id/assign-all-channels
+// @desc    Assign all active channels to a plan (Admin only)
+// @access  Private (Admin)
+router.post('/plans/:id/assign-all-channels',
+  authenticate,
+  authorize('ADMIN'),
+  [uuidValidator],
+  validate,
+  async (req, res) => {
+    try {
+      const planId = req.params.id;
+
+      // Verify plan exists
+      const plan = await prisma.plan.findUnique({ where: { id: planId } });
+      if (!plan) {
+        return res.status(404).json({
+          success: false,
+          message: 'Plan not found'
+        });
+      }
+
+      // Get all active channel IDs
+      const channels = await prisma.channel.findMany({
+        where: { isActive: true },
+        select: { id: true }
+      });
+
+      if (channels.length === 0) {
+        return res.status(400).json({
+          success: false,
+          message: 'No active channels found'
+        });
+      }
+
+      // Delete existing channel access for this plan
+      await prisma.channelAccess.deleteMany({
+        where: { planId }
+      });
+
+      // Create channel access records in batches
+      const batchSize = 1000;
+      let created = 0;
+
+      for (let i = 0; i < channels.length; i += batchSize) {
+        const batch = channels.slice(i, i + batchSize);
+        const data = batch.map(channel => ({
+          planId,
+          channelId: channel.id
+        }));
+
+        await prisma.channelAccess.createMany({
+          data,
+          skipDuplicates: true
+        });
+
+        created += batch.length;
+      }
+
+      res.json({
+        success: true,
+        message: `Assigned ${created} channels to plan "${plan.name}"`,
+        data: {
+          planId,
+          planName: plan.name,
+          channelsAssigned: created
+        }
+      });
+    } catch (error) {
+      console.error('Assign all channels error:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Server error'
+      });
+    }
+  }
+);
+
 // ==================== DEVICE MANAGEMENT ====================
 
 const { normalizeMac } = require('../utils/mac');
