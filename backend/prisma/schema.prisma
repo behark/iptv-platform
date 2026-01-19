@@ -1,0 +1,238 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id            String    @id @default(uuid())
+  email         String    @unique
+  username      String    @unique
+  password      String
+  firstName     String?   @map("first_name")
+  lastName      String?   @map("last_name")
+  role          Role      @default(USER)
+  isActive      Boolean   @default(true) @map("is_active")
+  avatar        String?
+  createdAt     DateTime  @default(now()) @map("created_at")
+  updatedAt     DateTime  @updatedAt @map("updated_at")
+
+  subscriptions Subscription[]
+  watchHistory  WatchHistory[]
+  favorites     Favorite[]
+
+  @@map("users")
+}
+
+model Subscription {
+  id            String      @id @default(uuid())
+  userId        String      @map("user_id")
+  planId        String      @map("plan_id")
+  status        SubStatus   @default(ACTIVE)
+  startDate     DateTime    @default(now()) @map("start_date")
+  endDate       DateTime?   @map("end_date")
+  stripeSubId   String?     @unique @map("stripe_sub_id")
+  stripeCustId  String?     @map("stripe_cust_id")
+  createdAt     DateTime    @default(now()) @map("created_at")
+  updatedAt     DateTime    @updatedAt @map("updated_at")
+
+  user          User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  plan          Plan        @relation(fields: [planId], references: [id])
+
+  @@map("subscriptions")
+}
+
+model Plan {
+  id            String          @id @default(uuid())
+  name          String
+  description   String?
+  price         Float
+  currency      String          @default("USD")
+  duration      Int             // in days
+  features      String[]        // Array of feature strings
+  isActive      Boolean         @default(true) @map("is_active")
+  stripePriceId String?        @unique @map("stripe_price_id")
+  createdAt     DateTime        @default(now()) @map("created_at")
+  updatedAt     DateTime        @updatedAt @map("updated_at")
+
+  subscriptions Subscription[]
+  channelAccess ChannelAccess[]
+
+  @@map("plans")
+}
+
+model Channel {
+  id            String          @id @default(uuid())
+  name          String
+  description   String?
+  logo          String?
+  streamUrl     String          @map("stream_url")
+  streamType    StreamType      @default(HLS) @map("stream_type")
+  category      String?
+  language      String?
+  country       String?
+  isLive        Boolean         @default(true) @map("is_live")
+  isActive      Boolean         @default(true) @map("is_active")
+  epgId         String?         @map("epg_id")
+  createdAt     DateTime        @default(now()) @map("created_at")
+  updatedAt     DateTime        @updatedAt @map("updated_at")
+
+  playlists     PlaylistChannel[]
+  access        ChannelAccess[]
+  epg           EPGEntry[]
+  watchHistory  WatchHistory[]
+  favorites     Favorite[]
+
+  @@map("channels")
+}
+
+model Video {
+  id            String          @id @default(uuid())
+  title         String
+  description   String?
+  thumbnail     String?
+  videoUrl      String          @map("video_url")
+  duration      Int?            // in seconds
+  category      String?
+  tags          String[]
+  isActive     Boolean         @default(true) @map("is_active")
+  views         Int             @default(0)
+  createdAt     DateTime        @default(now()) @map("created_at")
+  updatedAt     DateTime        @updatedAt @map("updated_at")
+
+  playlists     PlaylistVideo[]
+  watchHistory  WatchHistory[]
+  favorites     Favorite[]
+
+  @@map("videos")
+}
+
+model Playlist {
+  id            String          @id @default(uuid())
+  name          String
+  description   String?
+  thumbnail     String?
+  isPublic      Boolean         @default(true) @map("is_public")
+  createdAt     DateTime        @default(now()) @map("created_at")
+  updatedAt     DateTime        @updatedAt @map("updated_at")
+
+  channels      PlaylistChannel[]
+  videos        PlaylistVideo[]
+
+  @@map("playlists")
+}
+
+model PlaylistChannel {
+  id            String          @id @default(uuid())
+  playlistId    String          @map("playlist_id")
+  channelId     String          @map("channel_id")
+  order         Int             @default(0)
+  createdAt     DateTime        @default(now()) @map("created_at")
+
+  playlist      Playlist        @relation(fields: [playlistId], references: [id], onDelete: Cascade)
+  channel       Channel         @relation(fields: [channelId], references: [id], onDelete: Cascade)
+
+  @@unique([playlistId, channelId])
+  @@map("playlist_channels")
+}
+
+model PlaylistVideo {
+  id            String          @id @default(uuid())
+  playlistId    String          @map("playlist_id")
+  videoId       String          @map("video_id")
+  order         Int             @default(0)
+  createdAt     DateTime        @default(now()) @map("created_at")
+
+  playlist      Playlist        @relation(fields: [playlistId], references: [id], onDelete: Cascade)
+  video         Video           @relation(fields: [videoId], references: [id], onDelete: Cascade)
+
+  @@unique([playlistId, videoId])
+  @@map("playlist_videos")
+}
+
+model ChannelAccess {
+  id            String          @id @default(uuid())
+  planId        String          @map("plan_id")
+  channelId     String          @map("channel_id")
+  createdAt     DateTime        @default(now()) @map("created_at")
+
+  plan          Plan            @relation(fields: [planId], references: [id], onDelete: Cascade)
+  channel       Channel         @relation(fields: [channelId], references: [id], onDelete: Cascade)
+
+  @@unique([planId, channelId])
+  @@map("channel_access")
+}
+
+model WatchHistory {
+  id            String          @id @default(uuid())
+  userId        String          @map("user_id")
+  videoId       String?         @map("video_id")
+  channelId     String?         @map("channel_id")
+  watchedAt     DateTime        @default(now()) @map("watched_at")
+  duration      Int?            // seconds watched
+  completed     Boolean         @default(false)
+
+  user          User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  video         Video?          @relation(fields: [videoId], references: [id], onDelete: Cascade)
+  channel       Channel?        @relation(fields: [channelId], references: [id], onDelete: Cascade)
+
+  @@map("watch_history")
+}
+
+model Favorite {
+  id            String          @id @default(uuid())
+  userId        String          @map("user_id")
+  videoId       String?         @map("video_id")
+  channelId     String?         @map("channel_id")
+  createdAt     DateTime        @default(now()) @map("created_at")
+
+  user          User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  video         Video?          @relation(fields: [videoId], references: [id], onDelete: Cascade)
+  channel       Channel?        @relation(fields: [channelId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, videoId])
+  @@unique([userId, channelId])
+  @@map("favorites")
+}
+
+model EPGEntry {
+  id            String          @id @default(uuid())
+  channelId     String          @map("channel_id")
+  title         String
+  description   String?
+  startTime     DateTime        @map("start_time")
+  endTime       DateTime        @map("end_time")
+  category      String?
+  image         String?
+  createdAt     DateTime        @default(now()) @map("created_at")
+
+  channel       Channel         @relation(fields: [channelId], references: [id], onDelete: Cascade)
+
+  @@map("epg_entries")
+}
+
+enum Role {
+  USER
+  ADMIN
+  MODERATOR
+}
+
+enum SubStatus {
+  ACTIVE
+  CANCELLED
+  EXPIRED
+  PENDING
+}
+
+enum StreamType {
+  HLS
+  DASH
+  RTMP
+  MPEGTS
+}

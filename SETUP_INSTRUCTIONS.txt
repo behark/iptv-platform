@@ -1,0 +1,97 @@
+═══════════════════════════════════════════════════════════════
+  IPTV PLATFORM - SETUP INSTRUCTIONS
+═══════════════════════════════════════════════════════════════
+
+✅ Dependencies Installed!
+   - Backend: ✓
+   - Frontend: ✓
+
+📋 NEXT STEPS:
+
+1. START POSTGRESQL
+   ────────────────────────────────────────────────────────────
+   Run this command:
+   
+   sudo systemctl start postgresql
+   
+   Verify it's running:
+   sudo systemctl status postgresql
+
+
+2. CREATE DATABASE
+   ────────────────────────────────────────────────────────────
+   Option A - Use the setup script:
+   ./setup-database.sh
+   
+   Option B - Manual setup:
+   sudo -u postgres psql
+   Then run:
+     CREATE DATABASE iptv_db;
+     CREATE USER iptv_user WITH PASSWORD 'iptv_password_123';
+     ALTER USER iptv_user CREATEDB;
+     GRANT ALL PRIVILEGES ON DATABASE iptv_db TO iptv_user;
+     \q
+
+
+3. RUN DATABASE MIGRATIONS
+   ────────────────────────────────────────────────────────────
+   cd backend
+   npx prisma generate
+   npx prisma migrate dev
+   
+   (Press Enter when asked for migration name)
+
+
+4. SEED DATABASE (Optional)
+   ────────────────────────────────────────────────────────────
+   cd backend
+   npm run seed
+   
+   This creates:
+   - Admin: admin@iptv.com / admin123
+   - User:  user@iptv.com / user123
+
+
+5. START THE PLATFORM
+   ────────────────────────────────────────────────────────────
+   Terminal 1 - Backend:
+   cd backend
+   npm run dev
+   
+   Terminal 2 - Frontend:
+   cd frontend
+   npm run dev
+   
+   OR use the startup script:
+   ./start.sh
+
+
+6. ACCESS THE PLATFORM
+   ────────────────────────────────────────────────────────────
+   Open browser: http://localhost:3000
+   Login with: admin@iptv.com / admin123
+
+
+═══════════════════════════════════════════════════════════════
+  QUICK REFERENCE
+═══════════════════════════════════════════════════════════════
+
+Backend URL:    http://localhost:5000
+Frontend URL:   http://localhost:3000
+Database:       PostgreSQL (iptv_db)
+
+Default Admin:
+  Email:    admin@iptv.com
+  Password: admin123
+
+Environment Files:
+  - backend/.env   (already configured with JWT secret)
+  - frontend/.env  (already configured)
+
+═══════════════════════════════════════════════════════════════
+
+For detailed instructions, see:
+  - QUICK_START.md
+  - SETUP.md
+
+═══════════════════════════════════════════════════════════════
