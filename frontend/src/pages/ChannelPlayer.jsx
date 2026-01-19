@@ -77,6 +77,15 @@ const ChannelPlayer = () => {
     }
   }
 
+  const metadataChips = useMemo(() => {
+    if (!channel) return []
+    const chips = []
+    if (channel.category) chips.push(`📰 ${channel.category}`)
+    if (channel.language) chips.push(`💼 ${channel.language}`)
+    if (channel.country) chips.push(`🌍 ${channel.country}`)
+    return chips
+  }, [channel])
+
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-screen">
@@ -94,13 +103,6 @@ const ChannelPlayer = () => {
   }
 
   const isFavorite = favoriteIds.includes(channel.id)
-  const metadataChips = useMemo(() => {
-    const chips = []
-    if (channel.category) chips.push(`📰 ${channel.category}`)
-    if (channel.language) chips.push(`💼 ${channel.language}`)
-    if (channel.country) chips.push(`🌍 ${channel.country}`)
-    return chips
-  }, [channel])
 
   const description =
     channel.description && channel.description.toLowerCase() !== 'undefined'
