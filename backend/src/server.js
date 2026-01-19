@@ -16,7 +16,6 @@ const epgRoutes = require('./routes/epg');
 const favoritesRoutes = require('./routes/favorites');
 const historyRoutes = require('./routes/history');
 const adminRoutes = require('./routes/admin');
-const seedRoutes = require('./routes/seed');
 
 const app = express();
 
@@ -73,14 +72,13 @@ app.use('/api/auth', authRoutes);
 app.use('/api/users', userRoutes);
 app.use('/api/channels', channelRoutes);
 app.use('/api/videos', videoRoutes);
+app.use('/api/playlists', playlistRoutes);
 app.use('/api/subscriptions', subscriptionRoutes);
 app.use('/api/payments', paymentRoutes);
-app.use('/api/playlists', playlistRoutes);
 app.use('/api/epg', epgRoutes);
 app.use('/api/favorites', favoritesRoutes);
 app.use('/api/history', historyRoutes);
 app.use('/api/admin', adminRoutes);
-app.use('/api/seed', seedRoutes);
 
 // Error handling middleware
 app.use((err, req, res, next) => {
