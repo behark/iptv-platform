@@ -165,17 +165,6 @@ const resolveToken = async (token, macAddress) => {
   return record;
 };
 
-const touchTokenUsage = async (tokenId) => {
-  try {
-    await prisma.playlistToken.update({
-      where: { id: tokenId },
-      data: { lastUsedAt: new Date() }
-    });
-  } catch (error) {
-    console.warn('Failed to update playlist token usage:', error.message);
-  }
-};
-
 // @route   GET /api/exports/playlist-token
 // @desc    Get or create playlist token and URLs (device-bound)
 // @access  Private (requires subscription)
