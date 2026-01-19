@@ -19,7 +19,6 @@ const VideoPlayer = ({
 
   useEffect(() => {
     const video = videoRef.current
-    if (!video || !streamUrl) return
     setIsLoading(true)
     setErrorMessage('')
 
