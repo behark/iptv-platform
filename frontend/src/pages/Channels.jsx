@@ -29,23 +29,114 @@ const DEFAULT_LANGUAGES = [
   'Japanese'
 ]
 
-const DEFAULT_COUNTRIES = [
-  'United States',
-  'United Kingdom',
-  'Canada',
-  'France',
-  'Germany',
-  'Spain',
-  'Italy',
-  'United Arab Emirates',
-  'India',
-  'Brazil',
-  'Turkey',
-  'Japan',
-  'South Korea',
-  'Australia',
-  'South Africa'
+const DEFAULT_COUNTRY_CODES = [
+  'XK',
+  'AL',
+  'MK',
+  'ME',
+  'RS',
+  'BA',
+  'HR',
+  'SI',
+  'BG',
+  'GR',
+  'RO',
+  'US',
+  'UK',
+  'CA',
+  'FR',
+  'DE',
+  'ES',
+  'IT',
+  'AE',
+  'IN',
+  'BR',
+  'TR',
+  'JP',
+  'KR',
+  'AU',
+  'ZA',
+  'INT'
 ]
+
+const POPULAR_COUNTRY_CODES = ['XK', 'AL', 'US', 'UK', 'DE', 'FR', 'TR', 'GR']
+
+const COUNTRY_LABELS = {
+  XK: { name: 'Kosovo', flag: '🇽🇰' },
+  AL: { name: 'Albania', flag: '🇦🇱' },
+  MK: { name: 'North Macedonia', flag: '🇲🇰' },
+  ME: { name: 'Montenegro', flag: '🇲🇪' },
+  RS: { name: 'Serbia', flag: '🇷🇸' },
+  BA: { name: 'Bosnia and Herzegovina', flag: '🇧🇦' },
+  HR: { name: 'Croatia', flag: '🇭🇷' },
+  SI: { name: 'Slovenia', flag: '🇸🇮' },
+  BG: { name: 'Bulgaria', flag: '🇧🇬' },
+  GR: { name: 'Greece', flag: '🇬🇷' },
+  RO: { name: 'Romania', flag: '🇷🇴' },
+  US: { name: 'United States', flag: '🇺🇸' },
+  UK: { name: 'United Kingdom', flag: '🇬🇧' },
+  CA: { name: 'Canada', flag: '🇨🇦' },
+  FR: { name: 'France', flag: '🇫🇷' },
+  DE: { name: 'Germany', flag: '🇩🇪' },
+  ES: { name: 'Spain', flag: '🇪🇸' },
+  IT: { name: 'Italy', flag: '🇮🇹' },
+  AE: { name: 'United Arab Emirates', flag: '🇦🇪' },
+  IN: { name: 'India', flag: '🇮🇳' },
+  BR: { name: 'Brazil', flag: '🇧🇷' },
+  TR: { name: 'Turkey', flag: '🇹🇷' },
+  JP: { name: 'Japan', flag: '🇯🇵' },
+  KR: { name: 'South Korea', flag: '🇰🇷' },
+  AU: { name: 'Australia', flag: '🇦🇺' },
+  ZA: { name: 'South Africa', flag: '🇿🇦' },
+  INT: { name: 'International', flag: '🌍' }
+}
+
+const LANGUAGE_LABELS = {
+  en: { label: 'English', short: 'EN', flag: '🇬🇧' },
+  eng: { label: 'English', short: 'EN', flag: '🇬🇧' },
+  english: { label: 'English', short: 'EN', flag: '🇬🇧' },
+  es: { label: 'Spanish', short: 'ES', flag: '🇪🇸' },
+  spa: { label: 'Spanish', short: 'ES', flag: '🇪🇸' },
+  spanish: { label: 'Spanish', short: 'ES', flag: '🇪🇸' },
+  fr: { label: 'French', short: 'FR', flag: '🇫🇷' },
+  fre: { label: 'French', short: 'FR', flag: '🇫🇷' },
+  french: { label: 'French', short: 'FR', flag: '🇫🇷' },
+  ar: { label: 'Arabic', short: 'AR', flag: '🇦🇪' },
+  arabic: { label: 'Arabic', short: 'AR', flag: '🇦🇪' },
+  hi: { label: 'Hindi', short: 'HI', flag: '🇮🇳' },
+  hindi: { label: 'Hindi', short: 'HI', flag: '🇮🇳' },
+  pt: { label: 'Portuguese', short: 'PT', flag: '🇵🇹' },
+  por: { label: 'Portuguese', short: 'PT', flag: '🇵🇹' },
+  portuguese: { label: 'Portuguese', short: 'PT', flag: '🇵🇹' },
+  de: { label: 'German', short: 'DE', flag: '🇩🇪' },
+  ger: { label: 'German', short: 'DE', flag: '🇩🇪' },
+  german: { label: 'German', short: 'DE', flag: '🇩🇪' },
+  it: { label: 'Italian', short: 'IT', flag: '🇮🇹' },
+  ita: { label: 'Italian', short: 'IT', flag: '🇮🇹' },
+  italian: { label: 'Italian', short: 'IT', flag: '🇮🇹' },
+  tr: { label: 'Turkish', short: 'TR', flag: '🇹🇷' },
+  tur: { label: 'Turkish', short: 'TR', flag: '🇹🇷' },
+  turkish: { label: 'Turkish', short: 'TR', flag: '🇹🇷' },
+  ja: { label: 'Japanese', short: 'JA', flag: '🇯🇵' },
+  jpn: { label: 'Japanese', short: 'JA', flag: '🇯🇵' },
+  japanese: { label: 'Japanese', short: 'JA', flag: '🇯🇵' },
+  sq: { label: 'Albanian', short: 'SQ', flag: '🇦🇱' },
+  albanian: { label: 'Albanian', short: 'SQ', flag: '🇦🇱' },
+  sr: { label: 'Serbian', short: 'SR', flag: '🇷🇸' },
+  serbian: { label: 'Serbian', short: 'SR', flag: '🇷🇸' },
+  bs: { label: 'Bosnian', short: 'BS', flag: '🇧🇦' },
+  bosnian: { label: 'Bosnian', short: 'BS', flag: '🇧🇦' },
+  hr: { label: 'Croatian', short: 'HR', flag: '🇭🇷' },
+  croatian: { label: 'Croatian', short: 'HR', flag: '🇭🇷' },
+  mk: { label: 'Macedonian', short: 'MK', flag: '🇲🇰' },
+  macedonian: { label: 'Macedonian', short: 'MK', flag: '🇲🇰' },
+  sl: { label: 'Slovenian', short: 'SL', flag: '🇸🇮' },
+  slovenian: { label: 'Slovenian', short: 'SL', flag: '🇸🇮' },
+  el: { label: 'Greek', short: 'EL', flag: '🇬🇷' },
+  greek: { label: 'Greek', short: 'EL', flag: '🇬🇷' },
+  ro: { label: 'Romanian', short: 'RO', flag: '🇷🇴' },
+  romanian: { label: 'Romanian', short: 'RO', flag: '🇷🇴' }
+}
 
 const PAGE_SIZE = 200
 const PRIORITY_COUNTRIES = ['XK', 'AL']
@@ -85,6 +176,68 @@ const readRecentChannels = () => {
   }
 }
 
+const formatCountryLabel = (country) => {
+  if (!country) return ''
+  const key = country.toUpperCase()
+  const entry = COUNTRY_LABELS[key]
+  if (!entry) return country
+  return `${entry.flag} ${entry.name}`
+}
+
+const formatCountryValue = (country) => {
+  if (!country) return ''
+  const key = country.toUpperCase()
+  const entry = COUNTRY_LABELS[key]
+  return entry ? entry.name : country
+}
+
+const formatLanguageBadge = (language) => {
+  const normalized = (language || '').toLowerCase().trim()
+  if (!normalized) return ''
+  const entry = LANGUAGE_LABELS[normalized]
+  if (entry) return `${entry.flag} ${entry.short}`
+  return normalized.toUpperCase()
+}
+
+const parseChannelName = (rawName) => {
+  const original = rawName || ''
+  let displayName = original.trim()
+  let resolution = ''
+  const tags = []
+
+  const tagPattern = /[\[(]([^\])]+)[\])]/g
+  displayName = displayName.replace(tagPattern, (match, inner) => {
+    const cleaned = inner.trim()
+    if (/not\s*24\/7/i.test(cleaned)) {
+      tags.push('Not 24/7')
+      return ''
+    }
+    const resMatch = cleaned.match(/(\d{3,4}p|4k|uhd)/i)
+    if (resMatch) {
+      resolution = resolution || resMatch[1].toUpperCase()
+      return ''
+    }
+    if (/^(hd|sd|fhd)$/i.test(cleaned)) {
+      resolution = resolution || cleaned.toUpperCase()
+      return ''
+    }
+    return match
+  })
+
+  if (/not\s*24\/7/i.test(displayName)) {
+    tags.push('Not 24/7')
+    displayName = displayName.replace(/not\s*24\/7/gi, '').trim()
+  }
+
+  displayName = displayName.replace(/\s{2,}/g, ' ').trim()
+
+  return {
+    displayName: displayName || original || 'Unknown',
+    resolution,
+    tags
+  }
+}
+
 const Channels = () => {
   const location = useLocation()
   const [channels, setChannels] = useState([])
@@ -101,6 +254,7 @@ const Channels = () => {
   const [isOffline, setIsOffline] = useState(!navigator.onLine)
   const longPressTimer = useRef(null)
   const requestController = useRef(null)
+  const [viewMode, setViewMode] = useState(() => localStorage.getItem('iptv_channel_view') || 'grid')
   const [filters, setFilters] = useState(() => ({
     category: location.state?.presetFilters?.category || '',
     language: location.state?.presetFilters?.language || '',
@@ -109,6 +263,10 @@ const Channels = () => {
     sort: 'name-asc',
     tab: location.state?.presetFilters?.tab || 'All'
   }))
+  const [countryQuery, setCountryQuery] = useState(() => {
+    const preset = location.state?.presetFilters?.country || ''
+    return preset ? formatCountryValue(preset) : ''
+  })
 
   useEffect(() => {
     setFavoriteIds(readFavoriteIds())
@@ -125,6 +283,11 @@ const Channels = () => {
       window.removeEventListener('offline', handleOffline)
     }
   }, [])
+
+  useEffect(() => {
+    if (!filters.country) return
+    setCountryQuery(formatCountryValue(filters.country))
+  }, [filters.country])
 
   const loadChannels = async ({ nextPage = 1, append = false } = {}) => {
     try {
@@ -257,7 +420,7 @@ const Channels = () => {
   }, [dedupedChannels])
 
   const availableCountries = useMemo(() => {
-    const countries = new Set(DEFAULT_COUNTRIES)
+    const countries = new Set(DEFAULT_COUNTRY_CODES)
     const maxSample = Math.min(dedupedChannels.length, 1000)
     for (let i = 0; i < maxSample; i++) {
       const channel = dedupedChannels[i]
@@ -265,14 +428,58 @@ const Channels = () => {
         countries.add(channel.country)
       }
     }
-    return Array.from(countries).sort((a, b) => a.localeCompare(b))
+    return Array.from(countries).sort((a, b) => {
+      return formatCountryLabel(a).localeCompare(formatCountryLabel(b))
+    })
   }, [dedupedChannels])
+
+  const countryLookup = useMemo(() => {
+    const map = new Map()
+    availableCountries.forEach((code) => {
+      const entry = COUNTRY_LABELS[code.toUpperCase()]
+      if (entry?.name) {
+        map.set(entry.name.toLowerCase(), code)
+      }
+      map.set(code.toLowerCase(), code)
+    })
+    return map
+  }, [availableCountries])
 
   const visibleChannels = useMemo(() => dedupedChannels, [dedupedChannels])
 
   const hasFilters = Boolean(
     filters.search || filters.category || filters.language || filters.country || filters.sort !== 'name-asc' || filters.tab !== 'All'
   )
+
+  const isDefaultView =
+    filters.tab === 'All' &&
+    !filters.category &&
+    !filters.language &&
+    !filters.country &&
+    !filters.search
+
+  const handleViewModeChange = (mode) => {
+    setViewMode(mode)
+    localStorage.setItem('iptv_channel_view', mode)
+  }
+
+  const handleCountryInput = (value) => {
+    setCountryQuery(value)
+    const normalized = value.toLowerCase().trim()
+    if (!normalized) {
+      setFilters((prev) => (prev.country ? { ...prev, country: '' } : prev))
+      return
+    }
+    const match = countryLookup.get(normalized)
+    if (!match) {
+      setFilters((prev) => (prev.country ? { ...prev, country: '' } : prev))
+      return
+    }
+    setFilters((prev) => {
+      if (prev.country === match) return prev
+      return { ...prev, country: match }
+    })
+  }
 
   const favoritesKey = filters.tab === 'Favorites' ? favoriteIds.join(',') : ''
 
@@ -293,6 +500,52 @@ const Channels = () => {
       sort: 'name-asc',
       tab: 'All'
     })
+    setCountryQuery('')
+  }
+
+  const filterChips = useMemo(() => {
+    const chips = []
+    if (filters.tab !== 'All') {
+      chips.push({ key: 'tab', label: `Tab: ${filters.tab}` })
+    }
+    if (filters.category) {
+      chips.push({ key: 'category', label: `Category: ${filters.category}` })
+    }
+    if (filters.language) {
+      chips.push({ key: 'language', label: `Language: ${filters.language}` })
+    }
+    if (filters.country) {
+      chips.push({ key: 'country', label: `Country: ${formatCountryLabel(filters.country)}` })
+    }
+    if (filters.search) {
+      chips.push({ key: 'search', label: `Search: ${filters.search}` })
+    }
+    if (filters.sort !== 'name-asc') {
+      chips.push({ key: 'sort', label: `Sort: ${filters.sort === 'name-desc' ? 'Z-A' : 'A-Z'}` })
+    }
+    return chips
+  }, [filters])
+
+  const clearFilter = (key) => {
+    setFilters((prev) => {
+      switch (key) {
+        case 'tab':
+          return { ...prev, tab: 'All' }
+        case 'category':
+          return { ...prev, category: '' }
+        case 'language':
+          return { ...prev, language: '' }
+        case 'country':
+          setCountryQuery('')
+          return { ...prev, country: '' }
+        case 'search':
+          return { ...prev, search: '' }
+        case 'sort':
+          return { ...prev, sort: 'name-asc' }
+        default:
+          return prev
+      }
+    })
   }
 
   const tabs = ['All', 'News', 'Movies', 'Sports', 'Kids', 'Favorites']
@@ -300,21 +553,8 @@ const Channels = () => {
   const resolutionLabel = (channel) => channel.resolution || channel.quality || ''
 
   const languageBadge = (channel) => {
-    const normalized = (channel.language || '').toLowerCase()
-    if (!normalized) return null
-    const map = {
-      english: '🇬🇧 EN',
-      spanish: '🇪🇸 ES',
-      french: '🇫🇷 FR',
-      arabic: '🇦🇪 AR',
-      hindi: '🇮🇳 HI',
-      portuguese: '🇵🇹 PT',
-      german: '🇩🇪 DE',
-      italian: '🇮🇹 IT',
-      turkish: '🇹🇷 TR',
-      japanese: '🇯🇵 JA'
-    }
-    return map[normalized] || `${channel.language}`
+    const badge = formatLanguageBadge(channel.language)
+    return badge || null
   }
 
   const toggleFavorite = (channelId) => {
@@ -372,6 +612,28 @@ const Channels = () => {
               Clear filters
             </button>
           )}
+          <div className="flex items-center gap-1 rounded-lg border border-slate-700 bg-slate-800/80 p-1">
+            <button
+              type="button"
+              onClick={() => handleViewModeChange('grid')}
+              className={`px-3 py-1 text-xs rounded-md ${viewMode === 'grid'
+                ? 'bg-slate-700 text-white'
+                : 'text-slate-300 hover:text-white'
+                }`}
+            >
+              Grid
+            </button>
+            <button
+              type="button"
+              onClick={() => handleViewModeChange('list')}
+              className={`px-3 py-1 text-xs rounded-md ${viewMode === 'list'
+                ? 'bg-slate-700 text-white'
+                : 'text-slate-300 hover:text-white'
+                }`}
+            >
+              List
+            </button>
+          </div>
           <button
             onClick={() => loadChannels({ nextPage: 1, append: false })}
             className="text-sm text-white bg-slate-700 hover:bg-slate-600 px-3 py-2 rounded-lg"
@@ -406,58 +668,73 @@ const Channels = () => {
         <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
           <label className="text-sm text-slate-300 flex flex-col gap-2">
             Search
-            <input
-              type="text"
-              placeholder="Search channels, categories, or regions..."
-              className="px-4 py-2 bg-slate-900 border border-slate-700 rounded-lg text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-primary-500"
-              value={filters.search}
-              onChange={(e) => setFilters({ ...filters, search: e.target.value })}
-            />
+            <div className="relative">
+              <input
+                type="text"
+                placeholder="Search channels, categories, or regions..."
+                className="w-full px-4 py-2 pr-10 bg-slate-900 border border-slate-700 rounded-lg text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-primary-500"
+                value={filters.search}
+                onChange={(e) => setFilters({ ...filters, search: e.target.value })}
+              />
+              {filters.search && (
+                <button
+                  type="button"
+                  onClick={() => setFilters({ ...filters, search: '' })}
+                  className="absolute right-2 top-1/2 -translate-y-1/2 text-xs text-slate-400 hover:text-white"
+                  aria-label="Clear search"
+                >
+                  Clear
+                </button>
+              )}
+            </div>
           </label>
           <label className="text-sm text-slate-300 flex flex-col gap-2">
             Category
-            <select
-              className="px-4 py-2 bg-slate-900 border border-slate-700 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-primary-500"
+            <input
+              list="channel-categories"
+              placeholder="All categories"
+              className="px-4 py-2 bg-slate-900 border border-slate-700 rounded-lg text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-primary-500"
               value={filters.category}
               onChange={(e) => setFilters({ ...filters, category: e.target.value })}
-            >
-              <option value="">All categories</option>
+            />
+            <datalist id="channel-categories">
               {availableCategories.map((category) => (
-                <option key={category} value={category}>
-                  {category}
-                </option>
+                <option key={category} value={category} />
               ))}
-            </select>
+            </datalist>
           </label>
           <label className="text-sm text-slate-300 flex flex-col gap-2">
             Language
-            <select
-              className="px-4 py-2 bg-slate-900 border border-slate-700 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-primary-500"
+            <input
+              list="channel-languages"
+              placeholder="All languages"
+              className="px-4 py-2 bg-slate-900 border border-slate-700 rounded-lg text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-primary-500"
               value={filters.language}
               onChange={(e) => setFilters({ ...filters, language: e.target.value })}
-            >
-              <option value="">All languages</option>
+            />
+            <datalist id="channel-languages">
               {availableLanguages.map((language) => (
-                <option key={language} value={language}>
-                  {language}
-                </option>
+                <option key={language} value={language} />
               ))}
-            </select>
+            </datalist>
           </label>
           <label className="text-sm text-slate-300 flex flex-col gap-2">
             Country
-            <select
-              className="px-4 py-2 bg-slate-900 border border-slate-700 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-primary-500"
-              value={filters.country}
-              onChange={(e) => setFilters({ ...filters, country: e.target.value })}
-            >
-              <option value="">All countries</option>
-              {availableCountries.map((country) => (
-                <option key={country} value={country}>
-                  {country}
-                </option>
-              ))}
-            </select>
+            <input
+              list="channel-countries"
+              placeholder="All countries"
+              className="px-4 py-2 bg-slate-900 border border-slate-700 rounded-lg text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-primary-500"
+              value={countryQuery}
+              onChange={(e) => handleCountryInput(e.target.value)}
+            />
+            <datalist id="channel-countries">
+              {availableCountries.map((country) => {
+                const entry = COUNTRY_LABELS[country.toUpperCase()]
+                const value = entry?.name || country
+                const label = entry ? `${entry.flag} ${entry.name}` : country
+                return <option key={country} value={value} label={label} />
+              })}
+            </datalist>
           </label>
         </div>
         <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
@@ -466,7 +743,7 @@ const Channels = () => {
               Popular countries
             </p>
             <div className="flex flex-wrap gap-2">
-              {DEFAULT_COUNTRIES.slice(0, 8).map((country) => (
+              {POPULAR_COUNTRY_CODES.map((country) => (
                 <button
                   key={country}
                   onClick={() => setFilters({ ...filters, country })}
@@ -475,7 +752,7 @@ const Channels = () => {
                     : 'border-slate-600 text-slate-300 hover:text-white'
                     }`}
                 >
-                  {country}
+                  {formatCountryLabel(country)}
                 </button>
               ))}
             </div>
@@ -493,6 +770,28 @@ const Channels = () => {
           </label>
         </div>
       </div>
+
+      {filterChips.length > 0 && (
+        <div className="mb-6 flex flex-wrap items-center gap-2">
+          {filterChips.map((chip) => (
+            <button
+              key={chip.key}
+              type="button"
+              onClick={() => clearFilter(chip.key)}
+              className="text-xs text-slate-200 border border-slate-700 rounded-full px-3 py-1 hover:border-primary-400 hover:text-white"
+            >
+              {chip.label} ✕
+            </button>
+          ))}
+          <button
+            type="button"
+            onClick={resetFilters}
+            className="text-xs text-slate-400 hover:text-white"
+          >
+            Clear all
+          </button>
+        </div>
+      )}
 
       {recentChannels.length > 0 && (
         <div className="mb-8">
@@ -545,130 +844,289 @@ const Channels = () => {
         </div>
       )}
 
-      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-6">
-        {loading &&
-          Array.from({ length: 10 }).map((_, index) => (
-            <div key={`skeleton-${index}`} className="bg-slate-800 rounded-lg overflow-hidden animate-pulse">
-              <div className="w-full h-36 bg-slate-700" />
-              <div className="p-4 space-y-2">
-                <div className="h-4 bg-slate-700 rounded" />
-                <div className="h-3 bg-slate-700 rounded w-3/4" />
+      {viewMode === 'grid' ? (
+        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-6">
+          {loading &&
+            Array.from({ length: 10 }).map((_, index) => (
+              <div key={`skeleton-${index}`} className="bg-slate-800 rounded-lg overflow-hidden animate-pulse">
+                <div className="w-full h-36 bg-slate-700" />
+                <div className="p-4 space-y-2">
+                  <div className="h-4 bg-slate-700 rounded" />
+                  <div className="h-3 bg-slate-700 rounded w-3/4" />
+                </div>
               </div>
-            </div>
-          ))}
-        {!loading &&
-          visibleChannels.map((channel) => {
-            const description =
-              channel.description && channel.description.toLowerCase() !== 'undefined'
-                ? channel.description
-                : ''
-            const resolution = resolutionLabel(channel)
-            const language = languageBadge(channel)
-            const isFavorite = favoriteIds.includes(channel.id)
-            return (
-              <Link
-                key={channel.id}
-                to={`/channels/${channel.id}`}
-                onPointerDown={(event) => handleLongPressStart(event, channel.id)}
-                onPointerUp={handleLongPressEnd}
-                onPointerLeave={handleLongPressEnd}
-                onContextMenu={(event) => handleContextMenu(event, channel.id)}
-                className="bg-slate-800 rounded-lg overflow-hidden hover:bg-slate-700 transition-colors focus:outline-none focus:ring-2 focus:ring-primary-500 relative"
-              >
-                <div className="relative">
-                  {channel.logo ? (
-                    <img
-                      src={channel.logo}
-                      alt={channel.name}
-                      className="w-full h-36 object-cover"
-                      loading="lazy"
-                    />
-                  ) : (
-                    <div className="w-full h-36 bg-slate-700 flex items-center justify-center">
-                      <span className="text-5xl">📺</span>
+            ))}
+          {!loading &&
+            visibleChannels.map((channel) => {
+              const description =
+                channel.description && channel.description.toLowerCase() !== 'undefined'
+                  ? channel.description
+                  : ''
+              const parsedName = parseChannelName(channel.name)
+              const resolution = parsedName.resolution || resolutionLabel(channel)
+              const language = languageBadge(channel)
+              const countryLabel = channel.country ? formatCountryLabel(channel.country) : ''
+              const isFavorite = favoriteIds.includes(channel.id)
+              const isPinned = isDefaultView && PRIORITY_COUNTRIES.includes(channel.country)
+              return (
+                <Link
+                  key={channel.id}
+                  to={`/channels/${channel.id}`}
+                  onPointerDown={(event) => handleLongPressStart(event, channel.id)}
+                  onPointerUp={handleLongPressEnd}
+                  onPointerLeave={handleLongPressEnd}
+                  onContextMenu={(event) => handleContextMenu(event, channel.id)}
+                  className="bg-slate-800 rounded-lg overflow-hidden hover:bg-slate-700 transition-colors focus:outline-none focus:ring-2 focus:ring-primary-500 relative"
+                >
+                  <div className="relative">
+                    {channel.logo ? (
+                      <img
+                        src={channel.logo}
+                        alt={parsedName.displayName}
+                        className="w-full h-36 object-cover"
+                        loading="lazy"
+                      />
+                    ) : (
+                      <div className="w-full h-36 bg-slate-700 flex items-center justify-center">
+                        <span className="text-5xl">📺</span>
+                      </div>
+                    )}
+                    <div className="absolute top-2 left-2 flex flex-wrap gap-2">
+                      <span className="text-[10px] uppercase tracking-wide px-2 py-1 rounded-full bg-black/60 text-white">
+                        {channel.isLive === false ? 'VOD' : 'Live'}
+                      </span>
+                      {resolution && (
+                        <span className="text-[10px] uppercase tracking-wide px-2 py-1 rounded-full bg-primary-500/80 text-white">
+                          {resolution}
+                        </span>
+                      )}
+                      {isPinned && (
+                        <span className="text-[10px] uppercase tracking-wide px-2 py-1 rounded-full bg-amber-500/80 text-white">
+                          Pinned
+                        </span>
+                      )}
+                    </div>
+                    {isFavorite && (
+                      <span className="absolute top-2 right-2 text-lg" aria-label="Favorite">
+                        ⭐
+                      </span>
+                    )}
+                  </div>
+                  {actionChannelId === channel.id && (
+                    <div className="absolute inset-0 bg-slate-900/90 flex flex-col items-center justify-center gap-3 text-sm text-white">
+                      <button
+                        type="button"
+                        onClick={(event) => {
+                          event.preventDefault()
+                          event.stopPropagation()
+                          toggleFavorite(channel.id)
+                          setActionChannelId(null)
+                        }}
+                        className="px-4 py-2 rounded-full bg-primary-500/80 hover:bg-primary-500 min-h-[44px]"
+                      >
+                        {isFavorite ? 'Remove Favorite' : 'Add to Favorites'}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={(event) => handleInfoAction(event, channel)}
+                        className="px-4 py-2 rounded-full border border-slate-400 hover:border-white min-h-[44px]"
+                      >
+                        Channel Info
+                      </button>
+                      <button
+                        type="button"
+                        onClick={(event) => {
+                          event.preventDefault()
+                          event.stopPropagation()
+                          setActionChannelId(null)
+                        }}
+                        className="text-xs text-slate-300"
+                      >
+                        Close
+                      </button>
                     </div>
                   )}
-                  <div className="absolute top-2 left-2 flex gap-2">
-                    <span className="text-[10px] uppercase tracking-wide px-2 py-1 rounded-full bg-black/60 text-white">
-                      {channel.isLive === false ? 'VOD' : 'Live'}
-                    </span>
-                    {resolution && (
-                      <span className="text-[10px] uppercase tracking-wide px-2 py-1 rounded-full bg-primary-500/80 text-white">
-                        {resolution}
+                  <div className="p-4 space-y-3">
+                    <div>
+                      <h3 className="text-white font-semibold text-base truncate">{parsedName.displayName}</h3>
+                      {description ? (
+                        <p className="text-xs text-slate-400 mt-1 line-clamp-2">{description}</p>
+                      ) : (
+                        <p className="text-xs text-slate-500 mt-1">No description available</p>
+                      )}
+                    </div>
+                    <div className="flex flex-wrap gap-2 text-[11px] text-slate-300">
+                      {channel.category && (
+                        <span className="flex items-center gap-1 rounded-full bg-slate-700/60 px-2 py-1">
+                          📰 {channel.category}
+                        </span>
+                      )}
+                      {language && (
+                        <span className="flex items-center gap-1 rounded-full bg-slate-700/60 px-2 py-1">
+                          {language}
+                        </span>
+                      )}
+                      {countryLabel && (
+                        <span className="flex items-center gap-1 rounded-full bg-slate-700/60 px-2 py-1">
+                          {countryLabel}
+                        </span>
+                      )}
+                      {parsedName.tags.map((tag) => (
+                        <span key={`${channel.id}-${tag}`} className="flex items-center gap-1 rounded-full bg-slate-700/60 px-2 py-1">
+                          {tag}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                </Link>
+              )
+            })}
+        </div>
+      ) : (
+        <div className="space-y-4">
+          {loading &&
+            Array.from({ length: 6 }).map((_, index) => (
+              <div key={`list-skeleton-${index}`} className="bg-slate-800 rounded-xl p-4 animate-pulse">
+                <div className="flex gap-4 items-center">
+                  <div className="h-16 w-28 bg-slate-700 rounded-lg" />
+                  <div className="flex-1 space-y-2">
+                    <div className="h-4 bg-slate-700 rounded w-1/3" />
+                    <div className="h-3 bg-slate-700 rounded w-2/3" />
+                    <div className="flex gap-2">
+                      <div className="h-6 w-16 bg-slate-700 rounded-full" />
+                      <div className="h-6 w-20 bg-slate-700 rounded-full" />
+                    </div>
+                  </div>
+                </div>
+              </div>
+            ))}
+          {!loading &&
+            visibleChannels.map((channel) => {
+              const description =
+                channel.description && channel.description.toLowerCase() !== 'undefined'
+                  ? channel.description
+                  : ''
+              const parsedName = parseChannelName(channel.name)
+              const resolution = parsedName.resolution || resolutionLabel(channel)
+              const language = languageBadge(channel)
+              const countryLabel = channel.country ? formatCountryLabel(channel.country) : ''
+              const isFavorite = favoriteIds.includes(channel.id)
+              const isPinned = isDefaultView && PRIORITY_COUNTRIES.includes(channel.country)
+              return (
+                <Link
+                  key={channel.id}
+                  to={`/channels/${channel.id}`}
+                  onPointerDown={(event) => handleLongPressStart(event, channel.id)}
+                  onPointerUp={handleLongPressEnd}
+                  onPointerLeave={handleLongPressEnd}
+                  onContextMenu={(event) => handleContextMenu(event, channel.id)}
+                  className="relative flex flex-col gap-4 rounded-xl border border-slate-800 bg-slate-800/70 p-4 hover:bg-slate-700/70 transition-colors focus:outline-none focus:ring-2 focus:ring-primary-500"
+                >
+                  <div className="flex gap-4 items-start">
+                    <div className="h-16 w-28 rounded-lg bg-slate-700 overflow-hidden flex items-center justify-center">
+                      {channel.logo ? (
+                        <img
+                          src={channel.logo}
+                          alt={parsedName.displayName}
+                          className="h-full w-full object-cover"
+                          loading="lazy"
+                        />
+                      ) : (
+                        <span className="text-sm text-slate-300">No logo</span>
+                      )}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-start justify-between gap-3">
+                        <div className="min-w-0">
+                          <h3 className="text-white font-semibold text-base truncate">{parsedName.displayName}</h3>
+                          <p className="text-xs text-slate-400 mt-1 line-clamp-2">
+                            {description || 'No description available'}
+                          </p>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <span className="text-[10px] uppercase tracking-wide px-2 py-1 rounded-full bg-black/60 text-white">
+                            {channel.isLive === false ? 'VOD' : 'Live'}
+                          </span>
+                          {resolution && (
+                            <span className="text-[10px] uppercase tracking-wide px-2 py-1 rounded-full bg-primary-500/80 text-white">
+                              {resolution}
+                            </span>
+                          )}
+                          {isPinned && (
+                            <span className="text-[10px] uppercase tracking-wide px-2 py-1 rounded-full bg-amber-500/80 text-white">
+                              Pinned
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                      <div className="mt-3 flex flex-wrap gap-2 text-[11px] text-slate-300">
+                        {channel.category && (
+                          <span className="flex items-center gap-1 rounded-full bg-slate-700/60 px-2 py-1">
+                            📰 {channel.category}
+                          </span>
+                        )}
+                        {language && (
+                          <span className="flex items-center gap-1 rounded-full bg-slate-700/60 px-2 py-1">
+                            {language}
+                          </span>
+                        )}
+                        {countryLabel && (
+                          <span className="flex items-center gap-1 rounded-full bg-slate-700/60 px-2 py-1">
+                            {countryLabel}
+                          </span>
+                        )}
+                        {parsedName.tags.map((tag) => (
+                          <span key={`${channel.id}-${tag}`} className="flex items-center gap-1 rounded-full bg-slate-700/60 px-2 py-1">
+                            {tag}
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+                    {isFavorite && (
+                      <span className="text-lg" aria-label="Favorite">
+                        ⭐
                       </span>
                     )}
                   </div>
-                  {isFavorite && (
-                    <span className="absolute top-2 right-2 text-lg" aria-label="Favorite">
-                      ⭐
-                    </span>
+                  {actionChannelId === channel.id && (
+                    <div className="absolute inset-0 bg-slate-900/90 flex flex-col items-center justify-center gap-3 text-sm text-white">
+                      <button
+                        type="button"
+                        onClick={(event) => {
+                          event.preventDefault()
+                          event.stopPropagation()
+                          toggleFavorite(channel.id)
+                          setActionChannelId(null)
+                        }}
+                        className="px-4 py-2 rounded-full bg-primary-500/80 hover:bg-primary-500 min-h-[44px]"
+                      >
+                        {isFavorite ? 'Remove Favorite' : 'Add to Favorites'}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={(event) => handleInfoAction(event, channel)}
+                        className="px-4 py-2 rounded-full border border-slate-400 hover:border-white min-h-[44px]"
+                      >
+                        Channel Info
+                      </button>
+                      <button
+                        type="button"
+                        onClick={(event) => {
+                          event.preventDefault()
+                          event.stopPropagation()
+                          setActionChannelId(null)
+                        }}
+                        className="text-xs text-slate-300"
+                      >
+                        Close
+                      </button>
+                    </div>
                   )}
-                </div>
-                {actionChannelId === channel.id && (
-                  <div className="absolute inset-0 bg-slate-900/90 flex flex-col items-center justify-center gap-3 text-sm text-white">
-                    <button
-                      type="button"
-                      onClick={(event) => {
-                        event.preventDefault()
-                        event.stopPropagation()
-                        toggleFavorite(channel.id)
-                        setActionChannelId(null)
-                      }}
-                      className="px-4 py-2 rounded-full bg-primary-500/80 hover:bg-primary-500 min-h-[44px]"
-                    >
-                      {isFavorite ? 'Remove Favorite' : 'Add to Favorites'}
-                    </button>
-                    <button
-                      type="button"
-                      onClick={(event) => handleInfoAction(event, channel)}
-                      className="px-4 py-2 rounded-full border border-slate-400 hover:border-white min-h-[44px]"
-                    >
-                      Channel Info
-                    </button>
-                    <button
-                      type="button"
-                      onClick={(event) => {
-                        event.preventDefault()
-                        event.stopPropagation()
-                        setActionChannelId(null)
-                      }}
-                      className="text-xs text-slate-300"
-                    >
-                      Close
-                    </button>
-                  </div>
-                )}
-                <div className="p-4 space-y-3">
-                  <div>
-                    <h3 className="text-white font-semibold text-base truncate">{channel.name}</h3>
-                    {description ? (
-                      <p className="text-xs text-slate-400 mt-1 line-clamp-2">{description}</p>
-                    ) : (
-                      <p className="text-xs text-slate-500 mt-1">No description available</p>
-                    )}
-                  </div>
-                  <div className="flex flex-wrap gap-2 text-[11px] text-slate-300">
-                    {channel.category && (
-                      <span className="flex items-center gap-1 rounded-full bg-slate-700/60 px-2 py-1">
-                        📰 {channel.category}
-                      </span>
-                    )}
-                    {language && (
-                      <span className="flex items-center gap-1 rounded-full bg-slate-700/60 px-2 py-1">
-                        {language}
-                      </span>
-                    )}
-                    {channel.country && (
-                      <span className="flex items-center gap-1 rounded-full bg-slate-700/60 px-2 py-1">
-                        🌍 {channel.country}
-                      </span>
-                    )}
-                  </div>
-                </div>
-              </Link>
-            )
-          })}
-      </div>
+                </Link>
+              )
+            })}
+        </div>
+      )}
 
       {!loading && visibleChannels.length === 0 && (
         <div className="text-center py-12">
