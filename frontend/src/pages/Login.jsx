@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
+import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { useAuth } from '../contexts/AuthContext'
 import toast from 'react-hot-toast'
 
@@ -9,13 +9,15 @@ const Login = () => {
   const [submitting, setSubmitting] = useState(false)
   const { login, user, loading: authLoading } = useAuth()
   const navigate = useNavigate()
+  const location = useLocation()
+  const redirectTo = location.state?.from || '/'
 
   // Redirect if already logged in
   useEffect(() => {
     if (user && !authLoading) {
-      navigate('/', { replace: true })
+      navigate(redirectTo, { replace: true })
     }
-  }, [user, authLoading, navigate])
+  }, [user, authLoading, navigate, redirectTo])
 
   const handleSubmit = async (e) => {
     e.preventDefault()
@@ -24,7 +26,7 @@ const Login = () => {
     try {
       await login(email, password)
       toast.success('Login successful!')
-      navigate('/', { replace: true })
+      navigate(redirectTo, { replace: true })
     } catch (error) {
       toast.error(error.response?.data?.message || 'Login failed')
       setSubmitting(false)
