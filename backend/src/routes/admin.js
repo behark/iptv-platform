@@ -1336,4 +1336,123 @@ router.put('/devices/:id',
   }
 );
 
+// ==================== CHANNEL NORMALIZATION ====================
+
+// Category normalization map
+const categoryMap = {
+  'general': 'General', 'undefined': 'General', 'uncategorized': 'General',
+  'news': 'News', 'religious': 'Religious', 'music': 'Music',
+  'entertainment': 'Entertainment', 'movies': 'Movies', 'movie': 'Movies',
+  'sports': 'Sports', 'sport': 'Sports', 'series': 'Series',
+  'kids': 'Kids', 'children': 'Kids', 'legislative': 'Legislative',
+  'education': 'Education', 'educational': 'Education', 'culture': 'Culture',
+  'documentary': 'Documentary', 'shop': 'Shopping', 'shopping': 'Shopping',
+  'lifestyle': 'Lifestyle', 'comedy': 'Comedy', 'business': 'Business',
+  'classic': 'Classic', 'classics': 'Classic', 'animation': 'Animation',
+  'outdoor': 'Outdoor', 'travel': 'Travel', 'cooking': 'Cooking',
+  'food': 'Cooking', 'science': 'Science', 'weather': 'Weather',
+  'xxx': 'Adult', 'adult': 'Adult'
+};
+
+const kosovoKeywords = [
+  'kosovo', 'kosova', 'kosovë', 'prishtina', 'pristina', 'prizren',
+  'peja', 'gjakova', 'mitrovica', 'ferizaj', 'gjilan', 'rtk',
+  'klan kosova', 't7', 'tribuna', 'kanal 10', 'kohavision', 'ktv',
+  'rtv 21', 'tv21', 'art motion', 'art channel', 'dukagjini'
+];
+
+const albanianKeywords = [
+  'albania', 'albanian', 'shqip', 'shqiptar', 'shqipëri', 'tirana',
+  'tiranë', 'top channel', 'klan tv', 'tv klan', 'vizion plus',
+  'rtsh', 'tvsh', 'ora news', 'news 24', 'abc news', 'report tv',
+  'a2 cnn', 'euronews albania', 'scan tv', 'syri tv', 'fax news',
+  'agon channel', 'supersonic', 'bang bang', 'albuk', 'alb'
+];
+
+const categoryPriority = {
+  'Movies': 300, 'News': 400, 'Sports': 500, 'Entertainment': 600,
+  'Music': 700, 'Kids': 800, 'Documentary': 900, 'Series': 1000,
+  'Education': 1100, 'Culture': 1200, 'Religious': 1300, 'Lifestyle': 1400,
+  'Comedy': 1500, 'Business': 1600, 'Shopping': 1700, 'Legislative': 1800,
+  'Classic': 1900, 'General': 2000, 'Animation': 2100, 'Outdoor': 2200,
+  'Travel': 2300, 'Cooking': 2400, 'Science': 2500, 'Weather': 2600, 'Adult': 9000
+};
+
+// @route   POST /api/admin/channels/normalize
+// @desc    Normalize channel categories and set sort order (Admin only)
+// @access  Private (Admin)
+router.post('/channels/normalize',
+  authenticate,
+  authorize('ADMIN'),
+  async (req, res) => {
+    try {
+      const channels = await prisma.channel.findMany({
+        select: { id: true, name: true, category: true, country: true, language: true }
+      });
+
+      const stats = { total: channels.length, kosovo: 0, albanian: 0, normalized: 0 };
+      const categoryStats = {};
+      const batchSize = 500;
+
+      const normalizeCategory = (cat) => {
+        if (!cat) return 'General';
+        const lower = cat.toLowerCase().trim();
+        return categoryMap[lower] || cat.charAt(0).toUpperCase() + cat.slice(1).toLowerCase();
+      };
+
+      const isKosovo = (ch) => {
+        const text = `${ch.name} ${ch.country || ''} ${ch.language || ''}`.toLowerCase();
+        return kosovoKeywords.some(kw => text.includes(kw)) || (ch.country && ch.country.toUpperCase() === 'XK');
+      };
+
+      const isAlbanian = (ch) => {
+        const text = `${ch.name} ${ch.country || ''} ${ch.language || ''}`.toLowerCase();
+        return albanianKeywords.some(kw => text.includes(kw)) ||
+               (ch.country && ch.country.toUpperCase() === 'AL') ||
+               (ch.language && ch.language.toLowerCase().includes('albanian'));
+      };
+
+      const calcSortOrder = (ch, cat) => {
+        if (isKosovo(ch)) return 100 + (categoryPriority[cat] || 2000) / 100;
+        if (isAlbanian(ch)) return 200 + (categoryPriority[cat] || 2000) / 100;
+        return categoryPriority[cat] || 2000;
+      };
+
+      for (let i = 0; i < channels.length; i += batchSize) {
+        const batch = channels.slice(i, i + batchSize);
+        const updates = batch.map(ch => {
+          const normCat = normalizeCategory(ch.category);
+          const sortOrder = calcSortOrder(ch, normCat);
+
+          if (isKosovo(ch)) stats.kosovo++;
+          else if (isAlbanian(ch)) stats.albanian++;
+          if (ch.category !== normCat) stats.normalized++;
+          categoryStats[normCat] = (categoryStats[normCat] || 0) + 1;
+
+          return prisma.channel.update({
+            where: { id: ch.id },
+            data: { category: normCat, sortOrder }
+          });
+        });
+
+        await prisma.$transaction(updates);
+      }
+
+      res.json({
+        success: true,
+        message: 'Channels normalized successfully',
+        data: {
+          stats,
+          categories: Object.entries(categoryStats)
+            .sort((a, b) => (categoryPriority[a[0]] || 2000) - (categoryPriority[b[0]] || 2000))
+            .map(([name, count]) => ({ name, count }))
+        }
+      });
+    } catch (error) {
+      console.error('Normalize channels error:', error);
+      res.status(500).json({ success: false, message: 'Server error' });
+    }
+  }
+);
+
 module.exports = router;
