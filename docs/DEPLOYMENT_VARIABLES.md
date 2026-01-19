@@ -30,6 +30,9 @@ FRONTEND_URL=https://your-app-name.vercel.app
 # CORS Allowed Origins (comma-separated, include your Vercel URL)
 ALLOWED_ORIGINS=https://your-app-name.vercel.app
 
+# Public Base URL (optional - used for playlist/EPG export links)
+PUBLIC_BASE_URL=https://your-backend-name.onrender.com
+
 # Stripe (get from https://dashboard.stripe.com/apikeys)
 STRIPE_SECRET_KEY=sk_live_your_stripe_secret_key
 STRIPE_WEBHOOK_SECRET=whsec_your_webhook_secret

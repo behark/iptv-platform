@@ -26,6 +26,8 @@ model User {
   subscriptions Subscription[]
   watchHistory  WatchHistory[]
   favorites     Favorite[]
+  playlistToken PlaylistToken?
+  devices       Device[]
 
   @@map("users")
 }
@@ -201,6 +203,36 @@ model Favorite {
   @@map("favorites")
 }
 
+model PlaylistToken {
+  id            String    @id @default(uuid())
+  userId        String    @map("user_id")
+  token         String    @unique
+  lastUsedAt    DateTime? @map("last_used_at")
+  createdAt     DateTime  @default(now()) @map("created_at")
+  updatedAt     DateTime  @updatedAt @map("updated_at")
+  deviceId      String?   @unique @map("device_id")
+
+  user          User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  device        Device?   @relation(fields: [deviceId], references: [id], onDelete: Cascade)
+
+  @@map("playlist_tokens")
+}
+
+model Device {
+  id            String        @id @default(uuid())
+  userId        String        @map("user_id")
+  macAddress    String        @map("mac_address")
+  name          String?       @map("name")
+  status        DeviceStatus  @default(PENDING)
+  createdAt     DateTime      @default(now()) @map("created_at")
+  updatedAt     DateTime      @updatedAt @map("updated_at")
+
+  user          User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("devices")
+  @@unique([userId, macAddress])
+}
+
 model EPGEntry {
   id            String          @id @default(uuid())
   channelId     String          @map("channel_id")
@@ -235,4 +267,10 @@ enum StreamType {
   DASH
   RTMP
   MPEGTS
+}
+
+enum DeviceStatus {
+  PENDING
+  ACTIVE
+  REVOKED
 }

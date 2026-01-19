@@ -94,6 +94,14 @@ See `.env.example` files in each directory for required environment variables.
 - `STRIPE_SECRET_KEY` - Stripe API secret key
 - `STRIPE_WEBHOOK_SECRET` - Stripe webhook signing secret
 
+## Smart IPTV Device Registration
+
+1. Register the device before exporting playlists by hitting `POST /api/devices` with `macAddress` (optionally `name`). The endpoint auto-activates devices for the authenticated user.
+2. Call `GET /api/exports/playlist-token?mac=<MAC>` while logged in. The response includes per-device `playlistUrl`/`epgUrl` that already contain the `mac` query parameter required by Smart IPTV.
+3. Paste the provided playlist/EPG URLs into the Smart IPTV portal alongside the TV’s MAC address (the same one you registered) and restart the app.
+
+Admins can manage registered devices using `GET /api/admin/devices` and `PUT /api/admin/devices/:id` to inspect or revoke statuses on behalf of customers.
+
 **Frontend (.env):**
 - `VITE_API_URL` - Backend API URL
 - `VITE_STRIPE_PUBLISHABLE_KEY` - Stripe publishable key
