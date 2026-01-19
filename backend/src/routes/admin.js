@@ -25,6 +25,7 @@ const paginationValidators = [
 ];
 
 const uuidValidator = param('id').isUUID().withMessage('Invalid ID format');
+const deviceStatusValues = ['PENDING', 'ACTIVE', 'REVOKED'];
 
 // ==================== USER MANAGEMENT ====================
 
@@ -794,6 +795,378 @@ router.delete('/plans/:id',
         return res.status(404).json({
           success: false,
           message: 'Plan not found'
+        });
+      }
+      res.status(500).json({
+        success: false,
+        message: 'Server error'
+      });
+    }
+  }
+);
+
+// ==================== DEVICE MANAGEMENT ====================
+
+const { normalizeMac } = require('../utils/mac');
+
+// @route   POST /api/admin/devices
+// @desc    Create device for a user (Admin only)
+// @access  Private (Admin)
+router.post('/devices',
+  authenticate,
+  authorize('ADMIN'),
+  [
+    body('userId').isUUID().withMessage('Valid user ID is required'),
+    body('macAddress').notEmpty().withMessage('MAC address is required'),
+    body('name').optional().trim().isLength({ max: 100 }),
+    body('status').optional().isIn(deviceStatusValues)
+  ],
+  validate,
+  async (req, res) => {
+    try {
+      const { userId, macAddress, name, status } = req.body;
+
+      const normalizedMac = normalizeMac(macAddress);
+      if (!normalizedMac) {
+        return res.status(400).json({
+          success: false,
+          message: 'Invalid MAC address format'
+        });
+      }
+
+      const user = await prisma.user.findUnique({ where: { id: userId } });
+      if (!user) {
+        return res.status(404).json({
+          success: false,
+          message: 'User not found'
+        });
+      }
+
+      const device = await prisma.device.upsert({
+        where: {
+          userId_macAddress: {
+            userId,
+            macAddress: normalizedMac
+          }
+        },
+        update: {
+          name: name || null,
+          status: status || 'ACTIVE'
+        },
+        create: {
+          userId,
+          macAddress: normalizedMac,
+          name: name || null,
+          status: status || 'ACTIVE'
+        },
+        include: {
+          user: { select: { id: true, email: true, username: true } }
+        }
+      });
+
+      res.status(201).json({
+        success: true,
+        message: 'Device registered successfully',
+        data: { device }
+      });
+    } catch (error) {
+      console.error('Admin create device error:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Server error'
+      });
+    }
+  }
+);
+
+// @route   GET /api/admin/devices
+// @desc    List registered devices (Admin only)
+// @access  Private (Admin)
+router.get('/devices',
+  authenticate,
+  authorize('ADMIN'),
+  [
+    query('status').optional().isIn(deviceStatusValues),
+    query('search').optional().trim().isLength({ max: 100 }),
+    query('page').optional().isInt({ min: 1 }).toInt(),
+    query('limit').optional().isInt({ min: 1, max: 100 }).toInt()
+  ],
+  validate,
+  async (req, res) => {
+    try {
+      const { status, search, page = 1, limit = 20 } = req.query;
+      const take = Math.min(Math.max(parseInt(limit, 10) || 20, 1), 100);
+      const skip = (parseInt(page, 10) - 1) * take;
+
+      const where = {};
+      if (status) where.status = status;
+      if (search) {
+        where.OR = [
+          { macAddress: { contains: search, mode: 'insensitive' } },
+          { name: { contains: search, mode: 'insensitive' } }
+        ];
+      }
+
+      const [devices, total] = await Promise.all([
+        prisma.device.findMany({
+          where,
+          include: {
+            user: {
+              select: { id: true, email: true, username: true }
+            }
+          },
+          orderBy: { createdAt: 'desc' },
+          skip,
+          take
+        }),
+        prisma.device.count({ where })
+      ]);
+
+      res.json({
+        success: true,
+        pagination: {
+          page: parseInt(page, 10),
+          limit: take,
+          total,
+          pages: Math.ceil(total / take)
+        },
+        data: { devices }
+      });
+    } catch (error) {
+      console.error('Admin list devices error:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Server error'
+      });
+    }
+  }
+);
+
+// @route   GET /api/admin/devices/lookup/:mac
+// @desc    Lookup device by MAC and get Smart IPTV URLs (Admin only)
+// @access  Private (Admin)
+router.get('/devices/lookup/:mac',
+  authenticate,
+  authorize('ADMIN'),
+  async (req, res) => {
+    try {
+      const normalizedMac = normalizeMac(req.params.mac);
+      if (!normalizedMac) {
+        return res.status(400).json({
+          success: false,
+          message: 'Invalid MAC address format'
+        });
+      }
+
+      const device = await prisma.device.findFirst({
+        where: { macAddress: normalizedMac },
+        include: {
+          user: { select: { id: true, email: true, username: true } },
+          playlistToken: true
+        }
+      });
+
+      if (!device) {
+        return res.json({
+          success: true,
+          data: {
+            found: false,
+            macAddress: normalizedMac
+          }
+        });
+      }
+
+      // Build URLs
+      const baseUrl = process.env.PUBLIC_BASE_URL || `${req.protocol}://${req.get('host')}`;
+      const encodedMac = encodeURIComponent(normalizedMac);
+
+      const urls = {
+        playlist: `${baseUrl}/api/exports/tv/playlist/${normalizedMac}`,
+        epg: `${baseUrl}/api/exports/tv/epg/${normalizedMac}`
+      };
+
+      if (device.playlistToken) {
+        urls.directPlaylist = `${baseUrl}/api/exports/m3u?token=${device.playlistToken.token}&mac=${encodedMac}`;
+        urls.directEpg = `${baseUrl}/api/exports/epg.xml?token=${device.playlistToken.token}&mac=${encodedMac}`;
+      }
+
+      res.json({
+        success: true,
+        data: {
+          found: true,
+          device: {
+            id: device.id,
+            macAddress: device.macAddress,
+            name: device.name,
+            status: device.status,
+            createdAt: device.createdAt,
+            user: device.user
+          },
+          urls,
+          smartIptv: {
+            uploadPage: 'https://siptv.app/mylist/',
+            instructions: `Go to siptv.app/mylist, enter MAC: ${normalizedMac}, paste playlist URL, and click Send.`
+          }
+        }
+      });
+    } catch (error) {
+      console.error('Lookup device error:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Server error'
+      });
+    }
+  }
+);
+
+// @route   POST /api/admin/devices/activate
+// @desc    Quick activation - register device and get Smart IPTV URLs (Admin only)
+// @access  Private (Admin)
+router.post('/devices/activate',
+  authenticate,
+  authorize('ADMIN'),
+  [
+    body('macAddress').notEmpty().withMessage('MAC address is required'),
+    body('name').optional().trim().isLength({ max: 100 })
+  ],
+  validate,
+  async (req, res) => {
+    try {
+      const { macAddress, name } = req.body;
+
+      const normalizedMac = normalizeMac(macAddress);
+      if (!normalizedMac) {
+        return res.status(400).json({
+          success: false,
+          message: 'Invalid MAC address format'
+        });
+      }
+
+      // Register device under the admin user
+      const device = await prisma.device.upsert({
+        where: {
+          userId_macAddress: {
+            userId: req.user.id,
+            macAddress: normalizedMac
+          }
+        },
+        update: {
+          name: name || `Smart TV ${normalizedMac}`,
+          status: 'ACTIVE'
+        },
+        create: {
+          userId: req.user.id,
+          macAddress: normalizedMac,
+          name: name || `Smart TV ${normalizedMac}`,
+          status: 'ACTIVE'
+        }
+      });
+
+      // Create or get playlist token
+      const crypto = require('crypto');
+      let tokenRecord = await prisma.playlistToken.findUnique({
+        where: { deviceId: device.id }
+      });
+
+      if (!tokenRecord) {
+        const token = crypto.randomBytes(32).toString('hex');
+        tokenRecord = await prisma.playlistToken.create({
+          data: {
+            userId: req.user.id,
+            deviceId: device.id,
+            token
+          }
+        });
+      }
+
+      // Build URLs
+      const baseUrl = process.env.PUBLIC_BASE_URL || `${req.protocol}://${req.get('host')}`;
+      const encodedMac = encodeURIComponent(normalizedMac);
+
+      const playlistUrl = `${baseUrl}/api/exports/tv/playlist/${normalizedMac}`;
+      const epgUrl = `${baseUrl}/api/exports/tv/epg/${normalizedMac}`;
+      const directPlaylistUrl = `${baseUrl}/api/exports/m3u?token=${tokenRecord.token}&mac=${encodedMac}`;
+      const directEpgUrl = `${baseUrl}/api/exports/epg.xml?token=${tokenRecord.token}&mac=${encodedMac}`;
+
+      // Smart IPTV upload page URL (user will need to manually submit due to captcha)
+      const smartIptvUploadUrl = 'https://siptv.app/mylist/';
+
+      res.status(201).json({
+        success: true,
+        message: 'Device activated successfully',
+        data: {
+          device: {
+            id: device.id,
+            macAddress: normalizedMac,
+            name: device.name,
+            status: device.status
+          },
+          urls: {
+            // Simple URLs for Smart IPTV (auto-redirect)
+            playlist: playlistUrl,
+            epg: epgUrl,
+            // Direct URLs with token
+            directPlaylist: directPlaylistUrl,
+            directEpg: directEpgUrl
+          },
+          smartIptv: {
+            uploadPage: smartIptvUploadUrl,
+            instructions: `Go to ${smartIptvUploadUrl}, enter MAC: ${normalizedMac}, paste playlist URL, and click Send. Then restart the TV app.`
+          }
+        }
+      });
+    } catch (error) {
+      console.error('Quick activate device error:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Server error'
+      });
+    }
+  }
+);
+
+// @route   PUT /api/admin/devices/:id
+// @desc    Update device status/name (Admin only)
+// @access  Private (Admin)
+router.put('/devices/:id',
+  authenticate,
+  authorize('ADMIN'),
+  [
+    uuidValidator,
+    body('name').optional().trim().isLength({ max: 100 }),
+    body('status').optional().isIn(deviceStatusValues)
+  ],
+  validate,
+  async (req, res) => {
+    try {
+      const { name, status } = req.body;
+      const data = {};
+      if (name !== undefined) {
+        data.name = name || null;
+      }
+      if (status) {
+        data.status = status;
+      }
+
+      const device = await prisma.device.update({
+        where: { id: req.params.id },
+        data,
+        include: {
+          user: { select: { id: true, email: true, username: true } }
+        }
+      });
+
+      res.json({
+        success: true,
+        message: 'Device updated successfully',
+        data: { device }
+      });
+    } catch (error) {
+      console.error('Admin update device error:', error);
+      if (error.code === 'P2025') {
+        return res.status(404).json({
+          success: false,
+          message: 'Device not found'
         });
       }
       res.status(500).json({

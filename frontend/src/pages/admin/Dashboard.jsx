@@ -15,6 +15,11 @@ const AdminDashboard = () => {
     const [users, setUsers] = useState([])
     const [videos, setVideos] = useState([])
     const [channels, setChannels] = useState([])
+    const [devices, setDevices] = useState([])
+    const [macAddress, setMacAddress] = useState('')
+    const [deviceName, setDeviceName] = useState('')
+    const [activationResult, setActivationResult] = useState(null)
+    const [activating, setActivating] = useState(false)
 
     useEffect(() => {
         if (user?.role !== 'ADMIN') {
@@ -67,10 +72,48 @@ const AdminDashboard = () => {
         }
     }
 
+    const loadDevices = async () => {
+        try {
+            const response = await api.get('/admin/devices')
+            setDevices(response.data.data?.devices || [])
+        } catch (error) {
+            toast.error('Failed to load devices')
+        }
+    }
+
+    const activateDevice = async (e) => {
+        e.preventDefault()
+        if (!macAddress.trim()) {
+            toast.error('Please enter a MAC address')
+            return
+        }
+        setActivating(true)
+        setActivationResult(null)
+        try {
+            const response = await api.post('/admin/devices/activate', {
+                macAddress: macAddress.trim(),
+                name: deviceName.trim() || undefined
+            })
+            setActivationResult(response.data.data)
+            toast.success('Device activated successfully!')
+            loadDevices()
+        } catch (error) {
+            toast.error(error.response?.data?.message || 'Failed to activate device')
+        } finally {
+            setActivating(false)
+        }
+    }
+
+    const copyToClipboard = (text) => {
+        navigator.clipboard.writeText(text)
+        toast.success('Copied to clipboard!')
+    }
+
     useEffect(() => {
         if (activeTab === 'users') loadUsers()
         if (activeTab === 'videos') loadVideos()
         if (activeTab === 'channels') loadChannels()
+        if (activeTab === 'devices') loadDevices()
     }, [activeTab])
 
     const toggleUserStatus = async (userId, isActive) => {
@@ -106,8 +149,8 @@ const AdminDashboard = () => {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
             <h1 className="text-3xl font-bold text-white mb-8">Admin Dashboard</h1>
 
-            <div className="flex gap-4 mb-8 border-b border-slate-700">
-                {['overview', 'users', 'videos', 'channels'].map((tab) => (
+            <div className="flex gap-4 mb-8 border-b border-slate-700 overflow-x-auto">
+                {['overview', 'devices', 'users', 'videos', 'channels'].map((tab) => (
                     <button
                         key={tab}
                         onClick={() => setActiveTab(tab)}
@@ -273,6 +316,158 @@ const AdminDashboard = () => {
                             </div>
                         </div>
                     ))}
+                </div>
+            )}
+
+            {activeTab === 'devices' && (
+                <div className="space-y-6">
+                    {/* Quick Activation Form */}
+                    <div className="bg-slate-800 rounded-lg p-6">
+                        <h2 className="text-xl font-semibold text-white mb-4">Smart IPTV Device Activation</h2>
+                        <p className="text-gray-400 mb-4">Enter the client's TV MAC address to activate their device and get playlist URLs.</p>
+
+                        <form onSubmit={activateDevice} className="space-y-4">
+                            <div className="grid md:grid-cols-2 gap-4">
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-300 mb-1">MAC Address *</label>
+                                    <input
+                                        type="text"
+                                        value={macAddress}
+                                        onChange={(e) => setMacAddress(e.target.value)}
+                                        placeholder="aa:bb:cc:dd:ee:ff"
+                                        className="w-full px-4 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:border-primary-500"
+                                    />
+                                </div>
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-300 mb-1">Device Name (optional)</label>
+                                    <input
+                                        type="text"
+                                        value={deviceName}
+                                        onChange={(e) => setDeviceName(e.target.value)}
+                                        placeholder="Client's TV"
+                                        className="w-full px-4 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:border-primary-500"
+                                    />
+                                </div>
+                            </div>
+                            <button
+                                type="submit"
+                                disabled={activating}
+                                className="bg-primary-600 hover:bg-primary-700 disabled:bg-primary-800 text-white px-6 py-2 rounded-lg font-medium"
+                            >
+                                {activating ? 'Activating...' : 'Activate Device'}
+                            </button>
+                        </form>
+
+                        {/* Activation Result */}
+                        {activationResult && (
+                            <div className="mt-6 p-4 bg-slate-700 rounded-lg">
+                                <h3 className="text-lg font-semibold text-green-400 mb-3">Device Activated!</h3>
+                                <div className="space-y-3">
+                                    <div>
+                                        <p className="text-sm text-gray-400">MAC Address:</p>
+                                        <p className="text-white font-mono">{activationResult.device.macAddress}</p>
+                                    </div>
+                                    <div>
+                                        <p className="text-sm text-gray-400">Playlist URL (for Smart IPTV):</p>
+                                        <div className="flex items-center gap-2 mt-1">
+                                            <input
+                                                type="text"
+                                                readOnly
+                                                value={activationResult.urls.playlist}
+                                                className="flex-1 px-3 py-2 bg-slate-600 rounded text-white font-mono text-sm"
+                                            />
+                                            <button
+                                                onClick={() => copyToClipboard(activationResult.urls.playlist)}
+                                                className="px-3 py-2 bg-primary-600 hover:bg-primary-700 text-white rounded"
+                                            >
+                                                Copy
+                                            </button>
+                                        </div>
+                                    </div>
+                                    <div>
+                                        <p className="text-sm text-gray-400">EPG URL:</p>
+                                        <div className="flex items-center gap-2 mt-1">
+                                            <input
+                                                type="text"
+                                                readOnly
+                                                value={activationResult.urls.epg}
+                                                className="flex-1 px-3 py-2 bg-slate-600 rounded text-white font-mono text-sm"
+                                            />
+                                            <button
+                                                onClick={() => copyToClipboard(activationResult.urls.epg)}
+                                                className="px-3 py-2 bg-primary-600 hover:bg-primary-700 text-white rounded"
+                                            >
+                                                Copy
+                                            </button>
+                                        </div>
+                                    </div>
+                                    <div className="pt-3 border-t border-slate-600">
+                                        <p className="text-sm text-yellow-400 mb-2">Next Steps for Smart IPTV:</p>
+                                        <ol className="text-sm text-gray-300 list-decimal list-inside space-y-1">
+                                            <li>Go to <a href="https://siptv.app/mylist/" target="_blank" rel="noopener noreferrer" className="text-primary-400 hover:underline">siptv.app/mylist</a></li>
+                                            <li>Enter MAC: <span className="font-mono text-white">{activationResult.device.macAddress}</span></li>
+                                            <li>Paste the Playlist URL above</li>
+                                            <li>Click "Send"</li>
+                                            <li>Restart the Smart IPTV app on the TV</li>
+                                        </ol>
+                                        <a
+                                            href="https://siptv.app/mylist/"
+                                            target="_blank"
+                                            rel="noopener noreferrer"
+                                            className="inline-block mt-3 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm"
+                                        >
+                                            Open Smart IPTV Upload Page
+                                        </a>
+                                    </div>
+                                </div>
+                            </div>
+                        )}
+                    </div>
+
+                    {/* Registered Devices List */}
+                    <div className="bg-slate-800 rounded-lg overflow-hidden">
+                        <div className="p-4 border-b border-slate-700">
+                            <h2 className="text-xl font-semibold text-white">Registered Devices</h2>
+                        </div>
+                        <table className="w-full">
+                            <thead className="bg-slate-700">
+                                <tr>
+                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase">MAC Address</th>
+                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase">Name</th>
+                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase">User</th>
+                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase">Status</th>
+                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase">Created</th>
+                                </tr>
+                            </thead>
+                            <tbody className="divide-y divide-slate-700">
+                                {devices.map((device) => (
+                                    <tr key={device.id}>
+                                        <td className="px-6 py-4 text-gray-300 font-mono">{device.macAddress}</td>
+                                        <td className="px-6 py-4 text-gray-300">{device.name || '-'}</td>
+                                        <td className="px-6 py-4 text-gray-300">{device.user?.email || '-'}</td>
+                                        <td className="px-6 py-4">
+                                            <span className={`px-2 py-1 text-xs rounded ${
+                                                device.status === 'ACTIVE' ? 'bg-green-600' :
+                                                device.status === 'PENDING' ? 'bg-yellow-600' : 'bg-red-600'
+                                            } text-white`}>
+                                                {device.status}
+                                            </span>
+                                        </td>
+                                        <td className="px-6 py-4 text-gray-300 text-sm">
+                                            {new Date(device.createdAt).toLocaleDateString()}
+                                        </td>
+                                    </tr>
+                                ))}
+                                {devices.length === 0 && (
+                                    <tr>
+                                        <td colSpan="5" className="px-6 py-8 text-center text-gray-400">
+                                            No devices registered yet
+                                        </td>
+                                    </tr>
+                                )}
+                            </tbody>
+                        </table>
+                    </div>
                 </div>
             )}
         </div>
