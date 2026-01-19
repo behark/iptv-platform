@@ -82,6 +82,7 @@ model Channel {
   isLive        Boolean         @default(true) @map("is_live")
   isActive      Boolean         @default(true) @map("is_active")
   epgId         String?         @map("epg_id")
+  sortOrder     Int             @default(1000) @map("sort_order")
   createdAt     DateTime        @default(now()) @map("created_at")
   updatedAt     DateTime        @updatedAt @map("updated_at")
 

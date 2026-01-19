@@ -110,7 +110,10 @@ const getAccessibleChannels = async (user, subscription) => {
 
   return prisma.channel.findMany({
     where,
-    orderBy: { name: 'asc' }
+    orderBy: [
+      { sortOrder: 'asc' },
+      { name: 'asc' }
+    ]
   });
 };
 
