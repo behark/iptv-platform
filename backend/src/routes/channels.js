@@ -10,41 +10,135 @@ const prisma = new PrismaClient();
 // @access  Private (requires subscription)
 router.get('/', authenticate, requireSubscription, async (req, res) => {
   try {
-    const { category, language, country, search } = req.query;
+    const {
+      category,
+      language,
+      country,
+      search,
+      page = '1',
+      limit,
+      sort,
+      ids
+    } = req.query;
 
-    // Build base filter
-    const where = { isActive: true };
+    const pageNumber = Math.max(parseInt(page, 10) || 1, 1);
+    const limitNumber = limit ? Math.min(Math.max(parseInt(limit, 10) || 0, 0), 500) : 0;
+    const sortDirection = sort === 'name-desc' ? 'desc' : 'asc';
+    const filters = [{ isActive: true }];
 
     // Admin/Moderator can see all channels, regular users see only their plan's channels
+    let allowedIds = null;
     if (req.user.role !== 'ADMIN' && req.user.role !== 'MODERATOR') {
-      // Get channels accessible by user's plan
       const channelAccess = await prisma.channelAccess.findMany({
         where: {
           planId: req.subscription.planId
-        }
+        },
+        select: { channelId: true }
       });
-      const channelIds = channelAccess.map(ca => ca.channelId);
-      where.id = { in: channelIds };
+      allowedIds = channelAccess.map(ca => ca.channelId);
+      if (allowedIds.length === 0) {
+        return res.json({
+          success: true,
+          count: 0,
+          pagination: {
+            page: pageNumber,
+            limit: limitNumber || 0,
+            total: 0,
+            pages: 0,
+            hasMore: false
+          },
+          data: { channels: [] }
+        });
+      }
     }
 
-    if (category) where.category = category;
-    if (language) where.language = language;
-    if (country) where.country = country;
+    let idFilter = null;
+    if (ids !== undefined) {
+      const requestedIds = ids
+        .split(',')
+        .map(id => id.trim())
+        .filter(Boolean);
+      if (requestedIds.length === 0) {
+        return res.json({
+          success: true,
+          count: 0,
+          pagination: {
+            page: pageNumber,
+            limit: limitNumber || 0,
+            total: 0,
+            pages: 0,
+            hasMore: false
+          },
+          data: { channels: [] }
+        });
+      }
+
+      if (allowedIds) {
+        const allowedSet = new Set(allowedIds);
+        idFilter = requestedIds.filter(id => allowedSet.has(id));
+        if (idFilter.length === 0) {
+          return res.json({
+            success: true,
+            count: 0,
+            pagination: {
+              page: pageNumber,
+              limit: limitNumber || 0,
+              total: 0,
+              pages: 0,
+              hasMore: false
+            },
+            data: { channels: [] }
+          });
+        }
+      } else {
+        idFilter = requestedIds;
+      }
+    } else if (allowedIds) {
+      idFilter = allowedIds;
+    }
+
+    if (idFilter) {
+      filters.push({ id: { in: idFilter } });
+    }
+
+    if (category) filters.push({ category });
+    if (language) filters.push({ language });
+    if (country) filters.push({ country });
     if (search) {
-      where.OR = [
-        { name: { contains: search, mode: 'insensitive' } },
-        { description: { contains: search, mode: 'insensitive' } }
-      ];
+      filters.push({
+        OR: [
+          { name: { contains: search, mode: 'insensitive' } },
+          { description: { contains: search, mode: 'insensitive' } }
+        ]
+      });
     }
 
+    const where = { AND: filters };
+    const usePagination = limitNumber > 0;
+    const skip = usePagination ? (pageNumber - 1) * limitNumber : undefined;
+    const take = usePagination ? limitNumber : undefined;
+
+    const total = usePagination ? await prisma.channel.count({ where }) : null;
     const channels = await prisma.channel.findMany({
       where,
-      orderBy: { name: 'asc' }
+      orderBy: { name: sortDirection },
+      ...(usePagination ? { skip, take } : {})
     });
+
+    const totalCount = usePagination ? total : channels.length;
+    const totalPages = usePagination ? Math.ceil(totalCount / limitNumber) : 1;
+    const hasMore = usePagination ? pageNumber < totalPages : false;
 
     res.json({
       success: true,
       count: channels.length,
+      pagination: {
+        page: pageNumber,
+        limit: usePagination ? limitNumber : channels.length,
+        total: totalCount,
+        pages: totalPages,
+        hasMore
+      },
       data: { channels }
     });
   } catch (error) {

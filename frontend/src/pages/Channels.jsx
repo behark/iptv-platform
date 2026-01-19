@@ -47,6 +47,28 @@ const DEFAULT_COUNTRIES = [
   'South Africa'
 ]
 
+const PAGE_SIZE = 200
+const PRIORITY_COUNTRIES = ['XK', 'AL']
+
+const mergeUniqueChannels = (primary, secondary) => {
+  const seen = new Set()
+  const result = []
+
+  primary.forEach((channel) => {
+    if (!channel?.id || seen.has(channel.id)) return
+    seen.add(channel.id)
+    result.push(channel)
+  })
+
+  secondary.forEach((channel) => {
+    if (!channel?.id || seen.has(channel.id)) return
+    seen.add(channel.id)
+    result.push(channel)
+  })
+
+  return result
+}
+
 const readFavoriteIds = () => {
   try {
     return JSON.parse(localStorage.getItem('iptv_favorite_channel_ids') || '[]')
@@ -67,12 +89,18 @@ const Channels = () => {
   const location = useLocation()
   const [channels, setChannels] = useState([])
   const [loading, setLoading] = useState(true)
+  const [loadingMore, setLoadingMore] = useState(false)
   const [error, setError] = useState('')
   const [favoriteIds, setFavoriteIds] = useState([])
   const [recentChannels, setRecentChannels] = useState([])
+  const [priorityChannels, setPriorityChannels] = useState([])
+  const [page, setPage] = useState(1)
+  const [totalCount, setTotalCount] = useState(0)
+  const [hasMore, setHasMore] = useState(false)
   const [actionChannelId, setActionChannelId] = useState(null)
   const [isOffline, setIsOffline] = useState(!navigator.onLine)
   const longPressTimer = useRef(null)
+  const requestController = useRef(null)
   const [filters, setFilters] = useState(() => ({
     category: location.state?.presetFilters?.category || '',
     language: location.state?.presetFilters?.language || '',
@@ -83,7 +111,6 @@ const Channels = () => {
   }))
 
   useEffect(() => {
-    loadChannels()
     setFavoriteIds(readFavoriteIds())
     setRecentChannels(readRecentChannels())
   }, [])
@@ -99,17 +126,99 @@ const Channels = () => {
     }
   }, [])
 
-  const loadChannels = async () => {
+  const loadChannels = async ({ nextPage = 1, append = false } = {}) => {
     try {
-      setLoading(true)
+      if (requestController.current) {
+        requestController.current.abort()
+      }
+
+      const controller = new AbortController()
+      requestController.current = controller
+
+      if (filters.tab === 'Favorites' && favoriteIds.length === 0) {
+        setChannels([])
+        setPriorityChannels([])
+        setTotalCount(0)
+        setHasMore(false)
+        setLoading(false)
+        setLoadingMore(false)
+        setError('')
+        return
+      }
+
+      if (append) {
+        setLoadingMore(true)
+      } else {
+        setLoading(true)
+      }
       setError('')
-      const response = await channelsAPI.getAll()
-      setChannels(response.data.data?.channels || [])
+      const shouldPinPriority = filters.tab === 'All' &&
+        !filters.category &&
+        !filters.language &&
+        !filters.country &&
+        !filters.search
+
+      const tabCategory = filters.tab !== 'All' && filters.tab !== 'Favorites' ? filters.tab : ''
+      const resolvedCategory = tabCategory || filters.category
+
+      const params = {
+        page: nextPage,
+        limit: PAGE_SIZE,
+        sort: filters.sort
+      }
+
+      if (resolvedCategory) params.category = resolvedCategory
+      if (filters.language) params.language = filters.language
+      if (filters.country) params.country = filters.country
+      if (filters.search) params.search = filters.search
+      if (filters.tab === 'Favorites') params.ids = favoriteIds.join(',')
+
+      const requests = [channelsAPI.getAll(params, controller.signal)]
+      if (shouldPinPriority && nextPage === 1) {
+        PRIORITY_COUNTRIES.forEach((code) => {
+          requests.push(
+            channelsAPI.getAll(
+              { ...params, page: 1, limit: PAGE_SIZE, country: code },
+              controller.signal
+            )
+          )
+        })
+      }
+
+      const responses = await Promise.all(requests)
+      const baseResponse = responses[0]
+      const baseChannels = baseResponse.data.data?.channels || []
+      const pagination = baseResponse.data.pagination || {}
+      const total = typeof pagination.total === 'number' ? pagination.total : baseChannels.length
+      const hasMoreResults = Boolean(pagination.hasMore)
+
+      let pinnedChannels = priorityChannels
+      if (shouldPinPriority && nextPage === 1) {
+        pinnedChannels = responses
+          .slice(1)
+          .flatMap((response) => response.data.data?.channels || [])
+        setPriorityChannels(pinnedChannels)
+      } else if (!shouldPinPriority && nextPage === 1) {
+        pinnedChannels = []
+        setPriorityChannels([])
+      }
+
+      if (append) {
+        setChannels((prev) => mergeUniqueChannels(pinnedChannels, [...prev, ...baseChannels]))
+      } else {
+        setChannels(mergeUniqueChannels(pinnedChannels, baseChannels))
+      }
+      setPage(nextPage)
+      setTotalCount(total)
+      setHasMore(hasMoreResults)
     } catch (error) {
-      setError('Unable to load channels right now.')
-      toast.error('Failed to load channels')
+      if (error.name !== 'CanceledError') {
+        setError('Unable to load channels right now.')
+        toast.error('Failed to load channels')
+      }
     } finally {
       setLoading(false)
+      setLoadingMore(false)
     }
   }
 
@@ -159,47 +268,21 @@ const Channels = () => {
     return Array.from(countries).sort((a, b) => a.localeCompare(b))
   }, [dedupedChannels])
 
-  const filteredChannels = useMemo(() => {
-    const searchValue = filters.search.trim().toLowerCase()
-    let result = dedupedChannels.filter((channel) => {
-      if (filters.tab === 'Favorites' && !favoriteIds.includes(channel.id)) {
-        return false
-      }
-      if (filters.tab !== 'All' && filters.tab !== 'Favorites' && channel.category !== filters.tab) {
-        return false
-      }
-      if (filters.category && channel.category !== filters.category) {
-        return false
-      }
-      if (filters.language && channel.language !== filters.language) {
-        return false
-      }
-      if (filters.country && channel.country !== filters.country) {
-        return false
-      }
-      if (searchValue) {
-        const haystack = `${channel.name ?? ''} ${channel.category ?? ''} ${channel.language ?? ''} ${channel.country ?? ''} ${channel.description ?? ''}`.toLowerCase()
-        if (!haystack.includes(searchValue)) {
-          return false
-        }
-      }
-      return true
-    })
-
-    result = [...result].sort((a, b) => {
-      const nameA = a.name ?? ''
-      const nameB = b.name ?? ''
-      return filters.sort === 'name-desc'
-        ? nameB.localeCompare(nameA)
-        : nameA.localeCompare(nameB)
-    })
-
-    return result
-  }, [dedupedChannels, favoriteIds, filters])
+  const visibleChannels = useMemo(() => dedupedChannels, [dedupedChannels])
 
   const hasFilters = Boolean(
     filters.search || filters.category || filters.language || filters.country || filters.sort !== 'name-asc' || filters.tab !== 'All'
   )
+
+  const favoritesKey = filters.tab === 'Favorites' ? favoriteIds.join(',') : ''
+
+  useEffect(() => {
+    const delay = filters.search ? 350 : 0
+    const timer = setTimeout(() => {
+      loadChannels({ nextPage: 1, append: false })
+    }, delay)
+    return () => clearTimeout(timer)
+  }, [filters.category, filters.language, filters.country, filters.search, filters.sort, filters.tab, favoritesKey])
 
   const resetFilters = () => {
     setFilters({
@@ -277,7 +360,7 @@ const Channels = () => {
         <div>
           <h1 className="text-3xl font-bold text-white">Channels</h1>
           <p className="text-sm text-slate-400 mt-1">
-            Showing {filteredChannels.length} of {dedupedChannels.length} channels
+            Showing {visibleChannels.length} of {totalCount || dedupedChannels.length} channels
           </p>
         </div>
         <div className="flex items-center gap-3">
@@ -290,7 +373,7 @@ const Channels = () => {
             </button>
           )}
           <button
-            onClick={loadChannels}
+            onClick={() => loadChannels({ nextPage: 1, append: false })}
             className="text-sm text-white bg-slate-700 hover:bg-slate-600 px-3 py-2 rounded-lg"
           >
             Refresh
@@ -474,7 +557,7 @@ const Channels = () => {
             </div>
           ))}
         {!loading &&
-          filteredChannels.map((channel) => {
+          visibleChannels.map((channel) => {
             const description =
               channel.description && channel.description.toLowerCase() !== 'undefined'
                 ? channel.description
@@ -587,7 +670,7 @@ const Channels = () => {
           })}
       </div>
 
-      {!loading && filteredChannels.length === 0 && (
+      {!loading && visibleChannels.length === 0 && (
         <div className="text-center py-12">
           <p className="text-gray-400">
             {hasFilters ? 'No channels match your filters yet.' : 'No channels found.'}
@@ -600,6 +683,18 @@ const Channels = () => {
               Reset filters
             </button>
           )}
+        </div>
+      )}
+
+      {!loading && hasMore && (
+        <div className="mt-8 flex justify-center">
+          <button
+            onClick={() => loadChannels({ nextPage: page + 1, append: true })}
+            disabled={loadingMore}
+            className="text-sm text-white bg-slate-700 hover:bg-slate-600 px-4 py-2 rounded-lg disabled:opacity-60"
+          >
+            {loadingMore ? 'Loading...' : 'Load more'}
+          </button>
         </div>
       )}
     </div>
