@@ -22,6 +22,9 @@ const searchRoutes = require('./routes/search');
 
 const app = express();
 
+// Trust Render's proxy so rate limiting can read X-Forwarded-For headers.
+app.set('trust proxy', 1);
+
 // Security middleware
 app.use(helmet());
 
