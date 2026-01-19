@@ -1,7 +1,110 @@
 const axios = require('axios');
-const { PrismaClient } = require('@prisma/client');
+const { URL } = require('url');
+const dns = require('dns').promises;
+const prisma = require('../lib/prisma');
 
-const prisma = new PrismaClient();
+// Private IP ranges to block for SSRF protection
+const PRIVATE_IP_RANGES = [
+    /^127\./,                      // Loopback
+    /^10\./,                       // Private Class A
+    /^172\.(1[6-9]|2[0-9]|3[0-1])\./, // Private Class B
+    /^192\.168\./,                 // Private Class C
+    /^169\.254\./,                 // Link-local
+    /^0\./,                        // Current network
+    /^224\./,                      // Multicast
+    /^240\./,                      // Reserved
+    /^255\./,                      // Broadcast
+    /^::1$/,                       // IPv6 loopback
+    /^fc00:/i,                     // IPv6 unique local
+    /^fe80:/i,                     // IPv6 link-local
+    /^ff00:/i,                     // IPv6 multicast
+];
+
+// Allowed URL schemes
+const ALLOWED_SCHEMES = ['http:', 'https:'];
+
+// Blocked hostnames
+const BLOCKED_HOSTNAMES = [
+    'localhost',
+    'localhost.localdomain',
+    'local',
+    'broadcasthost',
+    'ip6-localhost',
+    'ip6-loopback',
+];
+
+/**
+ * Validate URL for SSRF attacks
+ * @param {string} urlString - URL to validate
+ * @returns {Promise<boolean>} - True if URL is safe
+ */
+async function validateUrlForSSRF(urlString) {
+    try {
+        const parsedUrl = new URL(urlString);
+
+        // Check scheme
+        if (!ALLOWED_SCHEMES.includes(parsedUrl.protocol)) {
+            console.warn(`Blocked URL with scheme: ${parsedUrl.protocol}`);
+            return false;
+        }
+
+        // Check for blocked hostnames
+        const hostname = parsedUrl.hostname.toLowerCase();
+        if (BLOCKED_HOSTNAMES.includes(hostname)) {
+            console.warn(`Blocked localhost access: ${hostname}`);
+            return false;
+        }
+
+        // Check if hostname is an IP address
+        const ipv4Regex = /^(\d{1,3}\.){3}\d{1,3}$/;
+        const ipv6Regex = /^([0-9a-fA-F]{0,4}:){2,7}[0-9a-fA-F]{0,4}$/;
+
+        if (ipv4Regex.test(hostname) || ipv6Regex.test(hostname)) {
+            // Direct IP address - check against private ranges
+            for (const pattern of PRIVATE_IP_RANGES) {
+                if (pattern.test(hostname)) {
+                    console.warn(`Blocked private IP: ${hostname}`);
+                    return false;
+                }
+            }
+        } else {
+            // Hostname - resolve and check DNS
+            try {
+                const addresses = await dns.resolve4(hostname);
+                for (const ip of addresses) {
+                    for (const pattern of PRIVATE_IP_RANGES) {
+                        if (pattern.test(ip)) {
+                            console.warn(`Blocked hostname resolving to private IP: ${hostname} -> ${ip}`);
+                            return false;
+                        }
+                    }
+                }
+            } catch (dnsError) {
+                // If DNS resolution fails for a new hostname, allow known good domains
+                const trustedDomains = [
+                    'iptv-org.github.io',
+                    'github.com',
+                    'githubusercontent.com',
+                    'raw.githubusercontent.com'
+                ];
+
+                const isTrusted = trustedDomains.some(domain =>
+                    hostname === domain || hostname.endsWith('.' + domain)
+                );
+
+                if (!isTrusted) {
+                    console.warn(`DNS resolution failed for: ${hostname}`);
+                    // Allow the request but log it - DNS might just be slow
+                }
+            }
+        }
+
+        return true;
+    } catch (error) {
+        console.error(`URL validation error: ${error.message}`);
+        return false;
+    }
+}
 
 const FREE_SOURCES = [
     {
@@ -64,8 +167,6 @@ function parseM3U(content) {
         const line = lines[i].trim();
 
         if (line.startsWith('#EXTINF:')) {
-            const attrs = {};
-
             const tvgIdMatch = line.match(/tvg-id="([^"]*)"/);
             const tvgNameMatch = line.match(/tvg-name="([^"]*)"/);
             const tvgLogoMatch = line.match(/tvg-logo="([^"]*)"/);
@@ -98,18 +199,26 @@ function parseM3U(content) {
 function detectStreamType(url) {
     if (url.includes('.m3u8')) return 'HLS';
     if (url.includes('.mpd')) return 'DASH';
-    if (url.includes('.ts')) return 'MPEG_TS';
+    if (url.includes('.ts')) return 'MPEGTS';
     if (url.includes('rtmp://')) return 'RTMP';
     return 'HLS';
 }
 
 async function validateStream(url, timeout = 5000) {
     try {
+        // Validate URL for SSRF before making request
+        const isSafe = await validateUrlForSSRF(url);
+        if (!isSafe) {
+            console.warn(`Stream validation blocked for: ${url}`);
+            return false;
+        }
+
         const response = await axios.head(url, {
             timeout,
             headers: {
                 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
-            }
+            },
+            maxRedirects: 5
         });
         return response.status === 200 || response.status === 302;
     } catch {
@@ -126,18 +235,26 @@ async function importFromUrl(url, options = {}) {
         onProgress = null
     } = options;
 
-    console.log(`📥 Fetching playlist from: ${url}`);
+    // Validate URL for SSRF before fetching
+    const isSafe = await validateUrlForSSRF(url);
+    if (!isSafe) {
+        throw new Error(`URL blocked for security reasons: ${url}`);
+    }
+
+    console.log(`Fetching playlist from: ${url}`);
 
     try {
         const response = await axios.get(url, {
             timeout: 30000,
             headers: {
                 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
-            }
+            },
+            maxRedirects: 5,
+            maxContentLength: 50 * 1024 * 1024 // 50MB max
         });
 
         const channels = parseM3U(response.data);
-        console.log(`📺 Found ${channels.length} channels in playlist`);
+        console.log(`Found ${channels.length} channels in playlist`);
 
         let imported = 0;
         let skipped = 0;
@@ -237,7 +354,7 @@ async function importAllCategories(options = {}) {
     const results = {};
 
     for (const [category, url] of Object.entries(CATEGORY_SOURCES)) {
-        console.log(`\n📁 Importing category: ${category}`);
+        console.log(`\nImporting category: ${category}`);
         try {
             results[category] = await importFromUrl(url, { ...options, category });
         } catch (error) {
@@ -253,7 +370,7 @@ async function importPopularCountries(options = {}) {
     const results = {};
 
     for (const country of popularCountries) {
-        console.log(`\n🌍 Importing country: ${country.toUpperCase()}`);
+        console.log(`\nImporting country: ${country.toUpperCase()}`);
         try {
             results[country] = await importByCountry(country, options);
         } catch (error) {
@@ -290,7 +407,7 @@ async function getStats() {
 }
 
 async function cleanupDeadChannels(dryRun = true) {
-    console.log('🔍 Checking for dead channels...');
+    console.log('Checking for dead channels...');
 
     const channels = await prisma.channel.findMany({
         where: { isActive: true },
@@ -331,6 +448,7 @@ module.exports = {
     COUNTRY_SOURCES,
     parseM3U,
     validateStream,
+    validateUrlForSSRF,
     importFromUrl,
     importByCategory,
     importByCountry,

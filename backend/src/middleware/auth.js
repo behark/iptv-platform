@@ -1,7 +1,6 @@
 const jwt = require('jsonwebtoken');
-const { PrismaClient } = require('@prisma/client');
-
-const prisma = new PrismaClient();
+const prisma = require('../lib/prisma');
+const { isBlacklisted } = require('../services/tokenBlacklist');
 
 // Verify JWT token
 const authenticate = async (req, res, next) => {
@@ -15,8 +14,16 @@ const authenticate = async (req, res, next) => {
       });
     }
 
+    // Check if token is blacklisted
+    if (isBlacklisted(token)) {
+      return res.status(401).json({
+        success: false,
+        message: 'Token has been invalidated'
+      });
+    }
+
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
-    
+
     const user = await prisma.user.findUnique({
       where: { id: decoded.userId },
       select: {
@@ -38,6 +45,18 @@ const authenticate = async (req, res, next) => {
     req.user = user;
     next();
   } catch (error) {
+    if (error.name === 'TokenExpiredError') {
+      return res.status(401).json({
+        success: false,
+        message: 'Token has expired'
+      });
+    }
+    if (error.name === 'JsonWebTokenError') {
+      return res.status(401).json({
+        success: false,
+        message: 'Token is not valid'
+      });
+    }
     res.status(401).json({
       success: false,
       message: 'Token is not valid'

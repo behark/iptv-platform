@@ -16,6 +16,7 @@ const epgRoutes = require('./routes/epg');
 const favoritesRoutes = require('./routes/favorites');
 const historyRoutes = require('./routes/history');
 const adminRoutes = require('./routes/admin');
+const searchRoutes = require('./routes/search');
 
 const app = express();
 
@@ -79,6 +80,7 @@ app.use('/api/epg', epgRoutes);
 app.use('/api/favorites', favoritesRoutes);
 app.use('/api/history', historyRoutes);
 app.use('/api/admin', adminRoutes);
+app.use('/api/search', searchRoutes);
 
 // Error handling middleware
 app.use((err, req, res, next) => {

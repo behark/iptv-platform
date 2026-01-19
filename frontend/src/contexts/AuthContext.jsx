@@ -1,4 +1,4 @@
-import { createContext, useState, useContext, useEffect } from 'react'
+import { createContext, useState, useContext, useEffect, useCallback } from 'react'
 import { authAPI } from '../services/api'
 
 const AuthContext = createContext()
@@ -12,21 +12,12 @@ export const useAuth = () => {
 }
 
 export const AuthProvider = ({ children }) => {
-  // Try to get user from localStorage first
   const storedUser = localStorage.getItem('user')
   const [user, setUser] = useState(storedUser ? JSON.parse(storedUser) : null)
   const [loading, setLoading] = useState(true)
   const [token, setToken] = useState(localStorage.getItem('token'))
 
-  useEffect(() => {
-    if (token) {
-      checkAuth()
-    } else {
-      setLoading(false)
-    }
-  }, [token])
-
-  const checkAuth = async () => {
+  const checkAuth = useCallback(async () => {
     try {
       const response = await authAPI.getMe()
       const userData = response.data.data?.user || response.data.user
@@ -40,31 +31,44 @@ export const AuthProvider = ({ children }) => {
     } finally {
       setLoading(false)
     }
-  }
+  }, [])
+
+  useEffect(() => {
+    if (token) {
+      checkAuth()
+    } else {
+      setLoading(false)
+    }
+  }, [token, checkAuth])
 
   const login = async (email, password) => {
     const response = await authAPI.login(email, password)
-    const { user, token } = response.data.data
-    localStorage.setItem('token', token)
-    localStorage.setItem('user', JSON.stringify(user))
-    setToken(token)
-    setUser(user)
-    setLoading(false) // Ensure loading is false after login
+    const { user: userData, token: newToken } = response.data.data
+    localStorage.setItem('token', newToken)
+    localStorage.setItem('user', JSON.stringify(userData))
+    setToken(newToken)
+    setUser(userData)
+    setLoading(false)
     return response
   }
 
   const register = async (userData) => {
     const response = await authAPI.register(userData)
-    const { user, token } = response.data.data
-    localStorage.setItem('token', token)
-    localStorage.setItem('user', JSON.stringify(user))
-    setToken(token)
-    setUser(user)
+    const { user: newUser, token: newToken } = response.data.data
+    localStorage.setItem('token', newToken)
+    localStorage.setItem('user', JSON.stringify(newUser))
+    setToken(newToken)
+    setUser(newUser)
     setLoading(false)
     return response
   }
 
-  const logout = () => {
+  const logout = async () => {
+    try {
+      await authAPI.logout()
+    } catch (error) {
+      // Continue with logout even if API call fails
+    }
     localStorage.removeItem('token')
     localStorage.removeItem('user')
     setToken(null)

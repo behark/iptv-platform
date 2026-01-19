@@ -2,6 +2,9 @@ import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { useAuth } from '../contexts/AuthContext'
 import api, { subscriptionsAPI } from '../services/api'
+import Input, { PasswordStrengthIndicator } from '../components/ui/Input'
+import Button from '../components/ui/Button'
+import Skeleton from '../components/ui/Skeleton'
 import toast from 'react-hot-toast'
 
 const Profile = () => {
@@ -17,12 +20,14 @@ const Profile = () => {
     firstName: user?.firstName || '',
     lastName: user?.lastName || ''
   })
+  const [profileErrors, setProfileErrors] = useState({})
 
   const [passwordData, setPasswordData] = useState({
     currentPassword: '',
     newPassword: '',
     confirmPassword: ''
   })
+  const [passwordErrors, setPasswordErrors] = useState({})
 
   useEffect(() => {
     loadSubscription()
@@ -49,16 +54,49 @@ const Profile = () => {
     }
   }
 
+  const validateUsername = (value) => {
+    if (!value) return 'Username is required'
+    if (value.length < 3) return 'Username must be at least 3 characters'
+    if (value.length > 20) return 'Username must be at most 20 characters'
+    if (!/^[a-zA-Z0-9_]+$/.test(value)) return 'Only letters, numbers, and underscores'
+    return ''
+  }
+
+  const validatePassword = (value) => {
+    if (!value) return 'Password is required'
+    if (value.length < 8) return 'Password must be at least 8 characters'
+    if (!/[a-z]/.test(value)) return 'Must contain a lowercase letter'
+    if (!/[A-Z]/.test(value)) return 'Must contain an uppercase letter'
+    if (!/[0-9]/.test(value)) return 'Must contain a number'
+    return ''
+  }
+
   const handleProfileUpdate = async (e) => {
     e.preventDefault()
+
+    const usernameError = validateUsername(profileData.username)
+    if (usernameError) {
+      setProfileErrors({ username: usernameError })
+      return
+    }
+
     setSaving(true)
     try {
       await api.put('/users/profile', profileData)
       await checkAuth()
       toast.success('Profile updated successfully')
       setEditMode(false)
+      setProfileErrors({})
     } catch (error) {
-      toast.error(error.response?.data?.message || 'Failed to update profile')
+      const message = error.response?.data?.message || 'Failed to update profile'
+      toast.error(message)
+      if (error.response?.data?.errors) {
+        const errors = {}
+        error.response.data.errors.forEach(err => {
+          if (err.path) errors[err.path] = err.msg
+        })
+        setProfileErrors(errors)
+      }
     } finally {
       setSaving(false)
     }
@@ -67,8 +105,22 @@ const Profile = () => {
   const handlePasswordChange = async (e) => {
     e.preventDefault()
 
-    if (passwordData.newPassword !== passwordData.confirmPassword) {
-      toast.error('Passwords do not match')
+    const errors = {}
+    if (!passwordData.currentPassword) {
+      errors.currentPassword = 'Current password is required'
+    }
+    const newPasswordError = validatePassword(passwordData.newPassword)
+    if (newPasswordError) {
+      errors.newPassword = newPasswordError
+    }
+    if (!passwordData.confirmPassword) {
+      errors.confirmPassword = 'Please confirm your password'
+    } else if (passwordData.newPassword !== passwordData.confirmPassword) {
+      errors.confirmPassword = 'Passwords do not match'
+    }
+
+    if (Object.keys(errors).length > 0) {
+      setPasswordErrors(errors)
       return
     }
 
@@ -81,202 +133,240 @@ const Profile = () => {
       toast.success('Password changed successfully')
       setPasswordMode(false)
       setPasswordData({ currentPassword: '', newPassword: '', confirmPassword: '' })
+      setPasswordErrors({})
     } catch (error) {
-      toast.error(error.response?.data?.message || 'Failed to change password')
+      const message = error.response?.data?.message || 'Failed to change password'
+      toast.error(message)
+      if (message.toLowerCase().includes('current password')) {
+        setPasswordErrors({ currentPassword: message })
+      }
     } finally {
       setSaving(false)
     }
+  }
+
+  const cancelProfileEdit = () => {
+    setEditMode(false)
+    setProfileData({
+      username: user?.username || '',
+      firstName: user?.firstName || '',
+      lastName: user?.lastName || ''
+    })
+    setProfileErrors({})
+  }
+
+  const cancelPasswordEdit = () => {
+    setPasswordMode(false)
+    setPasswordData({ currentPassword: '', newPassword: '', confirmPassword: '' })
+    setPasswordErrors({})
   }
 
   return (
     <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
       <h1 className="text-3xl font-bold text-white mb-6">Profile</h1>
 
+      {/* Account Information */}
       <div className="bg-slate-800 rounded-lg p-6 mb-6">
         <div className="flex justify-between items-center mb-4">
           <h2 className="text-xl font-semibold text-white">Account Information</h2>
           {!editMode && (
-            <button
+            <Button
+              variant="ghost"
+              size="sm"
               onClick={() => setEditMode(true)}
-              className="text-primary-400 hover:text-primary-300 text-sm"
             >
               Edit Profile
-            </button>
+            </Button>
           )}
         </div>
 
         {editMode ? (
           <form onSubmit={handleProfileUpdate} className="space-y-4">
-            <div>
-              <label className="block text-sm text-gray-400 mb-1">Username</label>
-              <input
-                type="text"
-                value={profileData.username}
-                onChange={(e) => setProfileData({ ...profileData, username: e.target.value })}
-                className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-primary-500"
+            <Input
+              label="Username"
+              value={profileData.username}
+              onChange={(e) => {
+                setProfileData({ ...profileData, username: e.target.value })
+                if (profileErrors.username) {
+                  setProfileErrors({ ...profileErrors, username: '' })
+                }
+              }}
+              error={profileErrors.username}
+              required
+            />
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <Input
+                label="First Name"
+                value={profileData.firstName}
+                onChange={(e) => setProfileData({ ...profileData, firstName: e.target.value })}
+              />
+              <Input
+                label="Last Name"
+                value={profileData.lastName}
+                onChange={(e) => setProfileData({ ...profileData, lastName: e.target.value })}
               />
             </div>
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <label className="block text-sm text-gray-400 mb-1">First Name</label>
-                <input
-                  type="text"
-                  value={profileData.firstName}
-                  onChange={(e) => setProfileData({ ...profileData, firstName: e.target.value })}
-                  className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-primary-500"
-                />
-              </div>
-              <div>
-                <label className="block text-sm text-gray-400 mb-1">Last Name</label>
-                <input
-                  type="text"
-                  value={profileData.lastName}
-                  onChange={(e) => setProfileData({ ...profileData, lastName: e.target.value })}
-                  className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-primary-500"
-                />
-              </div>
-            </div>
             <div className="flex gap-3">
-              <button
-                type="submit"
-                disabled={saving}
-                className="bg-primary-600 hover:bg-primary-700 text-white px-4 py-2 rounded-lg disabled:opacity-50"
-              >
-                {saving ? 'Saving...' : 'Save Changes'}
-              </button>
-              <button
+              <Button type="submit" loading={saving}>
+                Save Changes
+              </Button>
+              <Button
                 type="button"
-                onClick={() => setEditMode(false)}
-                className="bg-slate-600 hover:bg-slate-500 text-white px-4 py-2 rounded-lg"
+                variant="secondary"
+                onClick={cancelProfileEdit}
+                disabled={saving}
               >
                 Cancel
-              </button>
+              </Button>
             </div>
           </form>
         ) : (
-          <div className="space-y-2">
-            <p className="text-gray-300">
-              <span className="font-medium">Email:</span> {user?.email}
-            </p>
-            <p className="text-gray-300">
-              <span className="font-medium">Username:</span> {user?.username}
-            </p>
+          <div className="space-y-3">
+            <div className="flex items-center gap-2">
+              <span className="text-slate-400 w-24">Email:</span>
+              <span className="text-white">{user?.email}</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <span className="text-slate-400 w-24">Username:</span>
+              <span className="text-white">{user?.username}</span>
+            </div>
             {(user?.firstName || user?.lastName) && (
-              <p className="text-gray-300">
-                <span className="font-medium">Name:</span> {user?.firstName} {user?.lastName}
-              </p>
+              <div className="flex items-center gap-2">
+                <span className="text-slate-400 w-24">Name:</span>
+                <span className="text-white">{user?.firstName} {user?.lastName}</span>
+              </div>
             )}
             {user?.role === 'ADMIN' && (
-              <p className="text-gray-300">
-                <span className="font-medium">Role:</span>{' '}
-                <span className="text-purple-400">{user.role}</span>
-              </p>
+              <div className="flex items-center gap-2">
+                <span className="text-slate-400 w-24">Role:</span>
+                <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-purple-500/20 text-purple-400">
+                  {user.role}
+                </span>
+              </div>
             )}
           </div>
         )}
       </div>
 
+      {/* Security */}
       <div className="bg-slate-800 rounded-lg p-6 mb-6">
         <div className="flex justify-between items-center mb-4">
           <h2 className="text-xl font-semibold text-white">Security</h2>
           {!passwordMode && (
-            <button
+            <Button
+              variant="ghost"
+              size="sm"
               onClick={() => setPasswordMode(true)}
-              className="text-primary-400 hover:text-primary-300 text-sm"
             >
               Change Password
-            </button>
+            </Button>
           )}
         </div>
 
         {passwordMode ? (
           <form onSubmit={handlePasswordChange} className="space-y-4">
+            <Input
+              label="Current Password"
+              type="password"
+              value={passwordData.currentPassword}
+              onChange={(e) => {
+                setPasswordData({ ...passwordData, currentPassword: e.target.value })
+                if (passwordErrors.currentPassword) {
+                  setPasswordErrors({ ...passwordErrors, currentPassword: '' })
+                }
+              }}
+              error={passwordErrors.currentPassword}
+              required
+            />
             <div>
-              <label className="block text-sm text-gray-400 mb-1">Current Password</label>
-              <input
-                type="password"
-                value={passwordData.currentPassword}
-                onChange={(e) => setPasswordData({ ...passwordData, currentPassword: e.target.value })}
-                className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-primary-500"
-                required
-              />
-            </div>
-            <div>
-              <label className="block text-sm text-gray-400 mb-1">New Password</label>
-              <input
+              <Input
+                label="New Password"
                 type="password"
                 value={passwordData.newPassword}
-                onChange={(e) => setPasswordData({ ...passwordData, newPassword: e.target.value })}
-                className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-primary-500"
-                required
-                minLength={6}
-              />
-            </div>
-            <div>
-              <label className="block text-sm text-gray-400 mb-1">Confirm New Password</label>
-              <input
-                type="password"
-                value={passwordData.confirmPassword}
-                onChange={(e) => setPasswordData({ ...passwordData, confirmPassword: e.target.value })}
-                className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-primary-500"
-                required
-              />
-            </div>
-            <div className="flex gap-3">
-              <button
-                type="submit"
-                disabled={saving}
-                className="bg-primary-600 hover:bg-primary-700 text-white px-4 py-2 rounded-lg disabled:opacity-50"
-              >
-                {saving ? 'Changing...' : 'Change Password'}
-              </button>
-              <button
-                type="button"
-                onClick={() => {
-                  setPasswordMode(false)
-                  setPasswordData({ currentPassword: '', newPassword: '', confirmPassword: '' })
+                onChange={(e) => {
+                  setPasswordData({ ...passwordData, newPassword: e.target.value })
+                  if (passwordErrors.newPassword) {
+                    setPasswordErrors({ ...passwordErrors, newPassword: '' })
+                  }
                 }}
-                className="bg-slate-600 hover:bg-slate-500 text-white px-4 py-2 rounded-lg"
+                error={passwordErrors.newPassword}
+                required
+              />
+              <PasswordStrengthIndicator password={passwordData.newPassword} />
+            </div>
+            <Input
+              label="Confirm New Password"
+              type="password"
+              value={passwordData.confirmPassword}
+              onChange={(e) => {
+                setPasswordData({ ...passwordData, confirmPassword: e.target.value })
+                if (passwordErrors.confirmPassword) {
+                  setPasswordErrors({ ...passwordErrors, confirmPassword: '' })
+                }
+              }}
+              error={passwordErrors.confirmPassword}
+              required
+            />
+            <p className="text-xs text-slate-400">
+              Password must be at least 8 characters with uppercase, lowercase, and number.
+            </p>
+            <div className="flex gap-3">
+              <Button type="submit" loading={saving}>
+                Change Password
+              </Button>
+              <Button
+                type="button"
+                variant="secondary"
+                onClick={cancelPasswordEdit}
+                disabled={saving}
               >
                 Cancel
-              </button>
+              </Button>
             </div>
           </form>
         ) : (
-          <p className="text-gray-400">••••••••</p>
+          <p className="text-slate-400">Password: ••••••••</p>
         )}
       </div>
 
+      {/* Subscription */}
       <div className="bg-slate-800 rounded-lg p-6">
         <h2 className="text-xl font-semibold text-white mb-4">Subscription</h2>
         {loading ? (
-          <p className="text-gray-400">Loading...</p>
+          <div className="space-y-2">
+            <Skeleton className="h-5 w-32" />
+            <Skeleton className="h-5 w-48" />
+          </div>
         ) : subscription ? (
-          <div>
-            <p className="text-gray-300 mb-2">
-              <span className="font-medium">Plan:</span> {subscription.plan.name}
-            </p>
-            <p className="text-gray-300 mb-2">
-              <span className="font-medium">Status:</span>{' '}
-              <span className={`${subscription.status === 'ACTIVE' ? 'text-green-400' : 'text-red-400'}`}>
+          <div className="space-y-3">
+            <div className="flex items-center gap-2">
+              <span className="text-slate-400 w-24">Plan:</span>
+              <span className="text-white font-medium">{subscription.plan.name}</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <span className="text-slate-400 w-24">Status:</span>
+              <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                subscription.status === 'ACTIVE'
+                  ? 'bg-green-500/20 text-green-400'
+                  : 'bg-red-500/20 text-red-400'
+              }`}>
                 {subscription.status}
               </span>
-            </p>
+            </div>
             {subscription.endDate && (
-              <p className="text-gray-300">
-                <span className="font-medium">Expires:</span>{' '}
-                {new Date(subscription.endDate).toLocaleDateString()}
-              </p>
+              <div className="flex items-center gap-2">
+                <span className="text-slate-400 w-24">Expires:</span>
+                <span className="text-white">
+                  {new Date(subscription.endDate).toLocaleDateString()}
+                </span>
+              </div>
             )}
           </div>
         ) : (
           <div>
-            <p className="text-gray-400 mb-4">No active subscription</p>
-            <Link
-              to="/plans"
-              className="text-primary-400 hover:text-primary-300"
-            >
-              View Plans →
+            <p className="text-slate-400 mb-4">No active subscription</p>
+            <Link to="/plans">
+              <Button variant="primary">View Plans</Button>
             </Link>
           </div>
         )}
@@ -284,11 +374,13 @@ const Profile = () => {
 
       {user?.role === 'ADMIN' && (
         <div className="mt-6">
-          <Link
-            to="/admin"
-            className="inline-block bg-purple-600 hover:bg-purple-700 text-white px-6 py-3 rounded-lg font-medium"
-          >
-            Open Admin Dashboard
+          <Link to="/admin">
+            <Button
+              variant="secondary"
+              className="bg-purple-600 hover:bg-purple-700"
+            >
+              Open Admin Dashboard
+            </Button>
           </Link>
         </div>
       )}

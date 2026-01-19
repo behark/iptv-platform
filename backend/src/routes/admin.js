@@ -1,409 +1,601 @@
 const express = require('express');
 const bcrypt = require('bcryptjs');
-const { PrismaClient } = require('@prisma/client');
+const { body, param, query, validationResult } = require('express-validator');
+const prisma = require('../lib/prisma');
 const { authenticate, authorize } = require('../middleware/auth');
 
 const router = express.Router();
-const prisma = new PrismaClient();
+
+// Validation middleware
+const validate = (req, res, next) => {
+  const errors = validationResult(req);
+  if (!errors.isEmpty()) {
+    return res.status(400).json({
+      success: false,
+      errors: errors.array()
+    });
+  }
+  next();
+};
+
+// Common validators
+const paginationValidators = [
+  query('page').optional().isInt({ min: 1 }).toInt(),
+  query('limit').optional().isInt({ min: 1, max: 100 }).toInt()
+];
+
+const uuidValidator = param('id').isUUID().withMessage('Invalid ID format');
 
 // ==================== USER MANAGEMENT ====================
 
 // @route   GET /api/admin/users
 // @desc    Get all users (Admin only)
 // @access  Private (Admin)
-router.get('/users', authenticate, authorize('ADMIN'), async (req, res) => {
+router.get('/users',
+  authenticate,
+  authorize('ADMIN'),
+  [
+    ...paginationValidators,
+    query('search').optional().trim().isLength({ max: 100 }),
+    query('role').optional().isIn(['USER', 'ADMIN', 'MODERATOR']),
+    query('isActive').optional().isBoolean().toBoolean()
+  ],
+  validate,
+  async (req, res) => {
     try {
-        const { search, role, isActive, limit = 20, page = 1 } = req.query;
-        const skip = (parseInt(page) - 1) * parseInt(limit);
+      const { search, role, isActive, limit = 20, page = 1 } = req.query;
+      const skip = (parseInt(page) - 1) * parseInt(limit);
 
-        const where = {};
-        if (search) {
-            where.OR = [
-                { email: { contains: search, mode: 'insensitive' } },
-                { username: { contains: search, mode: 'insensitive' } }
-            ];
-        }
-        if (role) where.role = role;
-        if (isActive !== undefined) where.isActive = isActive === 'true';
+      const where = {};
+      if (search) {
+        where.OR = [
+          { email: { contains: search, mode: 'insensitive' } },
+          { username: { contains: search, mode: 'insensitive' } }
+        ];
+      }
+      if (role) where.role = role;
+      if (isActive !== undefined) where.isActive = isActive;
 
-        const [users, total] = await Promise.all([
-            prisma.user.findMany({
-                where,
-                select: {
-                    id: true,
-                    email: true,
-                    username: true,
-                    firstName: true,
-                    lastName: true,
-                    role: true,
-                    isActive: true,
-                    createdAt: true,
-                    subscriptions: {
-                        where: { status: 'ACTIVE' },
-                        include: { plan: true },
-                        take: 1
-                    }
-                },
-                skip,
-                take: parseInt(limit),
-                orderBy: { createdAt: 'desc' }
-            }),
-            prisma.user.count({ where })
-        ]);
+      const [users, total] = await Promise.all([
+        prisma.user.findMany({
+          where,
+          select: {
+            id: true,
+            email: true,
+            username: true,
+            firstName: true,
+            lastName: true,
+            role: true,
+            isActive: true,
+            createdAt: true,
+            subscriptions: {
+              where: { status: 'ACTIVE' },
+              include: { plan: true },
+              take: 1
+            }
+          },
+          skip,
+          take: parseInt(limit),
+          orderBy: { createdAt: 'desc' }
+        }),
+        prisma.user.count({ where })
+      ]);
 
-        res.json({
-            success: true,
-            pagination: {
-                page: parseInt(page),
-                limit: parseInt(limit),
-                total,
-                pages: Math.ceil(total / parseInt(limit))
-            },
-            data: { users }
-        });
+      res.json({
+        success: true,
+        pagination: {
+          page: parseInt(page),
+          limit: parseInt(limit),
+          total,
+          pages: Math.ceil(total / parseInt(limit))
+        },
+        data: { users }
+      });
     } catch (error) {
-        console.error('Get users error:', error);
-        res.status(500).json({
-            success: false,
-            message: 'Server error'
-        });
+      console.error('Get users error:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Server error'
+      });
     }
-});
+  }
+);
 
 // @route   GET /api/admin/users/:id
 // @desc    Get single user (Admin only)
 // @access  Private (Admin)
-router.get('/users/:id', authenticate, authorize('ADMIN'), async (req, res) => {
+router.get('/users/:id',
+  authenticate,
+  authorize('ADMIN'),
+  [uuidValidator],
+  validate,
+  async (req, res) => {
     try {
-        const user = await prisma.user.findUnique({
-            where: { id: req.params.id },
-            select: {
-                id: true,
-                email: true,
-                username: true,
-                firstName: true,
-                lastName: true,
-                role: true,
-                isActive: true,
-                createdAt: true,
-                subscriptions: {
-                    include: { plan: true },
-                    orderBy: { createdAt: 'desc' }
-                }
-            }
-        });
-
-        if (!user) {
-            return res.status(404).json({
-                success: false,
-                message: 'User not found'
-            });
+      const user = await prisma.user.findUnique({
+        where: { id: req.params.id },
+        select: {
+          id: true,
+          email: true,
+          username: true,
+          firstName: true,
+          lastName: true,
+          role: true,
+          isActive: true,
+          createdAt: true,
+          subscriptions: {
+            include: { plan: true },
+            orderBy: { createdAt: 'desc' }
+          }
         }
+      });
 
-        res.json({
-            success: true,
-            data: { user }
+      if (!user) {
+        return res.status(404).json({
+          success: false,
+          message: 'User not found'
         });
+      }
+
+      res.json({
+        success: true,
+        data: { user }
+      });
     } catch (error) {
-        console.error('Get user error:', error);
-        res.status(500).json({
-            success: false,
-            message: 'Server error'
-        });
+      console.error('Get user error:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Server error'
+      });
     }
-});
+  }
+);
 
 // @route   PUT /api/admin/users/:id
 // @desc    Update user (Admin only)
 // @access  Private (Admin)
-router.put('/users/:id', authenticate, authorize('ADMIN'), async (req, res) => {
+router.put('/users/:id',
+  authenticate,
+  authorize('ADMIN'),
+  [
+    uuidValidator,
+    body('email').optional().isEmail().normalizeEmail(),
+    body('username').optional().trim().isLength({ min: 3, max: 20 }),
+    body('firstName').optional().trim().isLength({ max: 50 }),
+    body('lastName').optional().trim().isLength({ max: 50 }),
+    body('role').optional().isIn(['USER', 'ADMIN', 'MODERATOR']),
+    body('isActive').optional().isBoolean()
+  ],
+  validate,
+  async (req, res) => {
     try {
-        const { email, username, firstName, lastName, role, isActive } = req.body;
+      const { email, username, firstName, lastName, role, isActive } = req.body;
 
-        const user = await prisma.user.update({
-            where: { id: req.params.id },
-            data: {
-                ...(email && { email }),
-                ...(username && { username }),
-                ...(firstName !== undefined && { firstName }),
-                ...(lastName !== undefined && { lastName }),
-                ...(role && { role }),
-                ...(isActive !== undefined && { isActive })
-            },
-            select: {
-                id: true,
-                email: true,
-                username: true,
-                firstName: true,
-                lastName: true,
-                role: true,
-                isActive: true
-            }
+      // Check if email/username already exists for another user
+      if (email || username) {
+        const existingUser = await prisma.user.findFirst({
+          where: {
+            AND: [
+              { id: { not: req.params.id } },
+              {
+                OR: [
+                  ...(email ? [{ email }] : []),
+                  ...(username ? [{ username }] : [])
+                ]
+              }
+            ]
+          }
         });
 
-        res.json({
-            success: true,
-            message: 'User updated successfully',
-            data: { user }
-        });
-    } catch (error) {
-        console.error('Update user error:', error);
-        res.status(500).json({
+        if (existingUser) {
+          return res.status(400).json({
             success: false,
-            message: 'Server error'
+            message: 'Email or username already in use'
+          });
+        }
+      }
+
+      const user = await prisma.user.update({
+        where: { id: req.params.id },
+        data: {
+          ...(email && { email }),
+          ...(username && { username }),
+          ...(firstName !== undefined && { firstName }),
+          ...(lastName !== undefined && { lastName }),
+          ...(role && { role }),
+          ...(isActive !== undefined && { isActive })
+        },
+        select: {
+          id: true,
+          email: true,
+          username: true,
+          firstName: true,
+          lastName: true,
+          role: true,
+          isActive: true
+        }
+      });
+
+      res.json({
+        success: true,
+        message: 'User updated successfully',
+        data: { user }
+      });
+    } catch (error) {
+      console.error('Update user error:', error);
+      if (error.code === 'P2025') {
+        return res.status(404).json({
+          success: false,
+          message: 'User not found'
         });
+      }
+      res.status(500).json({
+        success: false,
+        message: 'Server error'
+      });
     }
-});
+  }
+);
 
 // @route   DELETE /api/admin/users/:id
 // @desc    Delete user (Admin only)
 // @access  Private (Admin)
-router.delete('/users/:id', authenticate, authorize('ADMIN'), async (req, res) => {
+router.delete('/users/:id',
+  authenticate,
+  authorize('ADMIN'),
+  [uuidValidator],
+  validate,
+  async (req, res) => {
     try {
-        await prisma.user.delete({
-            where: { id: req.params.id }
+      // Prevent self-deletion
+      if (req.params.id === req.user.id) {
+        return res.status(400).json({
+          success: false,
+          message: 'Cannot delete your own account'
         });
+      }
 
-        res.json({
-            success: true,
-            message: 'User deleted successfully'
-        });
+      await prisma.user.delete({
+        where: { id: req.params.id }
+      });
+
+      res.json({
+        success: true,
+        message: 'User deleted successfully'
+      });
     } catch (error) {
-        console.error('Delete user error:', error);
-        res.status(500).json({
-            success: false,
-            message: 'Server error'
+      console.error('Delete user error:', error);
+      if (error.code === 'P2025') {
+        return res.status(404).json({
+          success: false,
+          message: 'User not found'
         });
+      }
+      res.status(500).json({
+        success: false,
+        message: 'Server error'
+      });
     }
-});
+  }
+);
 
 // ==================== VIDEO MANAGEMENT ====================
 
 // @route   GET /api/admin/videos
 // @desc    Get all videos (Admin only)
 // @access  Private (Admin)
-router.get('/videos', authenticate, authorize('ADMIN'), async (req, res) => {
+router.get('/videos',
+  authenticate,
+  authorize('ADMIN'),
+  [
+    ...paginationValidators,
+    query('search').optional().trim().isLength({ max: 100 }),
+    query('category').optional().trim().isLength({ max: 50 }),
+    query('isActive').optional().isBoolean().toBoolean()
+  ],
+  validate,
+  async (req, res) => {
     try {
-        const { search, category, isActive, limit = 20, page = 1 } = req.query;
-        const skip = (parseInt(page) - 1) * parseInt(limit);
+      const { search, category, isActive, limit = 20, page = 1 } = req.query;
+      const skip = (parseInt(page) - 1) * parseInt(limit);
 
-        const where = {};
-        if (search) {
-            where.OR = [
-                { title: { contains: search, mode: 'insensitive' } },
-                { description: { contains: search, mode: 'insensitive' } }
-            ];
-        }
-        if (category) where.category = category;
-        if (isActive !== undefined) where.isActive = isActive === 'true';
+      const where = {};
+      if (search) {
+        where.OR = [
+          { title: { contains: search, mode: 'insensitive' } },
+          { description: { contains: search, mode: 'insensitive' } }
+        ];
+      }
+      if (category) where.category = category;
+      if (isActive !== undefined) where.isActive = isActive;
 
-        const [videos, total] = await Promise.all([
-            prisma.video.findMany({
-                where,
-                skip,
-                take: parseInt(limit),
-                orderBy: { createdAt: 'desc' }
-            }),
-            prisma.video.count({ where })
-        ]);
+      const [videos, total] = await Promise.all([
+        prisma.video.findMany({
+          where,
+          skip,
+          take: parseInt(limit),
+          orderBy: { createdAt: 'desc' }
+        }),
+        prisma.video.count({ where })
+      ]);
 
-        res.json({
-            success: true,
-            pagination: {
-                page: parseInt(page),
-                limit: parseInt(limit),
-                total,
-                pages: Math.ceil(total / parseInt(limit))
-            },
-            data: { videos }
-        });
+      res.json({
+        success: true,
+        pagination: {
+          page: parseInt(page),
+          limit: parseInt(limit),
+          total,
+          pages: Math.ceil(total / parseInt(limit))
+        },
+        data: { videos }
+      });
     } catch (error) {
-        console.error('Get videos error:', error);
-        res.status(500).json({
-            success: false,
-            message: 'Server error'
-        });
+      console.error('Get videos error:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Server error'
+      });
     }
-});
+  }
+);
 
 // @route   POST /api/admin/videos
 // @desc    Create new video (Admin only)
 // @access  Private (Admin)
-router.post('/videos', authenticate, authorize('ADMIN'), async (req, res) => {
+router.post('/videos',
+  authenticate,
+  authorize('ADMIN'),
+  [
+    body('title').trim().notEmpty().isLength({ max: 255 }).withMessage('Title is required'),
+    body('description').optional().trim().isLength({ max: 2000 }),
+    body('thumbnail').optional().isURL().withMessage('Invalid thumbnail URL'),
+    body('videoUrl').isURL().withMessage('Valid video URL is required'),
+    body('duration').optional().isInt({ min: 0 }),
+    body('category').optional().trim().isLength({ max: 50 }),
+    body('tags').optional().isArray(),
+    body('tags.*').optional().isString().isLength({ max: 50 })
+  ],
+  validate,
+  async (req, res) => {
     try {
-        const { title, description, thumbnail, videoUrl, duration, category, tags } = req.body;
+      const { title, description, thumbnail, videoUrl, duration, category, tags } = req.body;
 
-        if (!title || !videoUrl) {
-            return res.status(400).json({
-                success: false,
-                message: 'Title and video URL are required'
-            });
+      const video = await prisma.video.create({
+        data: {
+          title,
+          description,
+          thumbnail,
+          videoUrl,
+          duration,
+          category,
+          tags: tags || []
         }
+      });
 
-        const video = await prisma.video.create({
-            data: {
-                title,
-                description,
-                thumbnail,
-                videoUrl,
-                duration,
-                category,
-                tags: tags || []
-            }
-        });
-
-        res.status(201).json({
-            success: true,
-            message: 'Video created successfully',
-            data: { video }
-        });
+      res.status(201).json({
+        success: true,
+        message: 'Video created successfully',
+        data: { video }
+      });
     } catch (error) {
-        console.error('Create video error:', error);
-        res.status(500).json({
-            success: false,
-            message: 'Server error'
-        });
+      console.error('Create video error:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Server error'
+      });
     }
-});
+  }
+);
 
 // @route   PUT /api/admin/videos/:id
 // @desc    Update video (Admin only)
 // @access  Private (Admin)
-router.put('/videos/:id', authenticate, authorize('ADMIN'), async (req, res) => {
+router.put('/videos/:id',
+  authenticate,
+  authorize('ADMIN'),
+  [
+    uuidValidator,
+    body('title').optional().trim().isLength({ min: 1, max: 255 }),
+    body('description').optional().trim().isLength({ max: 2000 }),
+    body('thumbnail').optional().isURL().withMessage('Invalid thumbnail URL'),
+    body('videoUrl').optional().isURL().withMessage('Invalid video URL'),
+    body('duration').optional().isInt({ min: 0 }),
+    body('category').optional().trim().isLength({ max: 50 }),
+    body('tags').optional().isArray(),
+    body('tags.*').optional().isString().isLength({ max: 50 }),
+    body('isActive').optional().isBoolean()
+  ],
+  validate,
+  async (req, res) => {
     try {
-        const video = await prisma.video.update({
-            where: { id: req.params.id },
-            data: req.body
-        });
+      const { title, description, thumbnail, videoUrl, duration, category, tags, isActive } = req.body;
 
-        res.json({
-            success: true,
-            message: 'Video updated successfully',
-            data: { video }
-        });
+      const video = await prisma.video.update({
+        where: { id: req.params.id },
+        data: {
+          ...(title && { title }),
+          ...(description !== undefined && { description }),
+          ...(thumbnail !== undefined && { thumbnail }),
+          ...(videoUrl && { videoUrl }),
+          ...(duration !== undefined && { duration }),
+          ...(category !== undefined && { category }),
+          ...(tags && { tags }),
+          ...(isActive !== undefined && { isActive })
+        }
+      });
+
+      res.json({
+        success: true,
+        message: 'Video updated successfully',
+        data: { video }
+      });
     } catch (error) {
-        console.error('Update video error:', error);
-        res.status(500).json({
-            success: false,
-            message: 'Server error'
+      console.error('Update video error:', error);
+      if (error.code === 'P2025') {
+        return res.status(404).json({
+          success: false,
+          message: 'Video not found'
         });
+      }
+      res.status(500).json({
+        success: false,
+        message: 'Server error'
+      });
     }
-});
+  }
+);
 
 // @route   DELETE /api/admin/videos/:id
 // @desc    Delete video (Admin only)
 // @access  Private (Admin)
-router.delete('/videos/:id', authenticate, authorize('ADMIN'), async (req, res) => {
+router.delete('/videos/:id',
+  authenticate,
+  authorize('ADMIN'),
+  [uuidValidator],
+  validate,
+  async (req, res) => {
     try {
-        await prisma.video.delete({
-            where: { id: req.params.id }
-        });
+      await prisma.video.delete({
+        where: { id: req.params.id }
+      });
 
-        res.json({
-            success: true,
-            message: 'Video deleted successfully'
-        });
+      res.json({
+        success: true,
+        message: 'Video deleted successfully'
+      });
     } catch (error) {
-        console.error('Delete video error:', error);
-        res.status(500).json({
-            success: false,
-            message: 'Server error'
+      console.error('Delete video error:', error);
+      if (error.code === 'P2025') {
+        return res.status(404).json({
+          success: false,
+          message: 'Video not found'
         });
+      }
+      res.status(500).json({
+        success: false,
+        message: 'Server error'
+      });
     }
-});
+  }
+);
 
 // ==================== SUBSCRIPTION MANAGEMENT ====================
 
 // @route   POST /api/admin/subscriptions
 // @desc    Create subscription for user (Admin only)
 // @access  Private (Admin)
-router.post('/subscriptions', authenticate, authorize('ADMIN'), async (req, res) => {
+router.post('/subscriptions',
+  authenticate,
+  authorize('ADMIN'),
+  [
+    body('userId').isUUID().withMessage('Valid user ID is required'),
+    body('planId').isUUID().withMessage('Valid plan ID is required'),
+    body('endDate').optional().isISO8601().withMessage('Invalid date format')
+  ],
+  validate,
+  async (req, res) => {
     try {
-        const { userId, planId, endDate } = req.body;
+      const { userId, planId, endDate } = req.body;
 
-        if (!userId || !planId) {
-            return res.status(400).json({
-                success: false,
-                message: 'User ID and Plan ID are required'
-            });
-        }
+      const [user, plan] = await Promise.all([
+        prisma.user.findUnique({ where: { id: userId } }),
+        prisma.plan.findUnique({ where: { id: planId } })
+      ]);
 
-        const [user, plan] = await Promise.all([
-            prisma.user.findUnique({ where: { id: userId } }),
-            prisma.plan.findUnique({ where: { id: planId } })
-        ]);
-
-        if (!user || !plan) {
-            return res.status(404).json({
-                success: false,
-                message: 'User or Plan not found'
-            });
-        }
-
-        // Cancel existing active subscriptions
-        await prisma.subscription.updateMany({
-            where: { userId, status: 'ACTIVE' },
-            data: { status: 'CANCELLED' }
+      if (!user) {
+        return res.status(404).json({
+          success: false,
+          message: 'User not found'
         });
+      }
 
-        // Calculate end date
-        const calculatedEndDate = endDate
-            ? new Date(endDate)
-            : new Date(Date.now() + plan.duration * 24 * 60 * 60 * 1000);
-
-        const subscription = await prisma.subscription.create({
-            data: {
-                userId,
-                planId,
-                status: 'ACTIVE',
-                endDate: calculatedEndDate
-            },
-            include: { plan: true, user: true }
+      if (!plan) {
+        return res.status(404).json({
+          success: false,
+          message: 'Plan not found'
         });
+      }
 
-        res.status(201).json({
-            success: true,
-            message: 'Subscription created successfully',
-            data: { subscription }
-        });
+      // Cancel existing active subscriptions
+      await prisma.subscription.updateMany({
+        where: { userId, status: 'ACTIVE' },
+        data: { status: 'CANCELLED' }
+      });
+
+      // Calculate end date
+      const calculatedEndDate = endDate
+        ? new Date(endDate)
+        : new Date(Date.now() + plan.duration * 24 * 60 * 60 * 1000);
+
+      const subscription = await prisma.subscription.create({
+        data: {
+          userId,
+          planId,
+          status: 'ACTIVE',
+          endDate: calculatedEndDate
+        },
+        include: { plan: true, user: true }
+      });
+
+      res.status(201).json({
+        success: true,
+        message: 'Subscription created successfully',
+        data: { subscription }
+      });
     } catch (error) {
-        console.error('Create subscription error:', error);
-        res.status(500).json({
-            success: false,
-            message: 'Server error'
-        });
+      console.error('Create subscription error:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Server error'
+      });
     }
-});
+  }
+);
 
 // @route   PUT /api/admin/subscriptions/:id
 // @desc    Update subscription (Admin only)
 // @access  Private (Admin)
-router.put('/subscriptions/:id', authenticate, authorize('ADMIN'), async (req, res) => {
+router.put('/subscriptions/:id',
+  authenticate,
+  authorize('ADMIN'),
+  [
+    uuidValidator,
+    body('status').optional().isIn(['ACTIVE', 'CANCELLED', 'EXPIRED', 'PENDING']),
+    body('endDate').optional().isISO8601().withMessage('Invalid date format')
+  ],
+  validate,
+  async (req, res) => {
     try {
-        const { status, endDate } = req.body;
+      const { status, endDate } = req.body;
 
-        const subscription = await prisma.subscription.update({
-            where: { id: req.params.id },
-            data: {
-                ...(status && { status }),
-                ...(endDate && { endDate: new Date(endDate) })
-            },
-            include: { plan: true, user: true }
-        });
+      const subscription = await prisma.subscription.update({
+        where: { id: req.params.id },
+        data: {
+          ...(status && { status }),
+          ...(endDate && { endDate: new Date(endDate) })
+        },
+        include: { plan: true, user: true }
+      });
 
-        res.json({
-            success: true,
-            message: 'Subscription updated successfully',
-            data: { subscription }
-        });
+      res.json({
+        success: true,
+        message: 'Subscription updated successfully',
+        data: { subscription }
+      });
     } catch (error) {
-        console.error('Update subscription error:', error);
-        res.status(500).json({
-            success: false,
-            message: 'Server error'
+      console.error('Update subscription error:', error);
+      if (error.code === 'P2025') {
+        return res.status(404).json({
+          success: false,
+          message: 'Subscription not found'
         });
+      }
+      res.status(500).json({
+        success: false,
+        message: 'Server error'
+      });
     }
-});
+  }
+);
 
 // ==================== DASHBOARD STATS ====================
 
@@ -411,55 +603,55 @@ router.put('/subscriptions/:id', authenticate, authorize('ADMIN'), async (req, r
 // @desc    Get dashboard statistics (Admin only)
 // @access  Private (Admin)
 router.get('/stats', authenticate, authorize('ADMIN'), async (req, res) => {
-    try {
-        const [
-            totalUsers,
-            activeSubscriptions,
-            totalChannels,
-            totalVideos,
-            recentUsers,
-            recentSubscriptions
-        ] = await Promise.all([
-            prisma.user.count(),
-            prisma.subscription.count({ where: { status: 'ACTIVE' } }),
-            prisma.channel.count({ where: { isActive: true } }),
-            prisma.video.count({ where: { isActive: true } }),
-            prisma.user.findMany({
-                take: 5,
-                orderBy: { createdAt: 'desc' },
-                select: { id: true, email: true, username: true, createdAt: true }
-            }),
-            prisma.subscription.findMany({
-                take: 5,
-                where: { status: 'ACTIVE' },
-                orderBy: { createdAt: 'desc' },
-                include: {
-                    user: { select: { email: true, username: true } },
-                    plan: { select: { name: true, price: true } }
-                }
-            })
-        ]);
+  try {
+    const [
+      totalUsers,
+      activeSubscriptions,
+      totalChannels,
+      totalVideos,
+      recentUsers,
+      recentSubscriptions
+    ] = await Promise.all([
+      prisma.user.count(),
+      prisma.subscription.count({ where: { status: 'ACTIVE' } }),
+      prisma.channel.count({ where: { isActive: true } }),
+      prisma.video.count({ where: { isActive: true } }),
+      prisma.user.findMany({
+        take: 5,
+        orderBy: { createdAt: 'desc' },
+        select: { id: true, email: true, username: true, createdAt: true }
+      }),
+      prisma.subscription.findMany({
+        take: 5,
+        where: { status: 'ACTIVE' },
+        orderBy: { createdAt: 'desc' },
+        include: {
+          user: { select: { email: true, username: true } },
+          plan: { select: { name: true, price: true } }
+        }
+      })
+    ]);
 
-        res.json({
-            success: true,
-            data: {
-                stats: {
-                    totalUsers,
-                    activeSubscriptions,
-                    totalChannels,
-                    totalVideos
-                },
-                recentUsers,
-                recentSubscriptions
-            }
-        });
-    } catch (error) {
-        console.error('Get stats error:', error);
-        res.status(500).json({
-            success: false,
-            message: 'Server error'
-        });
-    }
+    res.json({
+      success: true,
+      data: {
+        stats: {
+          totalUsers,
+          activeSubscriptions,
+          totalChannels,
+          totalVideos
+        },
+        recentUsers,
+        recentSubscriptions
+      }
+    });
+  } catch (error) {
+    console.error('Get stats error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Server error'
+    });
+  }
 });
 
 // ==================== PLAN MANAGEMENT ====================
@@ -467,86 +659,149 @@ router.get('/stats', authenticate, authorize('ADMIN'), async (req, res) => {
 // @route   POST /api/admin/plans
 // @desc    Create new plan (Admin only)
 // @access  Private (Admin)
-router.post('/plans', authenticate, authorize('ADMIN'), async (req, res) => {
+router.post('/plans',
+  authenticate,
+  authorize('ADMIN'),
+  [
+    body('name').trim().notEmpty().isLength({ max: 100 }).withMessage('Name is required'),
+    body('description').optional().trim().isLength({ max: 500 }),
+    body('price').isFloat({ min: 0 }).withMessage('Valid price is required'),
+    body('currency').optional().isLength({ min: 3, max: 3 }).isAlpha().toUpperCase(),
+    body('duration').isInt({ min: 1 }).withMessage('Duration must be at least 1 day'),
+    body('features').optional().isArray(),
+    body('features.*').optional().isString().isLength({ max: 200 })
+  ],
+  validate,
+  async (req, res) => {
     try {
-        const { name, description, price, currency, duration, features } = req.body;
+      const { name, description, price, currency, duration, features } = req.body;
 
-        if (!name || !price || !duration) {
-            return res.status(400).json({
-                success: false,
-                message: 'Name, price, and duration are required'
-            });
+      const plan = await prisma.plan.create({
+        data: {
+          name,
+          description,
+          price,
+          currency: currency || 'USD',
+          duration,
+          features: features || []
         }
+      });
 
-        const plan = await prisma.plan.create({
-            data: {
-                name,
-                description,
-                price,
-                currency: currency || 'USD',
-                duration,
-                features: features || []
-            }
-        });
-
-        res.status(201).json({
-            success: true,
-            message: 'Plan created successfully',
-            data: { plan }
-        });
+      res.status(201).json({
+        success: true,
+        message: 'Plan created successfully',
+        data: { plan }
+      });
     } catch (error) {
-        console.error('Create plan error:', error);
-        res.status(500).json({
-            success: false,
-            message: 'Server error'
-        });
+      console.error('Create plan error:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Server error'
+      });
     }
-});
+  }
+);
 
 // @route   PUT /api/admin/plans/:id
 // @desc    Update plan (Admin only)
 // @access  Private (Admin)
-router.put('/plans/:id', authenticate, authorize('ADMIN'), async (req, res) => {
+router.put('/plans/:id',
+  authenticate,
+  authorize('ADMIN'),
+  [
+    uuidValidator,
+    body('name').optional().trim().isLength({ min: 1, max: 100 }),
+    body('description').optional().trim().isLength({ max: 500 }),
+    body('price').optional().isFloat({ min: 0 }),
+    body('currency').optional().isLength({ min: 3, max: 3 }).isAlpha().toUpperCase(),
+    body('duration').optional().isInt({ min: 1 }),
+    body('features').optional().isArray(),
+    body('features.*').optional().isString().isLength({ max: 200 }),
+    body('isActive').optional().isBoolean()
+  ],
+  validate,
+  async (req, res) => {
     try {
-        const plan = await prisma.plan.update({
-            where: { id: req.params.id },
-            data: req.body
-        });
+      const { name, description, price, currency, duration, features, isActive } = req.body;
 
-        res.json({
-            success: true,
-            message: 'Plan updated successfully',
-            data: { plan }
-        });
+      const plan = await prisma.plan.update({
+        where: { id: req.params.id },
+        data: {
+          ...(name && { name }),
+          ...(description !== undefined && { description }),
+          ...(price !== undefined && { price }),
+          ...(currency && { currency }),
+          ...(duration && { duration }),
+          ...(features && { features }),
+          ...(isActive !== undefined && { isActive })
+        }
+      });
+
+      res.json({
+        success: true,
+        message: 'Plan updated successfully',
+        data: { plan }
+      });
     } catch (error) {
-        console.error('Update plan error:', error);
-        res.status(500).json({
-            success: false,
-            message: 'Server error'
+      console.error('Update plan error:', error);
+      if (error.code === 'P2025') {
+        return res.status(404).json({
+          success: false,
+          message: 'Plan not found'
         });
+      }
+      res.status(500).json({
+        success: false,
+        message: 'Server error'
+      });
     }
-});
+  }
+);
 
 // @route   DELETE /api/admin/plans/:id
 // @desc    Delete plan (Admin only)
 // @access  Private (Admin)
-router.delete('/plans/:id', authenticate, authorize('ADMIN'), async (req, res) => {
+router.delete('/plans/:id',
+  authenticate,
+  authorize('ADMIN'),
+  [uuidValidator],
+  validate,
+  async (req, res) => {
     try {
-        await prisma.plan.delete({
-            where: { id: req.params.id }
-        });
+      // Check if plan has active subscriptions
+      const activeSubscriptions = await prisma.subscription.count({
+        where: { planId: req.params.id, status: 'ACTIVE' }
+      });
 
-        res.json({
-            success: true,
-            message: 'Plan deleted successfully'
+      if (activeSubscriptions > 0) {
+        return res.status(400).json({
+          success: false,
+          message: `Cannot delete plan with ${activeSubscriptions} active subscription(s)`
         });
+      }
+
+      await prisma.plan.delete({
+        where: { id: req.params.id }
+      });
+
+      res.json({
+        success: true,
+        message: 'Plan deleted successfully'
+      });
     } catch (error) {
-        console.error('Delete plan error:', error);
-        res.status(500).json({
-            success: false,
-            message: 'Server error'
+      console.error('Delete plan error:', error);
+      if (error.code === 'P2025') {
+        return res.status(404).json({
+          success: false,
+          message: 'Plan not found'
         });
+      }
+      res.status(500).json({
+        success: false,
+        message: 'Server error'
+      });
     }
-});
+  }
+);
 
 module.exports = router;
