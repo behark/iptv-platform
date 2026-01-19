@@ -205,7 +205,7 @@ model Favorite {
 
 model PlaylistToken {
   id            String    @id @default(uuid())
-  userId        String    @map("user_id")
+  userId        String    @unique @map("user_id")
   token         String    @unique
   lastUsedAt    DateTime? @map("last_used_at")
   createdAt     DateTime  @default(now()) @map("created_at")
@@ -213,7 +213,7 @@ model PlaylistToken {
   deviceId      String?   @unique @map("device_id")
 
   user          User      @relation(fields: [userId], references: [id], onDelete: Cascade)
-  device        Device?   @relation(fields: [deviceId], references: [id], onDelete: Cascade)
+  device        Device?   @relation(fields: [deviceId], references: [id], onDelete: Cascade, name: "DeviceToken")
 
   @@map("playlist_tokens")
 }
@@ -228,6 +228,7 @@ model Device {
   updatedAt     DateTime      @updatedAt @map("updated_at")
 
   user          User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  playlistToken PlaylistToken? @relation(name: "DeviceToken")
 
   @@map("devices")
   @@unique([userId, macAddress])
