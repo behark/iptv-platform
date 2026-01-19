@@ -18,6 +18,9 @@ const AdminDashboard = () => {
     const [devices, setDevices] = useState([])
     const [macAddress, setMacAddress] = useState('')
     const [deviceName, setDeviceName] = useState('')
+    const [selectedPlan, setSelectedPlan] = useState('admin')
+    const [subscriptionDays, setSubscriptionDays] = useState(30)
+    const [plans, setPlans] = useState([])
     const [activationResult, setActivationResult] = useState(null)
     const [activating, setActivating] = useState(false)
 
@@ -81,6 +84,15 @@ const AdminDashboard = () => {
         }
     }
 
+    const loadPlans = async () => {
+        try {
+            const response = await api.get('/subscriptions/plans')
+            setPlans(response.data.data?.plans?.filter(p => p.isActive) || [])
+        } catch (error) {
+            console.error('Failed to load plans')
+        }
+    }
+
     const activateDevice = async (e) => {
         e.preventDefault()
         if (!macAddress.trim()) {
@@ -92,7 +104,9 @@ const AdminDashboard = () => {
         try {
             const response = await api.post('/admin/devices/activate', {
                 macAddress: macAddress.trim(),
-                name: deviceName.trim() || undefined
+                name: deviceName.trim() || undefined,
+                planId: selectedPlan,
+                subscriptionDays: selectedPlan !== 'admin' ? subscriptionDays : undefined
             })
             setActivationResult(response.data.data)
             toast.success('Device activated successfully!')
@@ -113,7 +127,10 @@ const AdminDashboard = () => {
         if (activeTab === 'users') loadUsers()
         if (activeTab === 'videos') loadVideos()
         if (activeTab === 'channels') loadChannels()
-        if (activeTab === 'devices') loadDevices()
+        if (activeTab === 'devices') {
+            loadDevices()
+            loadPlans()
+        }
     }, [activeTab])
 
     const toggleUserStatus = async (userId, isActive) => {
@@ -349,6 +366,42 @@ const AdminDashboard = () => {
                                     />
                                 </div>
                             </div>
+                            <div className="grid md:grid-cols-2 gap-4">
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-300 mb-1">Access Plan *</label>
+                                    <select
+                                        value={selectedPlan}
+                                        onChange={(e) => setSelectedPlan(e.target.value)}
+                                        className="w-full px-4 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white focus:outline-none focus:border-primary-500"
+                                    >
+                                        <option value="admin">Admin Access (Full - No Expiry)</option>
+                                        {plans.map((plan) => (
+                                            <option key={plan.id} value={plan.id}>
+                                                {plan.name} - ${plan.price}/month ({plan.channelAccess?.length || 0} channels)
+                                            </option>
+                                        ))}
+                                    </select>
+                                </div>
+                                {selectedPlan !== 'admin' && (
+                                    <div>
+                                        <label className="block text-sm font-medium text-gray-300 mb-1">Subscription Duration (days)</label>
+                                        <input
+                                            type="number"
+                                            value={subscriptionDays}
+                                            onChange={(e) => setSubscriptionDays(parseInt(e.target.value) || 30)}
+                                            min="1"
+                                            max="365"
+                                            className="w-full px-4 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white focus:outline-none focus:border-primary-500"
+                                        />
+                                    </div>
+                                )}
+                            </div>
+                            {selectedPlan === 'admin' && (
+                                <p className="text-sm text-yellow-400">Admin access gives full access to all channels with no expiration.</p>
+                            )}
+                            {selectedPlan !== 'admin' && (
+                                <p className="text-sm text-blue-400">A user account will be auto-created for this device with the selected subscription plan.</p>
+                            )}
                             <button
                                 type="submit"
                                 disabled={activating}
@@ -363,10 +416,29 @@ const AdminDashboard = () => {
                             <div className="mt-6 p-4 bg-slate-700 rounded-lg">
                                 <h3 className="text-lg font-semibold text-green-400 mb-3">Device Activated!</h3>
                                 <div className="space-y-3">
-                                    <div>
-                                        <p className="text-sm text-gray-400">MAC Address:</p>
-                                        <p className="text-white font-mono">{activationResult.device.macAddress}</p>
+                                    <div className="grid md:grid-cols-2 gap-4">
+                                        <div>
+                                            <p className="text-sm text-gray-400">MAC Address:</p>
+                                            <p className="text-white font-mono">{activationResult.device.macAddress}</p>
+                                        </div>
+                                        <div>
+                                            <p className="text-sm text-gray-400">Access Type:</p>
+                                            <p className="text-white">{activationResult.accessType}</p>
+                                        </div>
                                     </div>
+                                    {activationResult.subscription && (
+                                        <div className="p-3 bg-slate-600 rounded">
+                                            <p className="text-sm text-gray-400">Subscription Details:</p>
+                                            <p className="text-white">Plan: {activationResult.subscription.planName}</p>
+                                            <p className="text-white">Expires: {new Date(activationResult.subscription.endDate).toLocaleDateString()}</p>
+                                        </div>
+                                    )}
+                                    {activationResult.user?.isNew && (
+                                        <div className="p-3 bg-blue-900/50 rounded">
+                                            <p className="text-sm text-blue-300">New user account created:</p>
+                                            <p className="text-white font-mono">{activationResult.user.email}</p>
+                                        </div>
+                                    )}
                                     <div>
                                         <p className="text-sm text-gray-400">Playlist URL (for Smart IPTV):</p>
                                         <div className="flex items-center gap-2 mt-1">

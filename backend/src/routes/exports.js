@@ -1,12 +1,10 @@
 const express = require('express');
-const crypto = require('crypto');
 const prisma = require('../lib/prisma');
 const { authenticate, requireSubscription } = require('../middleware/auth');
-const { normalizeMac } = require('../utils/mac');
+const { findDeviceWithAccess, getOrCreatePlaylistToken, touchTokenUsage, buildTokenUrls } = require('../services/deviceAccess');
 
 const router = express.Router();
 
-const TOKEN_BYTES = 32;
 const DEFAULT_EPG_DAYS = 7;
 const MAX_EPG_DAYS = 14;
 
@@ -72,118 +70,6 @@ const buildM3U = (channels, epgUrl) => {
   }
 
   return lines.join('\n');
-};
-
-const buildXmlTv = (channels, entries) => {
-  const lines = [
-    '<?xml version="1.0" encoding="UTF-8"?>',
-    '<tv generator-info-name="iptv-platform">'
-  ];
-
-  const channelMap = new Map();
-  for (const channel of channels) {
-    const xmlId = channel.epgId || channel.id;
-    if (!xmlId || channelMap.has(xmlId)) {
-      continue;
-    }
-    channelMap.set(xmlId, channel);
-    lines.push(`  <channel id="${escapeXml(xmlId)}">`);
-    lines.push(`    <display-name>${escapeXml(channel.name || 'Channel')}</display-name>`);
-    if (channel.logo) {
-      lines.push(`    <icon src="${escapeXml(channel.logo)}" />`);
-    }
-    lines.push('  </channel>');
-  }
-
-  for (const entry of entries) {
-    const channel = entry.channel;
-    const xmlId = channel?.epgId || channel?.id || entry.channelId;
-    if (!xmlId) {
-      continue;
-    }
-    const start = formatXmlTvDate(entry.startTime);
-    const end = formatXmlTvDate(entry.endTime);
-    if (!start || !end) {
-      continue;
-    }
-    lines.push(`  <programme start="${start}" stop="${end}" channel="${escapeXml(xmlId)}">`);
-    lines.push(`    <title>${escapeXml(entry.title || 'Program')}</title>`);
-    if (entry.description) {
-      lines.push(`    <desc>${escapeXml(entry.description)}</desc>`);
-    }
-    if (entry.category) {
-      lines.push(`    <category>${escapeXml(entry.category)}</category>`);
-    }
-    if (entry.image) {
-      lines.push(`    <icon src="${escapeXml(entry.image)}" />`);
-    }
-    lines.push('  </programme>');
-  }
-
-  lines.push('</tv>');
-  return lines.join('\n');
-};
-
-const findDeviceWithAccess = async (macAddress) => {
-  const normalized = normalizeMac(macAddress);
-  if (!normalized) return null;
-
-  const device = await prisma.device.findFirst({
-    where: {
-      macAddress: normalized,
-      status: 'ACTIVE',
-      user: {
-        isActive: true
-      }
-    },
-    include: {
-      user: {
-        select: {
-          id: true,
-          role: true,
-          isActive: true
-        }
-      }
-    }
-  });
-
-  if (!device) return null;
-
-  const { user } = device;
-  if (['ADMIN', 'MODERATOR'].includes(user.role)) {
-    return device;
-  }
-
-  const hasSubscription = await prisma.subscription.findFirst({
-    where: {
-      userId: user.id,
-      status: 'ACTIVE',
-      endDate: {
-        gte: new Date()
-      }
-    }
-  });
-
-  return hasSubscription ? device : null;
-};
-
-const getOrCreatePlaylistToken = async (device, userId) => {
-  let record = await prisma.playlistToken.findUnique({
-    where: { deviceId: device.id }
-  });
-
-  if (!record) {
-    const token = crypto.randomBytes(TOKEN_BYTES).toString('hex');
-    record = await prisma.playlistToken.create({
-      data: {
-        userId,
-        deviceId: device.id,
-        token
-      }
-    });
-  }
-
-  return record;
 };
 
 const getActiveSubscription = async (userId) => {

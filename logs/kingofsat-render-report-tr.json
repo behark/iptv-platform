@@ -1,0 +1,1092 @@
+{
+  "stats": {
+    "totalMetadata": 3654,
+    "uniqueKeys": 3733,
+    "ambiguousKeys": 17,
+    "channelsMatched": 86,
+    "channelsUpdated": 86
+  },
+  "updates": [
+    {
+      "id": "5761dc1d-bc69-4232-ac1c-565073b35e43",
+      "name": "S Sport",
+      "updates": {
+        "country": "TR"
+      }
+    },
+    {
+      "id": "8ed2a057-d7b5-450c-b6ce-d53396ca0d17",
+      "name": "Persiana Turkiye",
+      "updates": {
+        "country": "TR"
+      }
+    },
+    {
+      "id": "3f5d3889-6394-4386-be3c-4c14cd9eccfb",
+      "name": "Pop TV",
+      "updates": {
+        "country": "TR"
+      }
+    },
+    {
+      "id": "af76b638-3c99-46e2-b204-43d8a768941c",
+      "name": "Bravo TV",
+      "updates": {
+        "country": "TR"
+      }
+    },
+    {
+      "id": "e12a9d0f-800d-4b21-9c33-78bbb1a22770",
+      "name": "BRT 3",
+      "updates": {
+        "country": "TR"
+      }
+    },
+    {
+      "id": "1a1c69c6-aae5-42fd-9783-854427abc6de",
+      "name": "CNBC-e",
+      "updates": {
+        "country": "TR"
+      }
+    },
+    {
+      "id": "026258c1-3d85-465b-9958-610c768c6128",
+      "name": "CTV",
+      "updates": {
+        "country": "TR"
+      }
+    },
+    {
+      "id": "746b03c2-3529-4fe0-b222-9bfcc3c0a0ef",
+      "name": "DTV",
+      "updates": {
+        "country": "TR"
+      }
+    },
+    {
+      "id": "31b90e60-41d8-4787-8c9f-69de5303c6b4",
+      "name": "Wild West TV",
+      "updates": {
+        "logo": "https://en.kingofsat.net/jpg/wildwesttv.jpg",
+        "country": "TR"
+      }
+    },
+    {
+      "id": "fdb8de6c-7232-4466-b1e5-3c13bab374ab",
+      "name": "Sony Channel",
+      "updates": {
+        "country": "TR"
+      }
+    },
+    {
+      "id": "7a3dad0c-494f-41ba-9c43-ff98daec529b",
+      "name": "Star TV",
+      "updates": {
+        "country": "TR"
+      }
+    },
+    {
+      "id": "1c1a4554-22b7-4ffa-8c5c-3edb29962738",
+      "name": "TMB",
+      "updates": {
+        "country": "TR"
+      }
+    },
+    {
+      "id": "9fe4f593-412b-4423-9f4b-6ea4bf1fa9d6",
+      "name": "TRT World HD",
+      "updates": {
+        "country": "TR"
+      }
+    },
+    {
+      "id": "4b122bba-e62f-462f-a4b2-8737cc598e18",
+      "name": "TV2",
+      "updates": {
+        "country": "TR"
+      }
+    },
+    {
+      "id": "0181eee7-c922-4557-be08-bdd55e3ca3b5",
+      "name": "TVO",
+      "updates": {
+        "country": "TR"
+      }
+    },
+    {
+      "id": "34a2b82b-5850-43a8-9d09-f1ac3fb54cba",
+      "name": "Western TV",
+      "updates": {
+        "country": "TR"
+      }
+    },
+    {
+      "id": "42e67258-a50e-464b-b249-c7cfe44d254e",
+      "name": "Bravo TV",
+      "updates": {
+        "country": "TR"
+      }
+    },
+    {
+      "id": "f483bd2b-b740-4557-8f4d-697556d009d0",
+      "name": "CNBC-e",
+      "updates": {
+        "country": "TR"
+      }
+    },
+    {
+      "id": "53060372-9c8a-4746-ad23-15ec35fdf0ea",
+      "name": "CTV",
+      "updates": {
+        "country": "TR"
+      }
+    },
+    {
+      "id": "e9e3288f-8aac-4818-a3e6-bf08450448a6",
+      "name": "DTV",
+      "updates": {
+        "country": "TR"
+      }
+    },
+    {
+      "id": "1244ba9c-cb21-4dac-b496-c2faf8c9d285",
+      "name": "Persiana Turkiye",
+      "updates": {
+        "country": "TR"
+      }
+    },
+    {
+      "id": "e6100bfa-135e-44c7-9576-2c6e4d5a48c0",
+      "name": "Pop TV",
+      "updates": {
+        "country": "TR"
+      }
+    },
+    {
+      "id": "7fdd6a73-fbfe-4b25-9699-4b4309f941af",
+      "name": "Sony Channel",
+      "updates": {
+        "country": "TR"
+      }
+    },
+    {
+      "id": "4f21fde8-6176-4a71-85bc-245859ba7300",
+      "name": "Star TV",
+      "updates": {
+        "country": "TR"
+      }
+    },
+    {
+      "id": "613ffbe2-c337-4661-81e4-22c6e296959f",
+      "name": "TMB",
+      "updates": {
+        "country": "TR"
+      }
+    },
+    {
+      "id": "0a411ca3-2959-4efa-abf2-3688ed6e2474",
+      "name": "TRT World HD",
+      "updates": {
+        "country": "TR"
+      }
+    },
+    {
+      "id": "3a072b73-08fd-4e30-b6dd-0c81682078b4",
+      "name": "TV2",
+      "updates": {
+        "country": "TR"
+      }
+    },
+    {
+      "id": "8cc48339-d4a4-4e2a-bd7f-87f1141f13ae",
+      "name": "TVO",
+      "updates": {
+        "country": "TR"
+      }
+    },
+    {
+      "id": "ba47d81f-a0ba-45ca-9d24-29015bb20894",
+      "name": "Western TV",
+      "updates": {
+        "country": "TR"
+      }
+    },
+    {
+      "id": "0de9a5c0-423a-4faa-a19a-c2fca4438459",
+      "name": "Wild West TV",
+      "updates": {
+        "logo": "https://en.kingofsat.net/jpg/wildwesttv.jpg",
+        "country": "TR"
+      }
+    },
+    {
+      "id": "ac05db5a-7e8c-4f35-8b28-4813ede6e29a",
+      "name": "CNBC-e",
+      "updates": {
+        "country": "TR"
+      }
+    },
+    {
+      "id": "26cdea8c-ef53-4dcc-bbaf-ba57e8e13362",
+      "name": "Western TV",
+      "updates": {
+        "country": "TR"
+      }
+    },
+    {
+      "id": "92779aca-b0d1-4336-9036-197df7dbdd72",
+      "name": "Persiana Turkiye",
+      "updates": {
+        "country": "TR"
+      }
+    },
+    {
+      "id": "5258813a-367e-46eb-bcac-6edfff05570f",
+      "name": "Pop TV",
+      "updates": {
+        "country": "TR"
+      }
+    },
+    {
+      "id": "53b48eeb-68c5-4a8f-b72a-f2c8067536d3",
+      "name": "Bravo TV",
+      "updates": {
+        "country": "TR"
+      }
+    },
+    {
+      "id": "ddeb56b4-3f33-4047-a09e-a096e20da9a3",
+      "name": "CTV",
+      "updates": {
+        "country": "TR"
+      }
+    },
+    {
+      "id": "2a0cac76-6734-48c1-b684-44fe8f4aa21d",
+      "name": "DTV",
+      "updates": {
+        "country": "TR"
+      }
+    },
+    {
+      "id": "10e59bbe-f8cc-416d-a1f5-be32b28e8b49",
+      "name": "TV2",
+      "updates": {
+        "country": "TR"
+      }
+    },
+    {
+      "id": "278a6a46-3555-4df5-a5a2-fd9adb2cba81",
+      "name": "TVO",
+      "updates": {
+        "country": "TR"
+      }
+    },
+    {
+      "id": "3cb3f894-ee8a-4861-9b5e-bd07d68b6131",
+      "name": "TRT World HD",
+      "updates": {
+        "country": "TR"
+      }
+    },
+    {
+      "id": "943bbe96-1ee8-4a19-8e42-84efee1a032e",
+      "name": "CNBC-e",
+      "updates": {
+        "country": "TR"
+      }
+    },
+    {
+      "id": "f9a6a1ab-cff1-40dd-b4b2-d123f21e7765",
+      "name": "TV2",
+      "updates": {
+        "country": "TR"
+      }
+    },
+    {
+      "id": "417fe317-76e8-43db-8fc9-b346fd268b6a",
+      "name": "Star TV",
+      "updates": {
+        "country": "TR"
+      }
+    },
+    {
+      "id": "18b7fea7-8510-43bd-87b7-417303acd40f",
+      "name": "Pop TV",
+      "updates": {
+        "country": "TR"
+      }
+    },
+    {
+      "id": "1620594e-4091-4456-b15d-a862d634dc67",
+      "name": "TRT World HD",
+      "updates": {
+        "country": "TR"
+      }
+    },
+    {
+      "id": "551e40aa-a125-4a75-854c-5b2321e61a6a",
+      "name": "TV2",
+      "updates": {
+        "country": "TR"
+      }
+    },
+    {
+      "id": "afacf74e-3fa2-43c7-bc97-3a2fcf9d52f0",
+      "name": "Western TV",
+      "updates": {
+        "country": "TR"
+      }
+    },
+    {
+      "id": "3718711d-d82d-4d2e-a0ba-01ffd449b30f",
+      "name": "Persiana Turkiye",
+      "updates": {
+        "country": "TR"
+      }
+    },
+    {
+      "id": "56b865df-6419-43bc-af82-39fe1c8f8cf5",
+      "name": "TV2",
+      "updates": {
+        "country": "TR"
+      }
+    },
+    {
+      "id": "e99a2e23-4f06-480d-a6ae-4212e0f4e85f",
+      "name": "TMB",
+      "updates": {
+        "country": "TR"
+      }
+    },
+    {
+      "id": "e312d6cf-67fa-4adf-84d4-593edb47b5b5",
+      "name": "Bravo TV",
+      "updates": {
+        "country": "TR"
+      }
+    },
+    {
+      "id": "ff7e6d6d-c7f6-4253-989c-4e8729d81388",
+      "name": "CTV",
+      "updates": {
+        "country": "TR"
+      }
+    },
+    {
+      "id": "fd2d0f43-65f7-4aa7-8019-118a300b1ffc",
+      "name": "DTV",
+      "updates": {
+        "country": "TR"
+      }
+    },
+    {
+      "id": "661b08b9-5d9a-47ac-8c52-fab921d1bbbc",
+      "name": "Sony Channel",
+      "updates": {
+        "country": "TR"
+      }
+    },
+    {
+      "id": "9ad16f3f-6738-4fe5-bbc6-2354c0c8347c",
+      "name": "TVO",
+      "updates": {
+        "country": "TR"
+      }
+    },
+    {
+      "id": "c8e808b8-4abc-45d3-9005-c39d58e4da5a",
+      "name": "CNBC-e",
+      "updates": {
+        "country": "TR"
+      }
+    },
+    {
+      "id": "62a872ee-2444-4227-987e-3e9f62b25c4e",
+      "name": "Persiana Turkiye",
+      "updates": {
+        "country": "TR"
+      }
+    },
+    {
+      "id": "e0864540-37a3-4a06-9da2-3452330cfd88",
+      "name": "Tarih TV",
+      "updates": {
+        "country": "TR"
+      }
+    },
+    {
+      "id": "de46f159-7c57-4af9-a633-880c787d5f7b",
+      "name": "TMB",
+      "updates": {
+        "country": "TR"
+      }
+    },
+    {
+      "id": "086bcc1e-8c7d-473f-aa0e-2c50e4877020",
+      "name": "A Spor",
+      "updates": {
+        "country": "TR"
+      }
+    },
+    {
+      "id": "014aa43f-b995-4826-9025-b4cf6dc3faf2",
+      "name": "A Spor",
+      "updates": {
+        "country": "TR"
+      }
+    },
+    {
+      "id": "10aa97d3-4fba-43eb-97ad-947357528cad",
+      "name": "A Spor",
+      "updates": {
+        "country": "TR"
+      }
+    },
+    {
+      "id": "741f2abb-8324-470f-b625-fa410225463d",
+      "name": "A Spor",
+      "updates": {
+        "country": "TR"
+      }
+    },
+    {
+      "id": "4af67454-ba56-45c6-85cc-52b465cfb0af",
+      "name": "A Spor",
+      "updates": {
+        "country": "TR"
+      }
+    },
+    {
+      "id": "b7027c7b-b349-4590-b381-9e6bd0601b25",
+      "name": "BRT 3",
+      "updates": {
+        "country": "TR"
+      }
+    },
+    {
+      "id": "4b5626b7-26e6-48c3-835b-3ab5a8a94ec4",
+      "name": "BRT 3",
+      "updates": {
+        "country": "TR"
+      }
+    },
+    {
+      "id": "328ca4c4-af71-48b9-9657-216600ea3d96",
+      "name": "BRT 3",
+      "updates": {
+        "country": "TR"
+      }
+    },
+    {
+      "id": "c882c265-dfdd-4830-bd50-727e40d1b964",
+      "name": "My TV",
+      "updates": {
+        "country": "TR"
+      }
+    },
+    {
+      "id": "2d1732c4-be27-4151-a53d-4dc36bc590f5",
+      "name": "My TV",
+      "updates": {
+        "country": "TR"
+      }
+    },
+    {
+      "id": "d713e999-77c0-40a8-af27-1494a0783f30",
+      "name": "My TV",
+      "updates": {
+        "country": "TR"
+      }
+    },
+    {
+      "id": "a0265c5e-e36b-4c94-812d-eebbd9b422e7",
+      "name": "My TV",
+      "updates": {
+        "country": "TR"
+      }
+    },
+    {
+      "id": "822d0693-9a6d-4fbe-b9b4-4736c4d737eb",
+      "name": "S Sport 2",
+      "updates": {
+        "country": "TR"
+      }
+    },
+    {
+      "id": "8b3a4701-20f0-4482-9e9e-56bcce1eeefb",
+      "name": "S Sport",
+      "updates": {
+        "country": "TR"
+      }
+    },
+    {
+      "id": "424076f4-f55a-4a4c-970a-e7f7e2658793",
+      "name": "S Sport 2",
+      "updates": {
+        "country": "TR"
+      }
+    },
+    {
+      "id": "1ee3b1e8-b21f-4790-aef1-163108fb638b",
+      "name": "S Sport",
+      "updates": {
+        "country": "TR"
+      }
+    },
+    {
+      "id": "1843d83e-7721-47f0-a99d-c763dedd94d3",
+      "name": "S Sport 2",
+      "updates": {
+        "country": "TR"
+      }
+    },
+    {
+      "id": "e8c626a0-108f-4bce-8ef2-934d88f580ac",
+      "name": "S Sport",
+      "updates": {
+        "country": "TR"
+      }
+    },
+    {
+      "id": "4df906da-1684-468e-abc5-85283a41bbc9",
+      "name": "S Sport 2",
+      "updates": {
+        "country": "TR"
+      }
+    },
+    {
+      "id": "3cd27518-e96b-4a68-9b34-7727df919631",
+      "name": "S Sport",
+      "updates": {
+        "country": "TR"
+      }
+    },
+    {
+      "id": "a8210e6e-f982-4a6e-9638-28b13c9d1f29",
+      "name": "S Sport 2",
+      "updates": {
+        "country": "TR"
+      }
+    },
+    {
+      "id": "a5b4035e-5302-424f-ae84-9af973e66b74",
+      "name": "Tarih TV",
+      "updates": {
+        "country": "TR"
+      }
+    },
+    {
+      "id": "ddf1df77-2700-4ab6-9c26-80a5c81e2356",
+      "name": "Tarih TV",
+      "updates": {
+        "country": "TR"
+      }
+    },
+    {
+      "id": "c54ea7ff-6165-429e-ba24-21b8c089de6b",
+      "name": "Bravo TV",
+      "updates": {
+        "country": "TR"
+      }
+    },
+    {
+      "id": "c47a3a6c-aca1-4252-89a3-f1a1a298354a",
+      "name": "CNBC-e",
+      "updates": {
+        "country": "TR"
+      }
+    },
+    {
+      "id": "476509c7-557e-4f8a-a162-26b0d6ec9ef2",
+      "name": "CTV",
+      "updates": {
+        "country": "TR"
+      }
+    },
+    {
+      "id": "1dad2d37-3e1b-49ea-8a81-c92bfeebfab4",
+      "name": "DTV",
+      "updates": {
+        "country": "TR"
+      }
+    }
+  ],
+  "skipped": [
+    {
+      "id": "30e5dbc4-f4c7-4c33-8fb6-05ff95eeb46d",
+      "name": "DM Sat",
+      "reason": "no-updates-needed"
+    },
+    {
+      "id": "5c5efb2f-105f-41fc-84c5-3a48cf04c7fa",
+      "name": "Kanal 0",
+      "reason": "no-updates-needed"
+    },
+    {
+      "id": "362d83c1-02cf-4c79-a7ad-a4c35d50601d",
+      "name": "RTK 3",
+      "reason": "no-updates-needed"
+    },
+    {
+      "id": "f949419b-bdd0-4ede-9de7-1411dd7509e2",
+      "name": "Antena 1 HD",
+      "reason": "no-updates-needed"
+    },
+    {
+      "id": "0f25f13e-6f99-40dd-b1a1-8b6cab27dbe7",
+      "name": "ART TV",
+      "reason": "no-updates-needed"
+    },
+    {
+      "id": "813a8abb-3475-441b-8868-11bae0ec952c",
+      "name": "BNT 4",
+      "reason": "no-updates-needed"
+    },
+    {
+      "id": "243fda05-c125-4524-9c72-5bfcfa4fe525",
+      "name": "Kohavision",
+      "reason": "no-updates-needed"
+    },
+    {
+      "id": "199bb5bb-3b88-4166-bd01-7681a97af21a",
+      "name": "ABC News",
+      "reason": "no-updates-needed"
+    },
+    {
+      "id": "36e92991-e977-4fd0-9270-46fe8f186268",
+      "name": "Euronews Romania",
+      "reason": "no-updates-needed"
+    },
+    {
+      "id": "23559aa9-b0cf-468b-898c-ec4cd5ad60dd",
+      "name": "Kohavision",
+      "reason": "no-updates-needed"
+    },
+    {
+      "id": "c9400117-a88b-4027-a445-69e8150c39fa",
+      "name": "VIP TV",
+      "reason": "no-updates-needed"
+    },
+    {
+      "id": "260d8f7a-6dfe-40e8-b419-f1be6e98941f",
+      "name": "DM Sat",
+      "reason": "no-updates-needed"
+    },
+    {
+      "id": "7f0c737f-36b2-49e7-b73a-31cc54dae74f",
+      "name": "Pink",
+      "reason": "no-updates-needed"
+    },
+    {
+      "id": "49dad940-3e4d-430e-834b-537fe8b123bb",
+      "name": "Euronews Romania",
+      "reason": "no-updates-needed"
+    },
+    {
+      "id": "c84af876-8296-43b4-8075-48339ecc2a44",
+      "name": "ABC News",
+      "reason": "no-updates-needed"
+    },
+    {
+      "id": "b89e6c56-f271-4ed7-9431-1ee5215142ef",
+      "name": "Channel One",
+      "reason": "no-updates-needed"
+    },
+    {
+      "id": "d78d1d2d-58cc-4330-9677-84cbf6eaf5cb",
+      "name": "Channel One",
+      "reason": "no-updates-needed"
+    },
+    {
+      "id": "a33735ba-1470-4034-a0e3-03f4883fe766",
+      "name": "Channel One",
+      "reason": "no-updates-needed"
+    },
+    {
+      "id": "7759d3dd-6e2c-49e9-8280-ea0ba1172dfb",
+      "name": "Channel One",
+      "reason": "no-updates-needed"
+    },
+    {
+      "id": "1148eca4-e611-4c76-aeab-7a2bc1bc90d5",
+      "name": "Channel One",
+      "reason": "no-updates-needed"
+    },
+    {
+      "id": "bf5276b2-1fb5-44fd-962c-503698f90867",
+      "name": "IN TV",
+      "reason": "ambiguous-name"
+    },
+    {
+      "id": "cea81885-6e69-4934-b092-50e10b1ee3c5",
+      "name": "Kanal 0",
+      "reason": "no-updates-needed"
+    },
+    {
+      "id": "0d296177-55b7-402c-a0fd-394f96900d5d",
+      "name": "Kanal 0",
+      "reason": "no-updates-needed"
+    },
+    {
+      "id": "a4475f9d-25a2-4c88-bbb0-3e93020c7ab8",
+      "name": "IN TV",
+      "reason": "ambiguous-name"
+    },
+    {
+      "id": "a26d8264-5d02-4c07-a044-828218c18aa9",
+      "name": "Mooz Hits",
+      "reason": "no-updates-needed"
+    },
+    {
+      "id": "7bfc7c4c-d49b-4984-bbcb-e3d10375f1c1",
+      "name": "Mooz Dance",
+      "reason": "no-updates-needed"
+    },
+    {
+      "id": "20f793f5-9914-4cac-8890-f29067498030",
+      "name": "Mooz Dance",
+      "reason": "no-updates-needed"
+    },
+    {
+      "id": "d9cd6066-1ea5-483f-951b-0a8d25d59826",
+      "name": "RTV",
+      "reason": "ambiguous-name"
+    },
+    {
+      "id": "85e61659-e29f-4710-b78e-9cfd874859be",
+      "name": "RTV",
+      "reason": "ambiguous-name"
+    },
+    {
+      "id": "2c0f1dac-814c-4aef-b9a7-09922b9d4726",
+      "name": "RTV",
+      "reason": "ambiguous-name"
+    },
+    {
+      "id": "adeeadfb-5924-4e6b-896c-53a15825a5c7",
+      "name": "ABC News",
+      "reason": "no-updates-needed"
+    },
+    {
+      "id": "4cb84537-bdad-4016-82ea-45a6e435f809",
+      "name": "T7",
+      "reason": "no-updates-needed"
+    },
+    {
+      "id": "6e235c50-3dd8-404f-a02e-e8620d234c89",
+      "name": "ABC News",
+      "reason": "no-updates-needed"
+    },
+    {
+      "id": "ff5da8f3-68de-41ca-859c-2d9971048c0e",
+      "name": "Antena 1 HD",
+      "reason": "no-updates-needed"
+    },
+    {
+      "id": "62e3f78f-0019-4ec5-9e36-f28b04b31781",
+      "name": "ART TV",
+      "reason": "no-updates-needed"
+    },
+    {
+      "id": "2f84b181-513e-42f8-91ae-6323d1c3a854",
+      "name": "BNT 4",
+      "reason": "no-updates-needed"
+    },
+    {
+      "id": "d57b2316-b968-4c13-96f6-ae0302c026e4",
+      "name": "DM Sat",
+      "reason": "no-updates-needed"
+    },
+    {
+      "id": "0ce538c7-2369-439e-8518-aa8b7bffd5b7",
+      "name": "Euronews Romania",
+      "reason": "no-updates-needed"
+    },
+    {
+      "id": "e537c318-aecd-40e9-a401-7f710c25193f",
+      "name": "IN TV",
+      "reason": "ambiguous-name"
+    },
+    {
+      "id": "967cd016-b461-48b8-86ce-5f99a5bb34b7",
+      "name": "Kohavision",
+      "reason": "no-updates-needed"
+    },
+    {
+      "id": "8791d879-b501-4cd2-8c2a-e19c8d3d7319",
+      "name": "RTK 3",
+      "reason": "no-updates-needed"
+    },
+    {
+      "id": "a8f6b2e5-a8db-4652-b998-592b4049c4ca",
+      "name": "T7",
+      "reason": "no-updates-needed"
+    },
+    {
+      "id": "9cd2ca04-4c47-4695-a449-14933e8dc4c7",
+      "name": "VIP TV",
+      "reason": "no-updates-needed"
+    },
+    {
+      "id": "0d03d760-b1c4-48ff-bc23-e996c0d6b188",
+      "name": "Bravo TV",
+      "reason": "non-balkan-country"
+    },
+    {
+      "id": "44e9544c-8f0f-4642-a5ad-20204e917a02",
+      "name": "ABC News",
+      "reason": "non-balkan-country"
+    },
+    {
+      "id": "8db18194-7f08-4977-b72d-eef64ad367af",
+      "name": "BNT 4",
+      "reason": "no-updates-needed"
+    },
+    {
+      "id": "3fcc0249-e2b2-4bab-a976-9f8ba2b3d215",
+      "name": "Kanal 0",
+      "reason": "no-updates-needed"
+    },
+    {
+      "id": "e3e37556-1066-445b-b3e7-2b5d489e0bda",
+      "name": "Star TV",
+      "reason": "non-balkan-country"
+    },
+    {
+      "id": "91162b9b-4b17-4e37-b09b-5d0479b0eafc",
+      "name": "TVO",
+      "reason": "non-balkan-country"
+    },
+    {
+      "id": "4b9863c0-ef18-49e8-95fb-45b911c1a02c",
+      "name": "TV2",
+      "reason": "non-balkan-country"
+    },
+    {
+      "id": "d0d7825b-332b-4987-ac64-046c7f3378bb",
+      "name": "ART TV",
+      "reason": "no-updates-needed"
+    },
+    {
+      "id": "a6f16932-a29b-464d-aacc-fec0ccc88fa8",
+      "name": "DTV",
+      "reason": "non-balkan-country"
+    },
+    {
+      "id": "e7e390d1-79d5-49cf-ac8e-bd28f374e2ed",
+      "name": "RTV",
+      "reason": "ambiguous-name"
+    },
+    {
+      "id": "ddfe55e9-8231-40a1-a71f-aa1176ae5840",
+      "name": "Persiana Turkiye",
+      "reason": "non-balkan-country"
+    },
+    {
+      "id": "80c0fcac-3f3b-40ff-896d-2400332c22e2",
+      "name": "My TV",
+      "reason": "non-balkan-country"
+    },
+    {
+      "id": "73990370-9bfb-4e49-856d-9280a8c269ee",
+      "name": "Sony Channel",
+      "reason": "non-balkan-country"
+    },
+    {
+      "id": "7647d625-f7d0-4b05-9f54-50002c4f9436",
+      "name": "Antena 1 HD",
+      "reason": "no-updates-needed"
+    },
+    {
+      "id": "7c9c0984-db29-4b70-98eb-015529cb915f",
+      "name": "Euronews Romania",
+      "reason": "no-updates-needed"
+    },
+    {
+      "id": "d5c37213-2d96-49d4-b28e-33df40f70aaf",
+      "name": "Mooz Hits",
+      "reason": "no-updates-needed"
+    },
+    {
+      "id": "5a2659dd-6dec-4297-a0e1-380f3889b184",
+      "name": "Mooz Dance",
+      "reason": "no-updates-needed"
+    },
+    {
+      "id": "9e60c71a-4663-4530-8586-e85eb4c08681",
+      "name": "DM Sat",
+      "reason": "no-updates-needed"
+    },
+    {
+      "id": "606a323c-7f3d-4af9-85b9-3373513114d3",
+      "name": "CNBC-e",
+      "reason": "no-updates-needed"
+    },
+    {
+      "id": "f59f2718-2807-41bc-8c9b-930b254693f8",
+      "name": "Persiana Turkiye",
+      "reason": "no-updates-needed"
+    },
+    {
+      "id": "10e4a5de-6eb7-4cb9-a636-a57fe745a6f8",
+      "name": "Tarih TV",
+      "reason": "no-updates-needed"
+    },
+    {
+      "id": "0385cdf9-10dd-4d27-8b3d-8eaeb0433ffc",
+      "name": "TMB",
+      "reason": "no-updates-needed"
+    },
+    {
+      "id": "dc6ffaa2-cef7-4fae-9898-d9f184229968",
+      "name": "Pop TV",
+      "reason": "non-balkan-country"
+    },
+    {
+      "id": "5072dde6-78c6-4717-a02c-07f6df1dd1c8",
+      "name": "Western TV",
+      "reason": "non-balkan-country"
+    },
+    {
+      "id": "a8ae899f-1afd-4280-aeb5-04b7e3220089",
+      "name": "RTK 3",
+      "reason": "no-updates-needed"
+    },
+    {
+      "id": "784a29f0-4c2c-4686-a586-5679cdad1a54",
+      "name": "T7",
+      "reason": "no-updates-needed"
+    },
+    {
+      "id": "eec032a4-0b17-4783-9c04-82f2548b6fc0",
+      "name": "Kohavision",
+      "reason": "no-updates-needed"
+    },
+    {
+      "id": "e889789e-050a-4c48-8354-82c1924f64f1",
+      "name": "Channel One",
+      "reason": "no-updates-needed"
+    },
+    {
+      "id": "a0d88895-c156-48e4-af7f-b6cd99e79515",
+      "name": "Antena 1 HD",
+      "reason": "no-updates-needed"
+    },
+    {
+      "id": "2d078c9d-231b-48be-b1ed-75b231b0004f",
+      "name": "ART TV",
+      "reason": "no-updates-needed"
+    },
+    {
+      "id": "c311aeca-902c-4b0a-8497-6b6d6dfb4992",
+      "name": "BNT 4",
+      "reason": "no-updates-needed"
+    },
+    {
+      "id": "8f81cdf7-e6b8-49e9-9d30-5a2239a2834e",
+      "name": "IN TV",
+      "reason": "ambiguous-name"
+    },
+    {
+      "id": "2bf960c8-aedd-40ad-9405-5876c17a6fb5",
+      "name": "Kanal 0",
+      "reason": "no-updates-needed"
+    },
+    {
+      "id": "5c311865-739b-47ad-b0e7-1e80b6404114",
+      "name": "DM Sat",
+      "reason": "no-updates-needed"
+    },
+    {
+      "id": "c073af9c-68b3-4ebf-bdc9-88e31ae6df1b",
+      "name": "ABC News",
+      "reason": "no-updates-needed"
+    },
+    {
+      "id": "cef323d7-d1ca-40aa-9beb-ef049dfbed4f",
+      "name": "Euronews Romania",
+      "reason": "no-updates-needed"
+    },
+    {
+      "id": "babb846b-5232-4259-92e0-33a2157f9d1a",
+      "name": "Kohavision",
+      "reason": "no-updates-needed"
+    },
+    {
+      "id": "ca11fffc-f406-4115-952f-886cdc51beef",
+      "name": "A Spor",
+      "reason": "no-updates-needed"
+    },
+    {
+      "id": "515a01d9-37c8-483c-866f-bc7b40dd4319",
+      "name": "BRT 3",
+      "reason": "non-balkan-country"
+    },
+    {
+      "id": "a211cdac-d6e8-4462-bfd0-bd2783cdcd07",
+      "name": "Channel One",
+      "reason": "non-balkan-country"
+    },
+    {
+      "id": "43702a26-1c64-4316-b186-7e926df0cacd",
+      "name": "IN TV",
+      "reason": "ambiguous-name"
+    },
+    {
+      "id": "e42824ad-7d30-49ec-afac-37b32ccd14dd",
+      "name": "Mooz Dance",
+      "reason": "no-updates-needed"
+    },
+    {
+      "id": "24381b90-9b3a-423a-9730-a9c54661488f",
+      "name": "Mooz Dance",
+      "reason": "no-updates-needed"
+    },
+    {
+      "id": "8984e36e-80ca-4c29-a6b7-69dfc775006f",
+      "name": "Mooz Hits",
+      "reason": "no-updates-needed"
+    },
+    {
+      "id": "3f6045c8-a32a-4fa4-924f-429fc5d5688e",
+      "name": "Mooz Hits",
+      "reason": "no-updates-needed"
+    },
+    {
+      "id": "71710147-ceea-460b-83a0-21c6566a58df",
+      "name": "Mooz Hits",
+      "reason": "no-updates-needed"
+    },
+    {
+      "id": "020e624e-7b79-4362-bca3-2f9d76fd6598",
+      "name": "S Sport",
+      "reason": "no-updates-needed"
+    },
+    {
+      "id": "e026efef-4de6-40a6-8362-0f165f60380b",
+      "name": "S Sport 2",
+      "reason": "no-updates-needed"
+    },
+    {
+      "id": "3682a2db-e91e-426f-ac8d-8102b3f4cd15",
+      "name": "Antena 1 HD",
+      "reason": "no-updates-needed"
+    },
+    {
+      "id": "53ba4b76-96b6-45b9-81e7-9c099ef0591a",
+      "name": "ART TV",
+      "reason": "no-updates-needed"
+    },
+    {
+      "id": "ca03770d-c4cc-408c-a8aa-b3d44e2a737f",
+      "name": "BNT 4",
+      "reason": "no-updates-needed"
+    },
+    {
+      "id": "fcd6e409-6599-4c0f-84c6-609e5c1a1e21",
+      "name": "DM Sat",
+      "reason": "no-updates-needed"
+    }
+  ]
+}

@@ -1104,12 +1104,14 @@ router.post('/devices/activate',
   authorize('ADMIN'),
   [
     body('macAddress').notEmpty().withMessage('MAC address is required'),
-    body('name').optional().trim().isLength({ max: 100 })
+    body('name').optional().trim().isLength({ max: 100 }),
+    body('planId').optional().trim(),
+    body('subscriptionDays').optional().isInt({ min: 1, max: 365 }).toInt()
   ],
   validate,
   async (req, res) => {
     try {
-      const { macAddress, name } = req.body;
+      const { macAddress, name, planId, subscriptionDays = 30 } = req.body;
 
       const normalizedMac = normalizeMac(macAddress);
       if (!normalizedMac) {
@@ -1119,11 +1121,78 @@ router.post('/devices/activate',
         });
       }
 
-      // Register device under the admin user
+      let targetUserId = req.user.id;
+      let subscription = null;
+      let createdUser = null;
+
+      // If a plan is specified (not "admin"), create/find user and subscription
+      if (planId && planId !== 'admin') {
+        // Verify plan exists
+        const plan = await prisma.plan.findUnique({ where: { id: planId } });
+        if (!plan) {
+          return res.status(404).json({
+            success: false,
+            message: 'Plan not found'
+          });
+        }
+
+        // Create a user based on MAC address (or find existing)
+        const macUsername = `tv_${normalizedMac.replace(/:/g, '').toLowerCase()}`;
+        const macEmail = `${macUsername}@device.local`;
+
+        let user = await prisma.user.findFirst({
+          where: {
+            OR: [
+              { email: macEmail },
+              { username: macUsername }
+            ]
+          }
+        });
+
+        if (!user) {
+          const bcrypt = require('bcryptjs');
+          const hashedPassword = await bcrypt.hash(normalizedMac.replace(/:/g, ''), 10);
+          user = await prisma.user.create({
+            data: {
+              email: macEmail,
+              username: macUsername,
+              password: hashedPassword,
+              firstName: 'TV',
+              lastName: 'User',
+              role: 'USER',
+              isActive: true
+            }
+          });
+          createdUser = user;
+        }
+
+        targetUserId = user.id;
+
+        // Cancel existing subscriptions and create new one
+        await prisma.subscription.updateMany({
+          where: { userId: user.id, status: 'ACTIVE' },
+          data: { status: 'CANCELLED' }
+        });
+
+        const endDate = new Date();
+        endDate.setDate(endDate.getDate() + subscriptionDays);
+
+        subscription = await prisma.subscription.create({
+          data: {
+            userId: user.id,
+            planId: plan.id,
+            status: 'ACTIVE',
+            endDate
+          },
+          include: { plan: true }
+        });
+      }
+
+      // Register device under target user
       const device = await prisma.device.upsert({
         where: {
           userId_macAddress: {
-            userId: req.user.id,
+            userId: targetUserId,
             macAddress: normalizedMac
           }
         },
@@ -1132,7 +1201,7 @@ router.post('/devices/activate',
           status: 'ACTIVE'
         },
         create: {
-          userId: req.user.id,
+          userId: targetUserId,
           macAddress: normalizedMac,
           name: name || `Smart TV ${normalizedMac}`,
           status: 'ACTIVE'
@@ -1149,7 +1218,7 @@ router.post('/devices/activate',
         const token = crypto.randomBytes(32).toString('hex');
         tokenRecord = await prisma.playlistToken.create({
           data: {
-            userId: req.user.id,
+            userId: targetUserId,
             deviceId: device.id,
             token
           }
@@ -1178,6 +1247,19 @@ router.post('/devices/activate',
             name: device.name,
             status: device.status
           },
+          user: createdUser ? {
+            id: createdUser.id,
+            email: createdUser.email,
+            username: createdUser.username,
+            isNew: true
+          } : null,
+          subscription: subscription ? {
+            id: subscription.id,
+            planName: subscription.plan.name,
+            endDate: subscription.endDate,
+            status: subscription.status
+          } : null,
+          accessType: planId === 'admin' || !planId ? 'Admin (Full Access)' : subscription?.plan?.name,
           urls: {
             // Simple URLs for Smart IPTV (auto-redirect)
             playlist: playlistUrl,

@@ -1,6 +1,8 @@
 const axios = require('axios');
 const { URL } = require('url');
 const dns = require('dns').promises;
+const fs = require('fs').promises;
+const path = require('path');
 const prisma = require('../lib/prisma');
 
 // Private IP ranges to block for SSRF protection
@@ -155,7 +157,9 @@ const COUNTRY_SOURCES = {
     tr: 'https://iptv-org.github.io/iptv/countries/tr.m3u',
     ae: 'https://iptv-org.github.io/iptv/countries/ae.m3u',
     sa: 'https://iptv-org.github.io/iptv/countries/sa.m3u',
-    eg: 'https://iptv-org.github.io/iptv/countries/eg.m3u'
+    eg: 'https://iptv-org.github.io/iptv/countries/eg.m3u',
+    al: 'https://iptv-org.github.io/iptv/countries/al.m3u',
+    xk: 'https://iptv-org.github.io/iptv/countries/xk.m3u'
 };
 
 function parseM3U(content) {
@@ -223,6 +227,101 @@ async function validateStream(url, timeout = 5000) {
         return response.status === 200 || response.status === 302;
     } catch {
         return false;
+    }
+}
+
+
+async function importFromFile(filePath, options = {}) {
+    const {
+        validateStreams = false,
+        category = null,
+        country = null,
+        batchSize = 100,
+        onProgress = null
+    } = options;
+
+    console.log(`Importing playlist from file: ${filePath}`);
+
+    try {
+        const content = await fs.readFile(filePath, 'utf-8');
+        const channels = parseM3U(content);
+        console.log(`Found ${channels.length} channels in playlist`);
+
+        let imported = 0;
+        let skipped = 0;
+        let failed = 0;
+
+        for (let i = 0; i < channels.length; i += batchSize) {
+            const batch = channels.slice(i, i + batchSize);
+
+            for (const channel of batch) {
+                try {
+                    if (validateStreams) {
+                        const isValid = await validateStream(channel.streamUrl);
+                        if (!isValid) {
+                            skipped++;
+                            continue;
+                        }
+                    }
+
+                    const channelData = {
+                        name: channel.name.substring(0, 255),
+                        description: (channel.description || channel.name || '').substring(0, 255),
+                        logo: channel.logo,
+                        streamUrl: channel.streamUrl,
+                        streamType: channel.streamType,
+                        category: category || channel.category || 'Uncategorized',
+                        country: country || channel.country || 'INT',
+                        language: channel.language || 'en',
+                        epgId: channel.epgId,
+                        isActive: true,
+                        isLive: true
+                    };
+
+                    const existingChannel = await prisma.channel.findFirst({
+                        where: { streamUrl: channel.streamUrl }
+                    });
+
+                    if (existingChannel) {
+                        await prisma.channel.update({
+                            where: { id: existingChannel.id },
+                            data: {
+                                name: channelData.name,
+                                logo: channelData.logo,
+                                category: channelData.category,
+                                updatedAt: new Date()
+                            }
+                        });
+                    } else {
+                        await prisma.channel.create({ data: channelData });
+                    }
+
+                    imported++;
+                } catch (error) {
+                    failed++;
+                    if (process.env.DEBUG) {
+                        console.error(`Failed: ${channel.name} - ${error.message}`);
+                    }
+                }
+            }
+
+            if (onProgress) {
+                onProgress({
+                    processed: Math.min(i + batchSize, channels.length),
+                    total: channels.length,
+                    imported,
+                    skipped,
+                    failed
+                });
+            }
+
+            console.log(`Progress: ${Math.min(i + batchSize, channels.length)}/${channels.length} (Imported: ${imported})`);
+        }
+
+        return { imported, skipped, failed, total: channels.length };
+    } catch (error) {
+        console.error(`Error importing from ${filePath}:`, error.message);
+        throw error;
     }
 }
 
@@ -449,6 +548,7 @@ module.exports = {
     parseM3U,
     validateStream,
     validateUrlForSSRF,
+    importFromFile,
     importFromUrl,
     importByCategory,
     importByCountry,

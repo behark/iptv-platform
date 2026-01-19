@@ -1,0 +1,112 @@
+[
+  {
+    "name": "ABC News (Albania)",
+    "country": "Albania",
+    "liveUrl": "http://www.abcnews.al/live-stream",
+    "resolvedStreamUrl": null,
+    "resolutionSource": "live-fetch-failed",
+    "resolutionFetchUrl": "https://www.abcnews.al/live-stream",
+    "resolutionError": "Request failed with status code 404",
+    "safe": false
+  },
+  {
+    "name": "Albania Screen RTV",
+    "country": "Albania",
+    "liveUrl": "http://webtv.albanianscreen.tv/pages/live_tv",
+    "resolvedStreamUrl": null,
+    "resolutionSource": "live-fetch-failed",
+    "resolutionFetchUrl": "https://webtv.albanianscreen.tv/pages/live_tv",
+    "resolutionError": "self-signed certificate in certificate chain",
+    "safe": false
+  },
+  {
+    "name": "Alsat TV",
+    "country": "Albania",
+    "liveUrl": "http://www.alsat.tv/online-tv.html",
+    "resolvedStreamUrl": null,
+    "resolutionSource": "live-fetch-failed",
+    "resolutionFetchUrl": "https://www.alsat.tv/online-tv.html",
+    "resolutionError": "Request failed with status code 403",
+    "safe": false
+  },
+  {
+    "name": "News 24 Albania",
+    "country": "Albania",
+    "liveUrl": "http://bw.balkanweb.com/news24_live.html",
+    "resolvedStreamUrl": null,
+    "resolutionSource": "live-fetch-failed",
+    "resolutionFetchUrl": "https://bw.balkanweb.com/news24_live.html",
+    "resolutionError": "getaddrinfo ENOTFOUND bw.balkanweb.com",
+    "safe": false
+  },
+  {
+    "name": "Ora News",
+    "country": "Albania",
+    "liveUrl": "http://www.ora-news.com/v2/index.php",
+    "resolvedStreamUrl": null,
+    "resolutionSource": "live-fetch-failed",
+    "resolutionFetchUrl": "https://www.ora-news.com/v2/index.php",
+    "resolutionError": "certificate has expired",
+    "safe": false
+  },
+  {
+    "name": "ORA News HD",
+    "country": "Albania",
+    "liveUrl": "http://www.oranews.tv/",
+    "resolvedStreamUrl": null,
+    "resolutionSource": "live-fetch-failed",
+    "resolutionFetchUrl": "https://www.oranews.tv/",
+    "resolutionError": "Request failed with status code 403",
+    "safe": false
+  },
+  {
+    "name": "Supersonic TV",
+    "country": "Albania",
+    "liveUrl": "http://online.super-sonic.tv/?page_id=716",
+    "resolvedStreamUrl": null,
+    "resolutionSource": "live-fetch-failed",
+    "resolutionFetchUrl": "https://online.super-sonic.tv/?page_id=716",
+    "resolutionError": "getaddrinfo ENOTFOUND online.super-sonic.tv",
+    "safe": false
+  },
+  {
+    "name": "TV Klan",
+    "country": "Albania",
+    "liveUrl": "http://www.tvklan.al/live.php",
+    "resolvedStreamUrl": null,
+    "resolutionSource": "live-fetch-failed",
+    "resolutionFetchUrl": "https://www.tvklan.al/live.php",
+    "resolutionError": "Request failed with status code 404",
+    "safe": false
+  },
+  {
+    "name": "TVSH",
+    "country": "Albania",
+    "liveUrl": "http://www.rtsh.al/tvsh_live.php",
+    "resolvedStreamUrl": null,
+    "resolutionSource": "live-fetch-failed",
+    "resolutionFetchUrl": "https://www.rtsh.al/tvsh_live.php",
+    "resolutionError": "Request failed with status code 404",
+    "safe": false
+  },
+  {
+    "name": "UTV News",
+    "country": "Albania",
+    "liveUrl": "http://www.utv-news.tv/utv-live",
+    "resolvedStreamUrl": null,
+    "resolutionSource": "no-stream-found",
+    "resolutionFetchUrl": "http://www.utv-news.tv/utv-live",
+    "resolutionError": null,
+    "safe": false
+  },
+  {
+    "name": "Vizion Plus",
+    "country": "Albania",
+    "liveUrl": "http://live.vizionplus.tv/",
+    "resolvedStreamUrl": null,
+    "resolutionSource": "live-fetch-failed",
+    "resolutionFetchUrl": "https://live.vizionplus.tv/",
+    "resolutionError": "getaddrinfo ENOTFOUND live.vizionplus.tv",
+    "safe": false
+  }
+]

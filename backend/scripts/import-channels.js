@@ -2,6 +2,7 @@
 
 const {
     importFromUrl,
+    importFromFile,
     importByCategory,
     importByCountry,
     importAllCategories,
@@ -121,6 +122,17 @@ async function main() {
                 const urlResult = await importFromUrl(url);
                 console.log(`\n✅ Imported ${urlResult.imported} channels`);
                 break;
+            
+            case 'file':
+                const file = args[1];
+                if (!file) {
+                    console.log('Usage: node import-channels.js file <path-to-m3u-file>');
+                    break;
+                }
+                console.log(`📥 Importing from local file: ${file}\n`);
+                const fileResult = await importFromFile(file);
+                console.log(`\n✅ Imported ${fileResult.imported} channels`);
+                break;
 
             case 'quick':
                 console.log('⚡ Quick import: News + Sports + Entertainment + Movies\n');
@@ -147,12 +159,14 @@ async function main() {
                 console.log('  country      Import specific country');
                 console.log('  popular      Import popular countries');
                 console.log('  url <url>    Import from custom M3U URL');
+                console.log('  file <path>  Import from local M3U file');
                 console.log('  stats        Show channel statistics');
                 console.log('  cleanup      Check for dead channels');
                 console.log('\nExamples:');
                 console.log('  node import-channels.js quick');
                 console.log('  node import-channels.js category news');
                 console.log('  node import-channels.js country us');
+                console.log('  node import-channels.js file iptv/streams/us.m3u');
                 console.log('  node import-channels.js all');
                 break;
         }

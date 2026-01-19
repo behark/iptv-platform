@@ -1,0 +1,541 @@
+{
+  "stats": {
+    "totalMetadata": 1949,
+    "uniqueKeys": 1986,
+    "ambiguousKeys": 4,
+    "channelsMatched": 67,
+    "channelsUpdated": 67
+  },
+  "updates": [
+    {
+      "id": "199bb5bb-3b88-4166-bd01-7681a97af21a",
+      "name": "ABC News",
+      "updates": {
+        "country": "AL"
+      }
+    },
+    {
+      "id": "36e92991-e977-4fd0-9270-46fe8f186268",
+      "name": "Euronews Romania",
+      "updates": {
+        "country": "RO"
+      }
+    },
+    {
+      "id": "23559aa9-b0cf-468b-898c-ec4cd5ad60dd",
+      "name": "Kohavision",
+      "updates": {
+        "country": "XK"
+      }
+    },
+    {
+      "id": "30e5dbc4-f4c7-4c33-8fb6-05ff95eeb46d",
+      "name": "DM Sat",
+      "updates": {
+        "country": "RS"
+      }
+    },
+    {
+      "id": "5c5efb2f-105f-41fc-84c5-3a48cf04c7fa",
+      "name": "Kanal 0",
+      "updates": {
+        "country": "BG"
+      }
+    },
+    {
+      "id": "362d83c1-02cf-4c79-a7ad-a4c35d50601d",
+      "name": "RTK 3",
+      "updates": {
+        "country": "XK"
+      }
+    },
+    {
+      "id": "c9400117-a88b-4027-a445-69e8150c39fa",
+      "name": "VIP TV",
+      "updates": {
+        "logo": "https://en.kingofsat.net/jpg/viptv-ser.jpg",
+        "country": "RS"
+      }
+    },
+    {
+      "id": "f949419b-bdd0-4ede-9de7-1411dd7509e2",
+      "name": "Antena 1 HD",
+      "updates": {
+        "country": "RO"
+      }
+    },
+    {
+      "id": "0f25f13e-6f99-40dd-b1a1-8b6cab27dbe7",
+      "name": "ART TV",
+      "updates": {
+        "country": "GR"
+      }
+    },
+    {
+      "id": "813a8abb-3475-441b-8868-11bae0ec952c",
+      "name": "BNT 4",
+      "updates": {
+        "country": "BG"
+      }
+    },
+    {
+      "id": "243fda05-c125-4524-9c72-5bfcfa4fe525",
+      "name": "Kohavision",
+      "updates": {
+        "logo": "https://en.kingofsat.net/jpg/koha-tv.jpg",
+        "country": "XK"
+      }
+    },
+    {
+      "id": "260d8f7a-6dfe-40e8-b419-f1be6e98941f",
+      "name": "DM Sat",
+      "updates": {
+        "logo": "https://en.kingofsat.net/jpg/sattvp.jpg"
+      }
+    },
+    {
+      "id": "7f0c737f-36b2-49e7-b73a-31cc54dae74f",
+      "name": "Pink",
+      "updates": {
+        "logo": "https://en.kingofsat.net/jpg/pink-serbia.jpg"
+      }
+    },
+    {
+      "id": "49dad940-3e4d-430e-834b-537fe8b123bb",
+      "name": "Euronews Romania",
+      "updates": {
+        "country": "RO"
+      }
+    },
+    {
+      "id": "4cb84537-bdad-4016-82ea-45a6e435f809",
+      "name": "T7",
+      "updates": {
+        "country": "AL"
+      }
+    },
+    {
+      "id": "6e235c50-3dd8-404f-a02e-e8620d234c89",
+      "name": "ABC News",
+      "updates": {
+        "country": "AL"
+      }
+    },
+    {
+      "id": "ff5da8f3-68de-41ca-859c-2d9971048c0e",
+      "name": "Antena 1 HD",
+      "updates": {
+        "country": "RO"
+      }
+    },
+    {
+      "id": "62e3f78f-0019-4ec5-9e36-f28b04b31781",
+      "name": "ART TV",
+      "updates": {
+        "country": "GR"
+      }
+    },
+    {
+      "id": "2f84b181-513e-42f8-91ae-6323d1c3a854",
+      "name": "BNT 4",
+      "updates": {
+        "country": "BG"
+      }
+    },
+    {
+      "id": "d57b2316-b968-4c13-96f6-ae0302c026e4",
+      "name": "DM Sat",
+      "updates": {
+        "logo": "https://en.kingofsat.net/jpg/sattvp.jpg",
+        "country": "RS"
+      }
+    },
+    {
+      "id": "0ce538c7-2369-439e-8518-aa8b7bffd5b7",
+      "name": "Euronews Romania",
+      "updates": {
+        "country": "RO"
+      }
+    },
+    {
+      "id": "e537c318-aecd-40e9-a401-7f710c25193f",
+      "name": "IN TV",
+      "updates": {
+        "country": "AL"
+      }
+    },
+    {
+      "id": "967cd016-b461-48b8-86ce-5f99a5bb34b7",
+      "name": "Kohavision",
+      "updates": {
+        "country": "XK"
+      }
+    },
+    {
+      "id": "8791d879-b501-4cd2-8c2a-e19c8d3d7319",
+      "name": "RTK 3",
+      "updates": {
+        "logo": "https://en.kingofsat.net/jpg/rtk3.jpg",
+        "country": "XK"
+      }
+    },
+    {
+      "id": "a8f6b2e5-a8db-4652-b998-592b4049c4ca",
+      "name": "T7",
+      "updates": {
+        "logo": "https://en.kingofsat.net/jpg/t7.jpg",
+        "country": "AL"
+      }
+    },
+    {
+      "id": "9cd2ca04-4c47-4695-a449-14933e8dc4c7",
+      "name": "VIP TV",
+      "updates": {
+        "logo": "https://en.kingofsat.net/jpg/viptv-ser.jpg",
+        "country": "RS"
+      }
+    },
+    {
+      "id": "3fcc0249-e2b2-4bab-a976-9f8ba2b3d215",
+      "name": "Kanal 0",
+      "updates": {
+        "logo": "https://en.kingofsat.net/jpg/kanal0.jpg"
+      }
+    },
+    {
+      "id": "d5c37213-2d96-49d4-b28e-33df40f70aaf",
+      "name": "Mooz Hits",
+      "updates": {
+        "logo": "https://en.kingofsat.net/jpg/mooz-hits.jpg"
+      }
+    },
+    {
+      "id": "5a2659dd-6dec-4297-a0e1-380f3889b184",
+      "name": "Mooz Dance",
+      "updates": {
+        "logo": "https://en.kingofsat.net/jpg/mooz.jpg"
+      }
+    },
+    {
+      "id": "eec032a4-0b17-4783-9c04-82f2548b6fc0",
+      "name": "Kohavision",
+      "updates": {
+        "logo": "https://en.kingofsat.net/jpg/koha-tv.jpg"
+      }
+    },
+    {
+      "id": "e889789e-050a-4c48-8354-82c1924f64f1",
+      "name": "Channel One",
+      "updates": {
+        "country": "AL"
+      }
+    },
+    {
+      "id": "a0d88895-c156-48e4-af7f-b6cd99e79515",
+      "name": "Antena 1 HD",
+      "updates": {
+        "country": "RO"
+      }
+    },
+    {
+      "id": "2d078c9d-231b-48be-b1ed-75b231b0004f",
+      "name": "ART TV",
+      "updates": {
+        "country": "GR"
+      }
+    },
+    {
+      "id": "c311aeca-902c-4b0a-8497-6b6d6dfb4992",
+      "name": "BNT 4",
+      "updates": {
+        "country": "BG"
+      }
+    },
+    {
+      "id": "8f81cdf7-e6b8-49e9-9d30-5a2239a2834e",
+      "name": "IN TV",
+      "updates": {
+        "country": "AL"
+      }
+    },
+    {
+      "id": "2bf960c8-aedd-40ad-9405-5876c17a6fb5",
+      "name": "Kanal 0",
+      "updates": {
+        "country": "BG"
+      }
+    },
+    {
+      "id": "5c311865-739b-47ad-b0e7-1e80b6404114",
+      "name": "DM Sat",
+      "updates": {
+        "country": "RS"
+      }
+    },
+    {
+      "id": "c073af9c-68b3-4ebf-bdc9-88e31ae6df1b",
+      "name": "ABC News",
+      "updates": {
+        "country": "AL"
+      }
+    },
+    {
+      "id": "cef323d7-d1ca-40aa-9beb-ef049dfbed4f",
+      "name": "Euronews Romania",
+      "updates": {
+        "country": "RO"
+      }
+    },
+    {
+      "id": "babb846b-5232-4259-92e0-33a2157f9d1a",
+      "name": "Kohavision",
+      "updates": {
+        "country": "XK"
+      }
+    },
+    {
+      "id": "c84af876-8296-43b4-8075-48339ecc2a44",
+      "name": "ABC News",
+      "updates": {
+        "country": "AL"
+      }
+    },
+    {
+      "id": "b89e6c56-f271-4ed7-9431-1ee5215142ef",
+      "name": "Channel One",
+      "updates": {
+        "country": "AL"
+      }
+    },
+    {
+      "id": "d78d1d2d-58cc-4330-9677-84cbf6eaf5cb",
+      "name": "Channel One",
+      "updates": {
+        "country": "AL"
+      }
+    },
+    {
+      "id": "a33735ba-1470-4034-a0e3-03f4883fe766",
+      "name": "Channel One",
+      "updates": {
+        "country": "AL"
+      }
+    },
+    {
+      "id": "7759d3dd-6e2c-49e9-8280-ea0ba1172dfb",
+      "name": "Channel One",
+      "updates": {
+        "country": "AL"
+      }
+    },
+    {
+      "id": "1148eca4-e611-4c76-aeab-7a2bc1bc90d5",
+      "name": "Channel One",
+      "updates": {
+        "country": "AL"
+      }
+    },
+    {
+      "id": "bf5276b2-1fb5-44fd-962c-503698f90867",
+      "name": "IN TV",
+      "updates": {
+        "country": "AL"
+      }
+    },
+    {
+      "id": "cea81885-6e69-4934-b092-50e10b1ee3c5",
+      "name": "Kanal 0",
+      "updates": {
+        "country": "BG"
+      }
+    },
+    {
+      "id": "43702a26-1c64-4316-b186-7e926df0cacd",
+      "name": "IN TV",
+      "updates": {
+        "country": "AL"
+      }
+    },
+    {
+      "id": "0d296177-55b7-402c-a0fd-394f96900d5d",
+      "name": "Kanal 0",
+      "updates": {
+        "country": "BG"
+      }
+    },
+    {
+      "id": "a4475f9d-25a2-4c88-bbb0-3e93020c7ab8",
+      "name": "IN TV",
+      "updates": {
+        "country": "AL"
+      }
+    },
+    {
+      "id": "a26d8264-5d02-4c07-a044-828218c18aa9",
+      "name": "Mooz Hits",
+      "updates": {
+        "country": "RO"
+      }
+    },
+    {
+      "id": "e42824ad-7d30-49ec-afac-37b32ccd14dd",
+      "name": "Mooz Dance",
+      "updates": {
+        "country": "RO"
+      }
+    },
+    {
+      "id": "24381b90-9b3a-423a-9730-a9c54661488f",
+      "name": "Mooz Dance",
+      "updates": {
+        "country": "RO"
+      }
+    },
+    {
+      "id": "8984e36e-80ca-4c29-a6b7-69dfc775006f",
+      "name": "Mooz Hits",
+      "updates": {
+        "country": "RO"
+      }
+    },
+    {
+      "id": "7bfc7c4c-d49b-4984-bbcb-e3d10375f1c1",
+      "name": "Mooz Dance",
+      "updates": {
+        "country": "RO"
+      }
+    },
+    {
+      "id": "3f6045c8-a32a-4fa4-924f-429fc5d5688e",
+      "name": "Mooz Hits",
+      "updates": {
+        "country": "RO"
+      }
+    },
+    {
+      "id": "20f793f5-9914-4cac-8890-f29067498030",
+      "name": "Mooz Dance",
+      "updates": {
+        "country": "RO"
+      }
+    },
+    {
+      "id": "71710147-ceea-460b-83a0-21c6566a58df",
+      "name": "Mooz Hits",
+      "updates": {
+        "country": "RO"
+      }
+    },
+    {
+      "id": "d9cd6066-1ea5-483f-951b-0a8d25d59826",
+      "name": "RTV",
+      "updates": {
+        "country": "RO"
+      }
+    },
+    {
+      "id": "85e61659-e29f-4710-b78e-9cfd874859be",
+      "name": "RTV",
+      "updates": {
+        "country": "RO"
+      }
+    },
+    {
+      "id": "2c0f1dac-814c-4aef-b9a7-09922b9d4726",
+      "name": "RTV",
+      "updates": {
+        "country": "RO"
+      }
+    },
+    {
+      "id": "adeeadfb-5924-4e6b-896c-53a15825a5c7",
+      "name": "ABC News",
+      "updates": {
+        "country": "AL"
+      }
+    },
+    {
+      "id": "3682a2db-e91e-426f-ac8d-8102b3f4cd15",
+      "name": "Antena 1 HD",
+      "updates": {
+        "logo": "https://en.kingofsat.net/jpg/antena1-hd.jpg",
+        "country": "RO"
+      }
+    },
+    {
+      "id": "53ba4b76-96b6-45b9-81e7-9c099ef0591a",
+      "name": "ART TV",
+      "updates": {
+        "logo": "https://en.kingofsat.net/jpg/arttv-gr.jpg",
+        "country": "GR"
+      }
+    },
+    {
+      "id": "ca03770d-c4cc-408c-a8aa-b3d44e2a737f",
+      "name": "BNT 4",
+      "updates": {
+        "logo": "https://en.kingofsat.net/jpg/bnt4.jpg",
+        "country": "BG"
+      }
+    },
+    {
+      "id": "fcd6e409-6599-4c0f-84c6-609e5c1a1e21",
+      "name": "DM Sat",
+      "updates": {
+        "country": "RS"
+      }
+    }
+  ],
+  "skipped": [
+    {
+      "id": "44e9544c-8f0f-4642-a5ad-20204e917a02",
+      "name": "ABC News",
+      "reason": "non-balkan-country"
+    },
+    {
+      "id": "8db18194-7f08-4977-b72d-eef64ad367af",
+      "name": "BNT 4",
+      "reason": "no-updates-needed"
+    },
+    {
+      "id": "d0d7825b-332b-4987-ac64-046c7f3378bb",
+      "name": "ART TV",
+      "reason": "no-updates-needed"
+    },
+    {
+      "id": "e7e390d1-79d5-49cf-ac8e-bd28f374e2ed",
+      "name": "RTV",
+      "reason": "non-balkan-country"
+    },
+    {
+      "id": "7647d625-f7d0-4b05-9f54-50002c4f9436",
+      "name": "Antena 1 HD",
+      "reason": "no-updates-needed"
+    },
+    {
+      "id": "7c9c0984-db29-4b70-98eb-015529cb915f",
+      "name": "Euronews Romania",
+      "reason": "no-updates-needed"
+    },
+    {
+      "id": "9e60c71a-4663-4530-8586-e85eb4c08681",
+      "name": "DM Sat",
+      "reason": "no-updates-needed"
+    },
+    {
+      "id": "a8ae899f-1afd-4280-aeb5-04b7e3220089",
+      "name": "RTK 3",
+      "reason": "no-updates-needed"
+    },
+    {
+      "id": "784a29f0-4c2c-4686-a586-5679cdad1a54",
+      "name": "T7",
+      "reason": "no-updates-needed"
+    },
+    {
+      "id": "a211cdac-d6e8-4462-bfd0-bd2783cdcd07",
+      "name": "Channel One",
+      "reason": "non-balkan-country"
+    }
+  ]
+}
