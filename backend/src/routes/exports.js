@@ -124,6 +124,68 @@ const buildXmlTv = (channels, entries) => {
   return lines.join('\n');
 };
 
+const findDeviceWithAccess = async (macAddress) => {
+  const normalized = normalizeMac(macAddress);
+  if (!normalized) return null;
+
+  const device = await prisma.device.findFirst({
+    where: {
+      macAddress: normalized,
+      status: 'ACTIVE',
+      user: {
+        isActive: true
+      }
+    },
+    include: {
+      user: {
+        select: {
+          id: true,
+          role: true,
+          isActive: true
+        }
+      }
+    }
+  });
+
+  if (!device) return null;
+
+  const { user } = device;
+  if (['ADMIN', 'MODERATOR'].includes(user.role)) {
+    return device;
+  }
+
+  const hasSubscription = await prisma.subscription.findFirst({
+    where: {
+      userId: user.id,
+      status: 'ACTIVE',
+      endDate: {
+        gte: new Date()
+      }
+    }
+  });
+
+  return hasSubscription ? device : null;
+};
+
+const getOrCreatePlaylistToken = async (device, userId) => {
+  let record = await prisma.playlistToken.findUnique({
+    where: { deviceId: device.id }
+  });
+
+  if (!record) {
+    const token = crypto.randomBytes(TOKEN_BYTES).toString('hex');
+    record = await prisma.playlistToken.create({
+      data: {
+        userId,
+        deviceId: device.id,
+        token
+      }
+    });
+  }
+
+  return record;
+};
+
 const getActiveSubscription = async (userId) => {
   return prisma.subscription.findFirst({
     where: {
@@ -466,6 +528,50 @@ router.get('/epg.xml', async (req, res) => {
   } catch (error) {
     console.error('Export EPG error:', error);
     res.status(500).send('Server error');
+  }
+});
+
+const buildTokenUrls = (req, record, mac) => {
+  const baseUrl = getBaseUrl(req);
+  const encodedMac = encodeURIComponent(mac);
+  const playlistUrl = `${baseUrl}/api/exports/m3u?token=${record.token}&mac=${encodedMac}`;
+  const epgUrl = `${baseUrl}/api/exports/epg.xml?token=${record.token}&mac=${encodedMac}`;
+  return { playlistUrl, epgUrl };
+};
+
+router.get('/tv/playlist/:mac', async (req, res) => {
+  try {
+    const device = await findDeviceWithAccess(req.params.mac);
+    if (!device) {
+      return res.status(403).json({ success: false, message: 'Device not registered or subscription required' });
+    }
+
+    const tokenRecord = await getOrCreatePlaylistToken(device, device.user.id);
+    await touchTokenUsage(tokenRecord.id);
+
+    const { playlistUrl } = buildTokenUrls(req, tokenRecord, device.macAddress);
+    return res.redirect(playlistUrl);
+  } catch (error) {
+    console.error('Redirect playlist error:', error);
+    return res.status(500).json({ success: false, message: 'Server error' });
+  }
+});
+
+router.get('/tv/epg/:mac', async (req, res) => {
+  try {
+    const device = await findDeviceWithAccess(req.params.mac);
+    if (!device) {
+      return res.status(403).json({ success: false, message: 'Device not registered or subscription required' });
+    }
+
+    const tokenRecord = await getOrCreatePlaylistToken(device, device.user.id);
+    await touchTokenUsage(tokenRecord.id);
+
+    const { epgUrl } = buildTokenUrls(req, tokenRecord, device.macAddress);
+    return res.redirect(epgUrl);
+  } catch (error) {
+    console.error('Redirect epg error:', error);
+    return res.status(500).json({ success: false, message: 'Server error' });
   }
 });
 
