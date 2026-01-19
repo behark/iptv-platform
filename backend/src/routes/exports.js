@@ -409,14 +409,6 @@ router.get('/epg.xml', async (req, res) => {
   }
 });
 
-const buildTokenUrls = (req, record, mac) => {
-  const baseUrl = getBaseUrl(req);
-  const encodedMac = encodeURIComponent(mac);
-  const playlistUrl = `${baseUrl}/api/exports/m3u?token=${record.token}&mac=${encodedMac}`;
-  const epgUrl = `${baseUrl}/api/exports/epg.xml?token=${record.token}&mac=${encodedMac}`;
-  return { playlistUrl, epgUrl };
-};
-
 router.get('/tv/playlist/:mac', async (req, res) => {
   try {
     const device = await findDeviceWithAccess(req.params.mac);
