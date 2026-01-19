@@ -9,6 +9,7 @@
     "migrate": "prisma migrate dev",
     "generate": "prisma generate",
     "seed": "node prisma/seed.js",
+    "seed:prod": "node scripts/seed-production.js",
     "import": "node scripts/import-channels.js",
     "import:quick": "node scripts/import-channels.js quick",
     "import:all": "node scripts/import-channels.js all",
