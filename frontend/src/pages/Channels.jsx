@@ -125,31 +125,37 @@ const Channels = () => {
 
   const availableCategories = useMemo(() => {
     const categories = new Set(DEFAULT_CATEGORIES)
-    dedupedChannels.forEach((channel) => {
-      if (channel.category) {
+    const maxSample = Math.min(dedupedChannels.length, 1000)
+    for (let i = 0; i < maxSample; i++) {
+      const channel = dedupedChannels[i]
+      if (channel?.category) {
         categories.add(channel.category)
       }
-    })
+    }
     return Array.from(categories).sort((a, b) => a.localeCompare(b))
   }, [dedupedChannels])
 
   const availableLanguages = useMemo(() => {
     const languages = new Set(DEFAULT_LANGUAGES)
-    dedupedChannels.forEach((channel) => {
-      if (channel.language) {
+    const maxSample = Math.min(dedupedChannels.length, 1000)
+    for (let i = 0; i < maxSample; i++) {
+      const channel = dedupedChannels[i]
+      if (channel?.language) {
         languages.add(channel.language)
       }
-    })
+    }
     return Array.from(languages).sort((a, b) => a.localeCompare(b))
   }, [dedupedChannels])
 
   const availableCountries = useMemo(() => {
     const countries = new Set(DEFAULT_COUNTRIES)
-    dedupedChannels.forEach((channel) => {
-      if (channel.country) {
+    const maxSample = Math.min(dedupedChannels.length, 1000)
+    for (let i = 0; i < maxSample; i++) {
+      const channel = dedupedChannels[i]
+      if (channel?.country) {
         countries.add(channel.country)
       }
-    })
+    }
     return Array.from(countries).sort((a, b) => a.localeCompare(b))
   }, [dedupedChannels])
 
@@ -304,8 +310,8 @@ const Channels = () => {
             key={tab}
             onClick={() => setFilters((prev) => ({ ...prev, tab }))}
             className={`text-sm px-4 py-2 rounded-full border min-h-[44px] ${filters.tab === tab
-                ? 'bg-primary-500/20 border-primary-400 text-primary-200'
-                : 'border-slate-700 text-slate-300 hover:text-white'
+              ? 'bg-primary-500/20 border-primary-400 text-primary-200'
+              : 'border-slate-700 text-slate-300 hover:text-white'
               }`}
           >
             {tab}
@@ -382,8 +388,8 @@ const Channels = () => {
                   key={country}
                   onClick={() => setFilters({ ...filters, country })}
                   className={`text-xs px-3 py-1 rounded-full border ${filters.country === country
-                      ? 'bg-primary-500/20 border-primary-400 text-primary-200'
-                      : 'border-slate-600 text-slate-300 hover:text-white'
+                    ? 'bg-primary-500/20 border-primary-400 text-primary-200'
+                    : 'border-slate-600 text-slate-300 hover:text-white'
                     }`}
                 >
                   {country}
