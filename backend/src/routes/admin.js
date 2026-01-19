@@ -710,7 +710,7 @@ router.put('/plans/:id',
   authenticate,
   authorize('ADMIN'),
   [
-    uuidValidator,
+    param('id').notEmpty().withMessage('Plan ID is required'),
     body('name').optional().trim().isLength({ min: 1, max: 100 }),
     body('description').optional().trim().isLength({ max: 500 }),
     body('price').optional().isFloat({ min: 0 }),
@@ -765,7 +765,7 @@ router.put('/plans/:id',
 router.delete('/plans/:id',
   authenticate,
   authorize('ADMIN'),
-  [uuidValidator],
+  [param('id').notEmpty().withMessage('Plan ID is required')],
   validate,
   async (req, res) => {
     try {
@@ -811,7 +811,7 @@ router.delete('/plans/:id',
 router.post('/plans/:id/assign-all-channels',
   authenticate,
   authorize('ADMIN'),
-  [uuidValidator],
+  [param('id').notEmpty().withMessage('Plan ID is required')],
   validate,
   async (req, res) => {
     try {
