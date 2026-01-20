@@ -21,6 +21,7 @@ const AdminDashboard = () => {
     const [selectedPlan, setSelectedPlan] = useState('admin')
     const [subscriptionDays, setSubscriptionDays] = useState(30)
     const [plans, setPlans] = useState([])
+    const [planSelections, setPlanSelections] = useState({})
     const [activationResult, setActivationResult] = useState(null)
     const [activating, setActivating] = useState(false)
 
@@ -124,7 +125,10 @@ const AdminDashboard = () => {
     }
 
     useEffect(() => {
-        if (activeTab === 'users') loadUsers()
+        if (activeTab === 'users') {
+            loadUsers()
+            loadPlans()
+        }
         if (activeTab === 'videos') loadVideos()
         if (activeTab === 'channels') loadChannels()
         if (activeTab === 'devices') {
@@ -151,6 +155,60 @@ const AdminDashboard = () => {
             toast.success('Video deleted')
         } catch (error) {
             toast.error('Failed to delete video')
+        }
+    }
+
+    const deleteUser = async (userId, email) => {
+        if (userId === user?.id) {
+            toast.error('You cannot delete your own account')
+            return
+        }
+        if (!window.confirm(`Delete user ${email}? This will remove their subscriptions and devices.`)) return
+        try {
+            await api.delete(`/admin/users/${userId}`)
+            loadUsers()
+            toast.success('User deleted')
+        } catch (error) {
+            toast.error(error.response?.data?.message || 'Failed to delete user')
+        }
+    }
+
+    const deleteDevice = async (deviceId, macAddress) => {
+        if (!window.confirm(`Delete device ${macAddress}?`)) return
+        try {
+            await api.delete(`/admin/devices/${deviceId}`)
+            loadDevices()
+            toast.success('Device deleted')
+        } catch (error) {
+            toast.error(error.response?.data?.message || 'Failed to delete device')
+        }
+    }
+
+    const changeUserPlan = async (userRecord) => {
+        if (userRecord.role !== 'USER') {
+            toast.error('Only regular users can have subscription plans')
+            return
+        }
+        const currentPlanId = userRecord.subscriptions?.[0]?.plan?.id || ''
+        const selectedPlanId = planSelections[userRecord.id] || currentPlanId
+        if (!selectedPlanId) {
+            toast.error('Please select a plan')
+            return
+        }
+        if (selectedPlanId === currentPlanId) {
+            toast.success('User is already on this plan')
+            return
+        }
+        if (!window.confirm(`Change plan for ${userRecord.email}?`)) return
+        try {
+            await api.post('/admin/subscriptions', {
+                userId: userRecord.id,
+                planId: selectedPlanId
+            })
+            loadUsers()
+            toast.success('Plan updated')
+        } catch (error) {
+            toast.error(error.response?.data?.message || 'Failed to update plan')
         }
     }
 
@@ -234,6 +292,7 @@ const AdminDashboard = () => {
                                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase">Email</th>
                                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase">Username</th>
                                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase">Role</th>
+                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase">Plan</th>
                                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase">Status</th>
                                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase">Actions</th>
                             </tr>
@@ -249,6 +308,45 @@ const AdminDashboard = () => {
                                             {u.role}
                                         </span>
                                     </td>
+                                    <td className="px-6 py-4 text-gray-300">
+                                        <div>
+                                            {u.role === 'USER'
+                                                ? (u.subscriptions?.[0]?.plan?.name || 'No Plan')
+                                                : 'Admin Access'}
+                                        </div>
+                                        {u.role === 'USER' && (
+                                            <div className="text-xs text-gray-500">
+                                                {u.subscriptions?.[0]?.endDate
+                                                    ? `Expires ${new Date(u.subscriptions[0].endDate).toLocaleDateString()}`
+                                                    : 'No expiry'}
+                                            </div>
+                                        )}
+                                        {u.role === 'USER' && (
+                                            <div className="mt-2 flex items-center gap-2">
+                                                <select
+                                                    value={planSelections[u.id] ?? u.subscriptions?.[0]?.plan?.id ?? ''}
+                                                    onChange={(e) => setPlanSelections((prev) => ({
+                                                        ...prev,
+                                                        [u.id]: e.target.value
+                                                    }))}
+                                                    className="bg-slate-700 border border-slate-600 rounded px-2 py-1 text-xs text-white"
+                                                >
+                                                    <option value="">Select plan</option>
+                                                    {plans.map((plan) => (
+                                                        <option key={plan.id} value={plan.id}>
+                                                            {plan.name}
+                                                        </option>
+                                                    ))}
+                                                </select>
+                                                <button
+                                                    onClick={() => changeUserPlan(u)}
+                                                    className="text-xs text-primary-400 hover:text-primary-300"
+                                                >
+                                                    Set
+                                                </button>
+                                            </div>
+                                        )}
+                                    </td>
                                     <td className="px-6 py-4">
                                         <span className={`px-2 py-1 text-xs rounded ${u.isActive ? 'bg-green-600' : 'bg-red-600'
                                             } text-white`}>
@@ -256,12 +354,20 @@ const AdminDashboard = () => {
                                         </span>
                                     </td>
                                     <td className="px-6 py-4">
-                                        <button
-                                            onClick={() => toggleUserStatus(u.id, u.isActive)}
-                                            className="text-sm text-primary-400 hover:text-primary-300"
-                                        >
-                                            {u.isActive ? 'Deactivate' : 'Activate'}
-                                        </button>
+                                        <div className="flex items-center gap-4">
+                                            <button
+                                                onClick={() => toggleUserStatus(u.id, u.isActive)}
+                                                className="text-sm text-primary-400 hover:text-primary-300"
+                                            >
+                                                {u.isActive ? 'Deactivate' : 'Activate'}
+                                            </button>
+                                            <button
+                                                onClick={() => deleteUser(u.id, u.email)}
+                                                className="text-sm text-red-400 hover:text-red-300"
+                                            >
+                                                Delete
+                                            </button>
+                                        </div>
                                     </td>
                                 </tr>
                             ))}
@@ -509,6 +615,7 @@ const AdminDashboard = () => {
                                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase">User</th>
                                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase">Status</th>
                                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase">Created</th>
+                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase">Actions</th>
                                 </tr>
                             </thead>
                             <tbody className="divide-y divide-slate-700">
@@ -528,11 +635,19 @@ const AdminDashboard = () => {
                                         <td className="px-6 py-4 text-gray-300 text-sm">
                                             {new Date(device.createdAt).toLocaleDateString()}
                                         </td>
+                                        <td className="px-6 py-4">
+                                            <button
+                                                onClick={() => deleteDevice(device.id, device.macAddress)}
+                                                className="text-sm text-red-400 hover:text-red-300"
+                                            >
+                                                Delete
+                                            </button>
+                                        </td>
                                     </tr>
                                 ))}
                                 {devices.length === 0 && (
                                     <tr>
-                                        <td colSpan="5" className="px-6 py-8 text-center text-gray-400">
+                                        <td colSpan="6" className="px-6 py-8 text-center text-gray-400">
                                             No devices registered yet
                                         </td>
                                     </tr>

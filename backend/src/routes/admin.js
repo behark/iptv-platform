@@ -489,7 +489,7 @@ router.post('/subscriptions',
   authorize('ADMIN'),
   [
     body('userId').isUUID().withMessage('Valid user ID is required'),
-    body('planId').isUUID().withMessage('Valid plan ID is required'),
+    body('planId').trim().notEmpty().withMessage('Plan ID is required'),
     body('endDate').optional().isISO8601().withMessage('Invalid date format')
   ],
   validate,
@@ -1322,6 +1322,40 @@ router.put('/devices/:id',
       });
     } catch (error) {
       console.error('Admin update device error:', error);
+      if (error.code === 'P2025') {
+        return res.status(404).json({
+          success: false,
+          message: 'Device not found'
+        });
+      }
+      res.status(500).json({
+        success: false,
+        message: 'Server error'
+      });
+    }
+  }
+);
+
+// @route   DELETE /api/admin/devices/:id
+// @desc    Delete device (Admin only)
+// @access  Private (Admin)
+router.delete('/devices/:id',
+  authenticate,
+  authorize('ADMIN'),
+  [uuidValidator],
+  validate,
+  async (req, res) => {
+    try {
+      await prisma.device.delete({
+        where: { id: req.params.id }
+      });
+
+      res.json({
+        success: true,
+        message: 'Device deleted successfully'
+      });
+    } catch (error) {
+      console.error('Delete device error:', error);
       if (error.code === 'P2025') {
         return res.status(404).json({
           success: false,
