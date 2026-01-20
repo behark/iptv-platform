@@ -1,3 +1,4 @@
+const crypto = require('crypto');
 const express = require('express');
 const prisma = require('../lib/prisma');
 const { authenticate, requireSubscription } = require('../middleware/auth');
@@ -6,6 +7,7 @@ const { normalizeMac } = require('../utils/mac');
 
 const router = express.Router();
 
+const TOKEN_BYTES = 32;
 const DEFAULT_EPG_DAYS = 7;
 const MAX_EPG_DAYS = 14;
 
@@ -70,6 +72,56 @@ const buildM3U = (channels, epgUrl) => {
     lines.push(channel.streamUrl);
   }
 
+  return lines.join('\n');
+};
+
+const buildXmlTv = (channels, entries) => {
+  const lines = ['<?xml version="1.0" encoding="UTF-8"?>', '<tv generator-info-name="iptv-platform">'];
+  const seenChannelIds = new Set();
+
+  for (const channel of channels) {
+    const channelId = channel.epgId || channel.id;
+    if (!channelId || seenChannelIds.has(channelId)) {
+      continue;
+    }
+    seenChannelIds.add(channelId);
+
+    lines.push(`  <channel id="${escapeXml(channelId)}">`);
+    const name = escapeXml(channel.name || 'Channel');
+    lines.push(`    <display-name>${name}</display-name>`);
+    if (channel.logo) {
+      lines.push(`    <icon src="${escapeXml(channel.logo)}"/>`);
+    }
+    lines.push('  </channel>');
+  }
+
+  for (const entry of entries) {
+    const channel = entry.channel || {};
+    const channelId = channel.epgId || channel.id || entry.channelId;
+    const start = formatXmlTvDate(entry.startTime);
+    const stop = formatXmlTvDate(entry.endTime);
+
+    if (!channelId || !start || !stop) {
+      continue;
+    }
+
+    lines.push(`  <programme start="${start}" stop="${stop}" channel="${escapeXml(channelId)}">`);
+    if (entry.title) {
+      lines.push(`    <title>${escapeXml(entry.title)}</title>`);
+    }
+    if (entry.description) {
+      lines.push(`    <desc>${escapeXml(entry.description)}</desc>`);
+    }
+    if (entry.category) {
+      lines.push(`    <category>${escapeXml(entry.category)}</category>`);
+    }
+    if (entry.image) {
+      lines.push(`    <icon src="${escapeXml(entry.image)}"/>`);
+    }
+    lines.push('  </programme>');
+  }
+
+  lines.push('</tv>');
   return lines.join('\n');
 };
 
