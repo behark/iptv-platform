@@ -3,6 +3,20 @@ const prisma = require('../lib/prisma');
 const { normalizeMac } = require('../utils/mac');
 
 const AUTO_ACTIVATE_DEVICE_EMAIL = process.env.AUTO_ACTIVATE_DEVICE_EMAIL?.trim().toLowerCase();
+const PLAYLIST_TOKEN_TTL_DAYS = (() => {
+  const raw = process.env.PLAYLIST_TOKEN_TTL_DAYS;
+  if (raw === undefined || raw === '') return 30;
+  const parsed = Number.parseInt(raw, 10);
+  if (!Number.isFinite(parsed) || parsed <= 0) return null;
+  return parsed;
+})();
+
+const getPlaylistTokenExpiry = (now = new Date()) => {
+  if (!PLAYLIST_TOKEN_TTL_DAYS) return null;
+  const expiresAt = new Date(now.getTime());
+  expiresAt.setDate(expiresAt.getDate() + PLAYLIST_TOKEN_TTL_DAYS);
+  return expiresAt;
+};
 
 const ensureAutoActivatedDevice = async (normalizedMac) => {
   if (!AUTO_ACTIVATE_DEVICE_EMAIL || !normalizedMac) {
@@ -26,6 +40,32 @@ const ensureAutoActivatedDevice = async (normalizedMac) => {
 
   if (!user) {
     return null;
+  }
+
+  const existing = await prisma.device.findFirst({
+    where: { macAddress: normalizedMac },
+    include: {
+      user: {
+        select: {
+          id: true,
+          role: true,
+          isActive: true
+        }
+      }
+    }
+  });
+
+  if (existing) {
+    if (!existing.user?.isActive) {
+      return null;
+    }
+    if (existing.user.id !== user.id) {
+      return null;
+    }
+    if (existing.status !== 'ACTIVE') {
+      return null;
+    }
+    return existing;
   }
 
   const device = await prisma.device.upsert({
@@ -128,13 +168,23 @@ const getOrCreatePlaylistToken = async (device, userId) => {
 
   if (!record) {
     const token = crypto.randomBytes(TOKEN_BYTES).toString('hex');
+    const expiresAt = getPlaylistTokenExpiry();
     record = await prisma.playlistToken.create({
       data: {
         userId,
         deviceId: device.id,
-        token
+        token,
+        ...(expiresAt ? { expiresAt } : {})
       }
     });
+  } else if (!record.expiresAt && PLAYLIST_TOKEN_TTL_DAYS) {
+    const expiresAt = getPlaylistTokenExpiry();
+    if (expiresAt) {
+      record = await prisma.playlistToken.update({
+        where: { id: record.id },
+        data: { expiresAt }
+      });
+    }
   }
 
   return record;
@@ -162,5 +212,6 @@ module.exports = {
   getOrCreatePlaylistToken,
   touchTokenUsage,
   buildTokenUrls,
-  getBaseUrl
+  getBaseUrl,
+  getPlaylistTokenExpiry
 };

@@ -3,6 +3,7 @@ const bcrypt = require('bcryptjs');
 const { body, param, query, validationResult } = require('express-validator');
 const prisma = require('../lib/prisma');
 const { authenticate, authorize } = require('../middleware/auth');
+const { getPlaylistTokenExpiry } = require('../services/deviceAccess');
 
 const router = express.Router();
 
@@ -919,6 +920,17 @@ router.post('/devices',
         });
       }
 
+      const existingDevice = await prisma.device.findFirst({
+        where: { macAddress: normalizedMac },
+        select: { id: true, userId: true }
+      });
+      if (existingDevice && existingDevice.userId !== userId) {
+        return res.status(409).json({
+          success: false,
+          message: 'MAC address is already registered to another account'
+        });
+      }
+
       const device = await prisma.device.upsert({
         where: {
           userId_macAddress: {
@@ -1188,6 +1200,17 @@ router.post('/devices/activate',
         });
       }
 
+      const existingDevice = await prisma.device.findFirst({
+        where: { macAddress: normalizedMac },
+        select: { id: true, userId: true }
+      });
+      if (existingDevice && existingDevice.userId !== targetUserId) {
+        return res.status(409).json({
+          success: false,
+          message: 'MAC address is already registered to another account'
+        });
+      }
+
       // Register device under target user
       const device = await prisma.device.upsert({
         where: {
@@ -1216,25 +1239,42 @@ router.post('/devices/activate',
 
       if (!tokenRecord) {
         const token = crypto.randomBytes(32).toString('hex');
+        const expiresAt = getPlaylistTokenExpiry();
         tokenRecord = await prisma.playlistToken.create({
           data: {
             userId: targetUserId,
             deviceId: device.id,
-            token
+            token,
+            ...(expiresAt ? { expiresAt } : {})
           }
         });
+      } else if (!tokenRecord.expiresAt) {
+        const expiresAt = getPlaylistTokenExpiry();
+        if (expiresAt) {
+          tokenRecord = await prisma.playlistToken.update({
+            where: { id: tokenRecord.id },
+            data: { expiresAt }
+          });
+        }
       }
 
       // Build URLs
       const baseUrl = process.env.PUBLIC_BASE_URL || `${req.protocol}://${req.get('host')}`;
       const encodedMac = encodeURIComponent(normalizedMac);
 
+      // SIPTV-compatible URLs (recommended - no redirects, direct M3U)
+      const siptvPlaylistUrl = `${baseUrl}/api/exports/siptv/${normalizedMac}`;
+      const siptvEpgUrl = `${baseUrl}/api/exports/siptv/${normalizedMac}/epg`;
+
+      // Legacy URLs (redirect-based)
       const playlistUrl = `${baseUrl}/api/exports/tv/playlist/${normalizedMac}`;
       const epgUrl = `${baseUrl}/api/exports/tv/epg/${normalizedMac}`;
+
+      // Direct URLs with token
       const directPlaylistUrl = `${baseUrl}/api/exports/m3u?token=${tokenRecord.token}&mac=${encodedMac}`;
       const directEpgUrl = `${baseUrl}/api/exports/epg.xml?token=${tokenRecord.token}&mac=${encodedMac}`;
 
-      // Smart IPTV upload page URL (user will need to manually submit due to captcha)
+      // Smart IPTV upload page URL
       const smartIptvUploadUrl = 'https://siptv.app/mylist/';
 
       res.status(201).json({
@@ -1261,7 +1301,10 @@ router.post('/devices/activate',
           } : null,
           accessType: planId === 'admin' || !planId ? 'Admin (Full Access)' : subscription?.plan?.name,
           urls: {
-            // Simple URLs for Smart IPTV (auto-redirect)
+            // SIPTV-compatible URLs (USE THESE for siptv.app)
+            siptv: siptvPlaylistUrl,
+            siptvEpg: siptvEpgUrl,
+            // Legacy redirect URLs
             playlist: playlistUrl,
             epg: epgUrl,
             // Direct URLs with token
@@ -1270,7 +1313,10 @@ router.post('/devices/activate',
           },
           smartIptv: {
             uploadPage: smartIptvUploadUrl,
-            instructions: `Go to ${smartIptvUploadUrl}, enter MAC: ${normalizedMac}, paste playlist URL, and click Send. Then restart the TV app.`
+            playlistUrl: siptvPlaylistUrl,
+            epgUrl: siptvEpgUrl,
+            mac: normalizedMac,
+            instructions: `1. Go to ${smartIptvUploadUrl}\n2. Enter MAC: ${normalizedMac}\n3. Paste URL: ${siptvPlaylistUrl}\n4. Click "Send"\n5. Restart the Smart IPTV app on your TV`
           }
         }
       });

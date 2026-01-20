@@ -82,6 +82,17 @@ router.post('/',
         });
       }
 
+      const existingDevice = await prisma.device.findFirst({
+        where: { macAddress: normalizedMac },
+        select: { id: true, userId: true }
+      });
+      if (existingDevice && existingDevice.userId !== req.user.id) {
+        return res.status(409).json({
+          success: false,
+          message: 'MAC address is already registered to another account'
+        });
+      }
+
       const name = req.body.name ? req.body.name.trim() : null;
       const device = await prisma.device.upsert({
         where: {

@@ -22,6 +22,13 @@ const searchRoutes = require('./routes/search');
 
 const app = express();
 
+const getEnvNumber = (name, fallback) => {
+  const raw = process.env[name];
+  if (raw === undefined || raw === '') return fallback;
+  const parsed = Number.parseInt(raw, 10);
+  return Number.isFinite(parsed) ? parsed : fallback;
+};
+
 // Trust Render's proxy so rate limiting can read X-Forwarded-For headers.
 app.set('trust proxy', 1);
 
@@ -52,9 +59,30 @@ app.use(cors({
 // Rate limiting
 const limiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 100 // limit each IP to 100 requests per windowMs
+  max: 100, // limit each IP to 100 requests per windowMs
+  skip: (req) => req.path.startsWith('/exports')
 });
 app.use('/api/', limiter);
+
+const exportsWindowMinutes = getEnvNumber('EXPORTS_RATE_LIMIT_WINDOW_MINUTES', 15);
+const exportsMax = getEnvNumber('EXPORTS_RATE_LIMIT_MAX', 300);
+const exportsLimiter = rateLimit({
+  windowMs: exportsWindowMinutes * 60 * 1000,
+  max: exportsMax,
+  standardHeaders: true,
+  legacyHeaders: false,
+  keyGenerator: (req) => {
+    const token = typeof req.query.token === 'string' ? req.query.token.trim() : '';
+    if (token) {
+      return `token:${token}`;
+    }
+    const mac = typeof req.query.mac === 'string' ? req.query.mac.trim() : '';
+    if (mac) {
+      return `mac:${mac}`;
+    }
+    return req.ip;
+  }
+});
 
 // Stripe webhook needs raw body - must be before json parser
 app.use('/api/payments/webhook', express.raw({ type: 'application/json' }));
@@ -82,6 +110,7 @@ app.use('/api/playlists', playlistRoutes);
 app.use('/api/subscriptions', subscriptionRoutes);
 app.use('/api/payments', paymentRoutes);
 app.use('/api/epg', epgRoutes);
+app.use('/api/exports', exportsLimiter);
 app.use('/api/exports', exportRoutes);
 app.use('/api/devices', deviceRoutes);
 app.use('/api/favorites', favoritesRoutes);
