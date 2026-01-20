@@ -404,7 +404,7 @@ router.get('/epg.xml', async (req, res) => {
     }
 
     const channels = await getAccessibleChannels(user, subscription);
-    const channelIds = channels.map(channel => channel.id);
+    const channelIds = Array.from(new Set(channels.map(channel => channel.id)));
 
     const startParam = req.query.start;
     const endParam = req.query.end;
@@ -425,29 +425,40 @@ router.get('/epg.xml', async (req, res) => {
       return res.status(400).send('Invalid EPG time range');
     }
 
-    const entries = channelIds.length === 0
-      ? []
-      : await prisma.ePGEntry.findMany({
-        where: {
-          channelId: { in: channelIds },
-          startTime: { lt: end },
-          endTime: { gt: start }
-        },
-        include: {
-          channel: {
-            select: {
-              id: true,
-              name: true,
-              logo: true,
-              epgId: true
+    const entries = [];
+    if (channelIds.length > 0) {
+      const chunkSize = 1000;
+      for (let i = 0; i < channelIds.length; i += chunkSize) {
+        const chunk = channelIds.slice(i, i + chunkSize);
+        const chunkEntries = await prisma.ePGEntry.findMany({
+          where: {
+            channelId: { in: chunk },
+            startTime: { lt: end },
+            endTime: { gt: start }
+          },
+          include: {
+            channel: {
+              select: {
+                id: true,
+                name: true,
+                logo: true,
+                epgId: true
+              }
             }
-          }
-        },
-        orderBy: [
-          { channelId: 'asc' },
-          { startTime: 'asc' }
-        ]
+          },
+          orderBy: [
+            { channelId: 'asc' },
+            { startTime: 'asc' }
+          ]
+        });
+        entries.push(...chunkEntries);
+      }
+      entries.sort((a, b) => {
+        if (a.channelId < b.channelId) return -1;
+        if (a.channelId > b.channelId) return 1;
+        return new Date(a.startTime) - new Date(b.startTime);
       });
+    }
 
     const xml = buildXmlTv(channels, entries);
 
