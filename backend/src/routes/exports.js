@@ -2,6 +2,7 @@ const express = require('express');
 const prisma = require('../lib/prisma');
 const { authenticate, requireSubscription } = require('../middleware/auth');
 const { findDeviceWithAccess, getOrCreatePlaylistToken, touchTokenUsage, buildTokenUrls } = require('../services/deviceAccess');
+const { normalizeMac } = require('../utils/mac');
 
 const router = express.Router();
 

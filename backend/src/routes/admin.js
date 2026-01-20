@@ -1341,6 +1341,7 @@ router.put('/devices/:id',
 // Category normalization map
 const categoryMap = {
   'general': 'General', 'undefined': 'General', 'uncategorized': 'General',
+  'public': 'General', 'misc': 'General', 'other': 'General',
   'news': 'News', 'religious': 'Religious', 'music': 'Music',
   'entertainment': 'Entertainment', 'movies': 'Movies', 'movie': 'Movies',
   'sports': 'Sports', 'sport': 'Sports', 'series': 'Series',
@@ -1351,7 +1352,8 @@ const categoryMap = {
   'classic': 'Classic', 'classics': 'Classic', 'animation': 'Animation',
   'outdoor': 'Outdoor', 'travel': 'Travel', 'cooking': 'Cooking',
   'food': 'Cooking', 'science': 'Science', 'weather': 'Weather',
-  'xxx': 'Adult', 'adult': 'Adult'
+  'xxx': 'Adult', 'adult': 'Adult', 'auto': 'Automotive', 'automotive': 'Automotive',
+  'family': 'Family', 'relax': 'Lifestyle', 'interactive': 'Entertainment'
 };
 
 const kosovoKeywords = [
@@ -1375,7 +1377,8 @@ const categoryPriority = {
   'Education': 1100, 'Culture': 1200, 'Religious': 1300, 'Lifestyle': 1400,
   'Comedy': 1500, 'Business': 1600, 'Shopping': 1700, 'Legislative': 1800,
   'Classic': 1900, 'General': 2000, 'Animation': 2100, 'Outdoor': 2200,
-  'Travel': 2300, 'Cooking': 2400, 'Science': 2500, 'Weather': 2600, 'Adult': 9000
+  'Travel': 2300, 'Cooking': 2400, 'Science': 2500, 'Weather': 2600,
+  'Automotive': 2700, 'Family': 2800, 'Adult': 9000
 };
 
 // @route   POST /api/admin/channels/normalize
@@ -1396,8 +1399,13 @@ router.post('/channels/normalize',
 
       const normalizeCategory = (cat) => {
         if (!cat) return 'General';
-        const lower = cat.toLowerCase().trim();
-        return categoryMap[lower] || cat.charAt(0).toUpperCase() + cat.slice(1).toLowerCase();
+        // Handle compound categories (e.g., "Animation;Kids") - take the first one
+        let primary = cat;
+        if (cat.includes(';')) {
+          primary = cat.split(';')[0].trim();
+        }
+        const lower = primary.toLowerCase().trim();
+        return categoryMap[lower] || primary.charAt(0).toUpperCase() + primary.slice(1).toLowerCase();
       };
 
       const isKosovo = (ch) => {
@@ -1450,6 +1458,133 @@ router.post('/channels/normalize',
       });
     } catch (error) {
       console.error('Normalize channels error:', error);
+      res.status(500).json({ success: false, message: 'Server error' });
+    }
+  }
+);
+
+// ==================== CHANNEL VALIDATION ====================
+
+const { validateStream } = require('../services/channelImporter');
+
+// @route   POST /api/admin/channels/validate
+// @desc    Validate channel streams and optionally disable broken ones (Admin only)
+// @access  Private (Admin)
+router.post('/channels/validate',
+  authenticate,
+  authorize('ADMIN'),
+  [
+    body('dryRun').optional().isBoolean().toBoolean(),
+    body('category').optional().trim(),
+    body('country').optional().trim(),
+    body('limit').optional().isInt({ min: 1, max: 5000 }).toInt()
+  ],
+  validate,
+  async (req, res) => {
+    try {
+      const { dryRun = true, category, country, limit = 100 } = req.body;
+
+      const where = { isActive: true };
+      if (category) where.category = category;
+      if (country) where.country = country;
+
+      const channels = await prisma.channel.findMany({
+        where,
+        select: { id: true, name: true, streamUrl: true, category: true, country: true },
+        take: limit,
+        orderBy: { sortOrder: 'asc' }
+      });
+
+      console.log(`Validating ${channels.length} channels (dryRun: ${dryRun})...`);
+
+      const results = { total: channels.length, valid: 0, invalid: 0, errors: [] };
+      const deadChannels = [];
+
+      for (let i = 0; i < channels.length; i++) {
+        const channel = channels[i];
+        try {
+          const isValid = await validateStream(channel.streamUrl);
+          if (isValid) {
+            results.valid++;
+          } else {
+            results.invalid++;
+            deadChannels.push({
+              id: channel.id,
+              name: channel.name,
+              category: channel.category,
+              country: channel.country
+            });
+          }
+        } catch (err) {
+          results.invalid++;
+          results.errors.push({ name: channel.name, error: err.message });
+          deadChannels.push({
+            id: channel.id,
+            name: channel.name,
+            category: channel.category,
+            country: channel.country
+          });
+        }
+
+        if ((i + 1) % 50 === 0) {
+          console.log(`Progress: ${i + 1}/${channels.length} - Valid: ${results.valid}, Invalid: ${results.invalid}`);
+        }
+      }
+
+      // Disable dead channels if not dry run
+      if (!dryRun && deadChannels.length > 0) {
+        await prisma.channel.updateMany({
+          where: { id: { in: deadChannels.map(c => c.id) } },
+          data: { isActive: false }
+        });
+        console.log(`Disabled ${deadChannels.length} invalid channels`);
+      }
+
+      res.json({
+        success: true,
+        message: dryRun
+          ? `Found ${results.invalid} invalid channels (dry run - no changes made)`
+          : `Disabled ${results.invalid} invalid channels`,
+        data: {
+          results,
+          deadChannels: deadChannels.slice(0, 100), // Limit response size
+          dryRun
+        }
+      });
+    } catch (error) {
+      console.error('Validate channels error:', error);
+      res.status(500).json({ success: false, message: 'Server error' });
+    }
+  }
+);
+
+// @route   DELETE /api/admin/channels/inactive
+// @desc    Delete all inactive channels (Admin only)
+// @access  Private (Admin)
+router.delete('/channels/inactive',
+  authenticate,
+  authorize('ADMIN'),
+  async (req, res) => {
+    try {
+      const count = await prisma.channel.count({ where: { isActive: false } });
+
+      if (count === 0) {
+        return res.json({
+          success: true,
+          message: 'No inactive channels to delete',
+          data: { deleted: 0 }
+        });
+      }
+
+      await prisma.channel.deleteMany({ where: { isActive: false } });
+
+      res.json({
+        success: true,
+        message: `Deleted ${count} inactive channels`,
+        data: { deleted: count }
+      });
+    } catch (error) {
+      console.error('Delete inactive channels error:', error);
       res.status(500).json({ success: false, message: 'Server error' });
     }
   }
