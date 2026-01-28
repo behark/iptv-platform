@@ -17,8 +17,36 @@ const VideoPlayer = ({
   const [isMuted, setIsMuted] = useState(false)
   const [captionsEnabled, setCaptionsEnabled] = useState(false)
 
+  // Check if this is a YouTube URL
+  const isYouTube = streamUrl?.includes('youtube.com/embed/') || streamUrl?.includes('youtu.be/')
+
+  // Extract YouTube video ID
+  const getYouTubeEmbedUrl = (url) => {
+    if (!url) return null
+    // Already an embed URL
+    if (url.includes('youtube.com/embed/')) {
+      // Add parameters for better experience
+      const videoId = url.split('embed/')[1]?.split('?')[0]
+      return `https://www.youtube.com/embed/${videoId}?autoplay=1&cc_load_policy=1&cc_lang_pref=sq&rel=0`
+    }
+    // Watch URL format
+    const match = url.match(/[?&]v=([^&]+)/) || url.match(/youtu\.be\/([^?]+)/)
+    if (match) {
+      return `https://www.youtube.com/embed/${match[1]}?autoplay=1&cc_load_policy=1&cc_lang_pref=sq&rel=0`
+    }
+    return url
+  }
+
   useEffect(() => {
+    // Skip for YouTube - iframe handles everything
+    if (isYouTube) {
+      setIsLoading(false)
+      return
+    }
+
     const video = videoRef.current
+    if (!video) return
+
     setIsLoading(true)
     setErrorMessage('')
 
@@ -52,7 +80,7 @@ const VideoPlayer = ({
       // Direct video URL
       video.src = streamUrl
     }
-  }, [streamUrl, streamType])
+  }, [streamUrl, streamType, isYouTube])
 
   const handleLoaded = () => setIsLoading(false)
   const handleWaiting = () => setIsLoading(true)
@@ -89,6 +117,42 @@ const VideoPlayer = ({
     } else {
       video.requestFullscreen?.()
     }
+  }
+
+  // Render YouTube iframe
+  if (isYouTube) {
+    return (
+      <div className="w-full bg-black rounded-lg overflow-hidden relative">
+        <div className="relative w-full" style={{ paddingBottom: '56.25%' }}>
+          <iframe
+            src={getYouTubeEmbedUrl(streamUrl)}
+            className="absolute inset-0 w-full h-full"
+            title={title || 'YouTube Video'}
+            frameBorder="0"
+            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+            allowFullScreen
+          />
+        </div>
+        {showMeta && title && (
+          <div className="p-4 bg-slate-800">
+            <div className="flex items-center justify-between">
+              <h2 className="text-xl font-semibold text-white">{title}</h2>
+              {onToggleFavorite && (
+                <button
+                  type="button"
+                  onClick={onToggleFavorite}
+                  className="h-10 w-10 rounded-full bg-slate-700 text-white flex items-center justify-center hover:bg-slate-600"
+                  aria-label={isFavorite ? 'Remove from favorites' : 'Add to favorites'}
+                >
+                  {isFavorite ? '⭐' : '☆'}
+                </button>
+              )}
+            </div>
+            <p className="text-sm text-green-400 mt-1">Albanian subtitles available in player (CC button)</p>
+          </div>
+        )}
+      </div>
+    )
   }
 
   return (
