@@ -162,6 +162,91 @@ const COUNTRY_SOURCES = {
     xk: 'https://iptv-org.github.io/iptv/countries/xk.m3u'
 };
 
+function normalizeAttr(value) {
+    if (value === null || value === undefined) return null;
+    const trimmed = String(value).trim();
+    return trimmed ? trimmed : null;
+}
+
+function isPresent(value) {
+    return normalizeAttr(value) !== null;
+}
+
+function isMeaningfulName(value) {
+    const normalized = normalizeAttr(value);
+    if (!normalized) return false;
+    return normalized.toLowerCase() !== 'unknown';
+}
+
+function isMeaningfulCategory(value) {
+    const normalized = normalizeAttr(value);
+    if (!normalized) return false;
+    return normalized.toLowerCase() !== 'uncategorized';
+}
+
+function mergeChannel(base, candidate) {
+    const merged = { ...base };
+
+    if (!isMeaningfulName(merged.name) && isMeaningfulName(candidate.name)) {
+        merged.name = candidate.name;
+    } else if (!isPresent(merged.name) && isPresent(candidate.name)) {
+        merged.name = candidate.name;
+    }
+
+    if ((!isPresent(merged.description) || merged.description === merged.name) && isPresent(candidate.description)) {
+        merged.description = candidate.description;
+    }
+
+    if (!isPresent(merged.logo) && isPresent(candidate.logo)) {
+        merged.logo = candidate.logo;
+    }
+
+    if (!isMeaningfulCategory(merged.category) && isMeaningfulCategory(candidate.category)) {
+        merged.category = candidate.category;
+    } else if (!isPresent(merged.category) && isPresent(candidate.category)) {
+        merged.category = candidate.category;
+    }
+
+    if (!isPresent(merged.country) && isPresent(candidate.country)) {
+        merged.country = candidate.country;
+    }
+
+    if (!isPresent(merged.language) && isPresent(candidate.language)) {
+        merged.language = candidate.language;
+    }
+
+    if (!isPresent(merged.epgId) && isPresent(candidate.epgId)) {
+        merged.epgId = candidate.epgId;
+    }
+
+    if (!isPresent(merged.streamType) && isPresent(candidate.streamType)) {
+        merged.streamType = candidate.streamType;
+    }
+
+    return merged;
+}
+
+function dedupeChannelsByStreamUrl(channels) {
+    const byUrl = new Map();
+
+    for (const channel of channels) {
+        if (!channel?.streamUrl) continue;
+        const normalizedUrl = channel.streamUrl.trim();
+        if (!normalizedUrl) continue;
+
+        channel.streamUrl = normalizedUrl;
+        const existing = byUrl.get(normalizedUrl);
+        if (!existing) {
+            byUrl.set(normalizedUrl, channel);
+            continue;
+        }
+
+        byUrl.set(normalizedUrl, mergeChannel(existing, channel));
+    }
+
+    return Array.from(byUrl.values());
+}
+
 function parseM3U(content) {
     const lines = content.split('\n');
     const channels = [];
@@ -180,14 +265,22 @@ function parseM3U(content) {
 
             const nameMatch = line.match(/,(.+)$/);
 
+            const epgId = normalizeAttr(tvgIdMatch ? tvgIdMatch[1] : null);
+            const tvgName = normalizeAttr(tvgNameMatch ? tvgNameMatch[1] : null);
+            const logo = normalizeAttr(tvgLogoMatch ? tvgLogoMatch[1] : null);
+            const category = normalizeAttr(groupMatch ? groupMatch[1] : null);
+            const country = normalizeAttr(tvgCountryMatch ? tvgCountryMatch[1] : null);
+            const language = normalizeAttr(tvgLanguageMatch ? tvgLanguageMatch[1] : null);
+            const fallbackName = nameMatch ? nameMatch[1].trim() : null;
+
             currentChannel = {
-                epgId: tvgIdMatch ? tvgIdMatch[1] : null,
-                name: tvgNameMatch ? tvgNameMatch[1] : (nameMatch ? nameMatch[1].trim() : 'Unknown'),
-                logo: tvgLogoMatch ? tvgLogoMatch[1] : null,
-                category: groupMatch ? groupMatch[1] : 'Uncategorized',
-                country: tvgCountryMatch ? tvgCountryMatch[1].toUpperCase() : null,
-                language: tvgLanguageMatch ? tvgLanguageMatch[1].toLowerCase() : null,
-                description: nameMatch ? nameMatch[1].trim() : ''
+                epgId,
+                name: tvgName || fallbackName || 'Unknown',
+                logo,
+                category,
+                country: country ? country.toUpperCase() : null,
+                language: language ? language.toLowerCase() : null,
+                description: fallbackName || ''
             };
         } else if ((line.startsWith('http://') || line.startsWith('https://')) && currentChannel) {
             currentChannel.streamUrl = line;
@@ -244,8 +337,13 @@ async function importFromFile(filePath, options = {}) {
 
     try {
         const content = await fs.readFile(filePath, 'utf-8');
-        const channels = parseM3U(content);
-        console.log(`Found ${channels.length} channels in playlist`);
+        const parsedChannels = parseM3U(content);
+        const channels = dedupeChannelsByStreamUrl(parsedChannels);
+        const duplicatesRemoved = parsedChannels.length - channels.length;
+        console.log(`Found ${parsedChannels.length} channels in playlist`);
+        if (duplicatesRemoved > 0) {
+            console.log(`Removed ${duplicatesRemoved} duplicate stream URLs`);
+        }
 
         let imported = 0;
         let skipped = 0;
@@ -283,14 +381,19 @@ async function importFromFile(filePath, options = {}) {
                     });
 
                     if (existingChannel) {
+                        const updates = {
+                            name: channelData.name,
+                            category: channelData.category,
+                            updatedAt: new Date()
+                        };
+
+                        if (channelData.logo && channelData.logo.trim() !== '') {
+                            updates.logo = channelData.logo;
+                        }
+
                         await prisma.channel.update({
                             where: { id: existingChannel.id },
-                            data: {
-                                name: channelData.name,
-                                logo: channelData.logo,
-                                category: channelData.category,
-                                updatedAt: new Date()
-                            }
+                            data: updates
                         });
                     } else {
                         await prisma.channel.create({ data: channelData });
@@ -352,8 +455,13 @@ async function importFromUrl(url, options = {}) {
             maxContentLength: 50 * 1024 * 1024 // 50MB max
         });
 
-        const channels = parseM3U(response.data);
-        console.log(`Found ${channels.length} channels in playlist`);
+        const parsedChannels = parseM3U(response.data);
+        const channels = dedupeChannelsByStreamUrl(parsedChannels);
+        const duplicatesRemoved = parsedChannels.length - channels.length;
+        console.log(`Found ${parsedChannels.length} channels in playlist`);
+        if (duplicatesRemoved > 0) {
+            console.log(`Removed ${duplicatesRemoved} duplicate stream URLs`);
+        }
 
         let imported = 0;
         let skipped = 0;
@@ -391,14 +499,19 @@ async function importFromUrl(url, options = {}) {
                     });
 
                     if (existingChannel) {
+                        const updates = {
+                            name: channelData.name,
+                            category: channelData.category,
+                            updatedAt: new Date()
+                        };
+
+                        if (channelData.logo && channelData.logo.trim() !== '') {
+                            updates.logo = channelData.logo;
+                        }
+
                         await prisma.channel.update({
                             where: { id: existingChannel.id },
-                            data: {
-                                name: channelData.name,
-                                logo: channelData.logo,
-                                category: channelData.category,
-                                updatedAt: new Date()
-                            }
+                            data: updates
                         });
                     } else {
                         await prisma.channel.create({ data: channelData });
