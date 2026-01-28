@@ -92,6 +92,13 @@ model Channel {
   watchHistory  WatchHistory[]
   favorites     Favorite[]
 
+  @@unique([streamUrl], map: "channels_stream_url_key")
+  @@index([category], map: "channels_category_idx")
+  @@index([country], map: "channels_country_idx")
+  @@index([language], map: "channels_language_idx")
+  @@index([isActive], map: "channels_is_active_idx")
+  @@index([isActive, country], map: "channels_active_country_idx")
+  @@index([isActive, category], map: "channels_active_category_idx")
   @@map("channels")
 }
 
@@ -104,15 +111,35 @@ model Video {
   duration      Int?            // in seconds
   category      String?
   tags          String[]
-  isActive     Boolean         @default(true) @map("is_active")
+  isActive      Boolean         @default(true) @map("is_active")
   views         Int             @default(0)
   createdAt     DateTime        @default(now()) @map("created_at")
   updatedAt     DateTime        @updatedAt @map("updated_at")
+
+  // Source tracking
+  sourceType    String?         @map("source_type")    // 'archive', 'youtube', 'vimeo'
+  sourceId      String?         @map("source_id")      // External ID from source
+  imdbId        String?         @map("imdb_id")        // For subtitle matching
+  year          Int?                                   // Release year
+
+  // Subtitle support
+  hasSubtitles      Boolean     @default(false) @map("has_subtitles")
+  subtitleUrl       String?     @map("subtitle_url")
+  subtitleLanguage  String?     @default("sq") @map("subtitle_language")
+  subtitleSynced    Boolean     @default(false) @map("subtitle_synced")
+
+  // Language/region
+  language      String?
+  country       String?
 
   playlists     PlaylistVideo[]
   watchHistory  WatchHistory[]
   favorites     Favorite[]
 
+  @@unique([sourceType, sourceId])
+  @@index([hasSubtitles])
+  @@index([category])
+  @@index([country])
   @@map("videos")
 }
 
@@ -208,6 +235,7 @@ model PlaylistToken {
   id            String    @id @default(uuid())
   userId        String    @unique @map("user_id")
   token         String    @unique
+  expiresAt     DateTime? @map("expires_at")
   lastUsedAt    DateTime? @map("last_used_at")
   createdAt     DateTime  @default(now()) @map("created_at")
   updatedAt     DateTime  @updatedAt @map("updated_at")
@@ -222,7 +250,7 @@ model PlaylistToken {
 model Device {
   id            String        @id @default(uuid())
   userId        String        @map("user_id")
-  macAddress    String        @map("mac_address")
+  macAddress    String        @unique @map("mac_address")
   name          String?       @map("name")
   status        DeviceStatus  @default(PENDING)
   createdAt     DateTime      @default(now()) @map("created_at")

@@ -14,7 +14,18 @@
     "import": "node scripts/import-channels.js",
     "import:quick": "node scripts/import-channels.js quick",
     "import:all": "node scripts/import-channels.js all",
-    "import:stats": "node scripts/import-channels.js stats"
+    "import:stats": "node scripts/import-channels.js stats",
+    "vod": "node scripts/import-vod.js",
+    "vod:popular": "node scripts/import-vod.js popular",
+    "vod:albanian": "node scripts/import-vod.js albanian",
+    "vod:stats": "node scripts/import-vod.js stats",
+    "vod:test": "node scripts/import-vod.js test",
+    "youtube": "node scripts/import-youtube.js",
+    "youtube:albanian": "node scripts/import-youtube.js albanian",
+    "youtube:movies": "node scripts/import-youtube.js movies",
+    "youtube:stats": "node scripts/import-youtube.js stats",
+    "playlist": "node scripts/generate-playlist.js",
+    "activate": "node scripts/activate-device.js"
   },
   "keywords": [
     "iptv",
