@@ -129,6 +129,69 @@ class VodImporter {
   }
 
   /**
+   * Import movies from a specific collection
+   * @param {string} collectionId - Archive.org collection ID
+   * @param {Object} options - Import options
+   */
+  async importFromCollection(collectionId, options = {}) {
+    const { limit = 20, skipExisting = true, syncSubtitles = false } = options;
+
+    await this.init();
+    this.resetStats();
+
+    console.log('='.repeat(60));
+    console.log(`VOD Import: Collection "${collectionId}"`);
+    console.log('='.repeat(60));
+
+    const result = await archiveService.browseCollection(collectionId, { rows: limit });
+
+    console.log(`Found ${result.items.length} items to process\n`);
+
+    for (const item of result.items) {
+      const movie = await archiveService.getMetadata(item.sourceId);
+      if (movie) {
+        await this.importMovie(movie, { skipExisting, syncSubtitles });
+      }
+      await this.delay(1500);
+    }
+
+    this.printStats();
+    return this.stats;
+  }
+
+  /**
+   * Import from multiple collections
+   * @param {Array} collectionIds - Array of collection IDs
+   * @param {Object} options - Import options
+   */
+  async importFromCollections(collectionIds, options = {}) {
+    const { limitPerCollection = 10, skipExisting = true, syncSubtitles = false } = options;
+
+    await this.init();
+    this.resetStats();
+
+    console.log('='.repeat(60));
+    console.log(`VOD Import: Multiple Collections (${collectionIds.length})`);
+    console.log('='.repeat(60));
+
+    for (const collectionId of collectionIds) {
+      console.log(`\nProcessing collection: ${collectionId}`);
+      const result = await archiveService.browseCollection(collectionId, { rows: limitPerCollection });
+
+      for (const item of result.items) {
+        const movie = await archiveService.getMetadata(item.sourceId);
+        if (movie) {
+          await this.importMovie(movie, { skipExisting, syncSubtitles });
+        }
+        await this.delay(1500);
+      }
+    }
+
+    this.printStats();
+    return this.stats;
+  }
+
+  /**
    * Import a single movie
    */
   async importMovie(movie, options = {}) {
@@ -267,7 +330,7 @@ class VodImporter {
       return false;
     } finally {
       // Cleanup temp audio file
-      await fs.unlink(tempAudioPath).catch(() => {});
+      await fs.unlink(tempAudioPath).catch(() => { });
     }
   }
 

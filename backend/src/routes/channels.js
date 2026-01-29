@@ -18,11 +18,12 @@ router.get('/', authenticate, requireSubscription, async (req, res) => {
       page = '1',
       limit,
       sort,
-      ids
+      ids,
+      priority
     } = req.query;
 
     const pageNumber = Math.max(parseInt(page, 10) || 1, 1);
-    const limitNumber = limit ? Math.min(Math.max(parseInt(limit, 10) || 0, 0), 500) : 0;
+    const limitNumber = Math.min(Math.max(parseInt(limit, 10) || 50, 1), 500);
     const sortDirection = sort === 'name-desc' ? 'desc' : 'asc';
     const filters = [{ isActive: true }];
 
@@ -42,7 +43,7 @@ router.get('/', authenticate, requireSubscription, async (req, res) => {
           count: 0,
           pagination: {
             page: pageNumber,
-            limit: limitNumber || 0,
+            limit: limitNumber,
             total: 0,
             pages: 0,
             hasMore: false
@@ -64,7 +65,7 @@ router.get('/', authenticate, requireSubscription, async (req, res) => {
           count: 0,
           pagination: {
             page: pageNumber,
-            limit: limitNumber || 0,
+            limit: limitNumber,
             total: 0,
             pages: 0,
             hasMore: false
@@ -82,7 +83,7 @@ router.get('/', authenticate, requireSubscription, async (req, res) => {
             count: 0,
             pagination: {
               page: pageNumber,
-              limit: limitNumber || 0,
+              limit: limitNumber,
               total: 0,
               pages: 0,
               hasMore: false
@@ -114,27 +115,32 @@ router.get('/', authenticate, requireSubscription, async (req, res) => {
     }
 
     const where = { AND: filters };
-    const usePagination = limitNumber > 0;
-    const skip = usePagination ? (pageNumber - 1) * limitNumber : undefined;
-    const take = usePagination ? limitNumber : undefined;
+    const skip = (pageNumber - 1) * limitNumber;
 
-    const total = usePagination ? await prisma.channel.count({ where }) : null;
+    // When priority is requested and no country filter, sort AL/XK first
+    const usePriority = priority === 'true' && !country;
+    const orderBy = usePriority
+      ? [{ sortOrder: 'asc' }, { name: sortDirection }]
+      : [{ name: sortDirection }];
+
+    const total = await prisma.channel.count({ where });
     const channels = await prisma.channel.findMany({
       where,
-      orderBy: { name: sortDirection },
-      ...(usePagination ? { skip, take } : {})
+      orderBy,
+      skip,
+      take: limitNumber
     });
 
-    const totalCount = usePagination ? total : channels.length;
-    const totalPages = usePagination ? Math.ceil(totalCount / limitNumber) : 1;
-    const hasMore = usePagination ? pageNumber < totalPages : false;
+    const totalCount = total;
+    const totalPages = Math.ceil(totalCount / limitNumber);
+    const hasMore = pageNumber < totalPages;
 
     res.json({
       success: true,
       count: channels.length,
       pagination: {
         page: pageNumber,
-        limit: usePagination ? limitNumber : channels.length,
+        limit: limitNumber,
         total: totalCount,
         pages: totalPages,
         hasMore

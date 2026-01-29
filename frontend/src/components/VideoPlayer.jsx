@@ -3,7 +3,7 @@ import Hls from 'hls.js'
 
 const VideoPlayer = ({
   streamUrl,
-  streamType = 'HLS',
+  streamType: propStreamType,
   title,
   onToggleFavorite,
   isFavorite = false,
@@ -19,6 +19,22 @@ const VideoPlayer = ({
 
   // Check if this is a YouTube URL
   const isYouTube = streamUrl?.includes('youtube.com/embed/') || streamUrl?.includes('youtu.be/')
+
+  // Auto-detect stream type from URL
+  const detectStreamType = (url) => {
+    if (!url) return 'HLS'
+    const lowerUrl = url.toLowerCase()
+    // Direct video files should use native playback
+    if (lowerUrl.match(/\.(mp4|webm|ogv|avi|mkv|mov)(\?|$)/i) ||
+      lowerUrl.includes('archive.org/download')) {
+      return 'DIRECT'
+    }
+    // HLS streams
+    if (lowerUrl.includes('.m3u8')) return 'HLS'
+    return 'HLS'
+  }
+
+  const streamType = propStreamType || detectStreamType(streamUrl)
 
   // Extract YouTube video ID
   const getYouTubeEmbedUrl = (url) => {
@@ -50,6 +66,18 @@ const VideoPlayer = ({
     setIsLoading(true)
     setErrorMessage('')
 
+    // Clean up previous HLS instance
+    if (hlsRef.current) {
+      hlsRef.current.destroy()
+      hlsRef.current = null
+    }
+
+    if (streamType === 'DIRECT') {
+      // Direct video URL (MP4, WebM, etc.) - use native HTML5 video
+      video.src = streamUrl
+      return
+    }
+
     if (streamType === 'HLS') {
       if (Hls.isSupported()) {
         const hls = new Hls({
@@ -77,7 +105,7 @@ const VideoPlayer = ({
         video.src = streamUrl
       }
     } else {
-      // Direct video URL
+      // Fallback - direct video URL
       video.src = streamUrl
     }
   }, [streamUrl, streamType, isYouTube])

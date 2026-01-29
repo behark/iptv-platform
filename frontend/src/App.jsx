@@ -21,6 +21,7 @@ import PaymentCancel from './pages/PaymentCancel'
 import Favorites from './pages/Favorites'
 import History from './pages/History'
 import AdminDashboard from './pages/admin/Dashboard'
+import VodManager from './pages/admin/VodManager'
 
 function App() {
   return (
@@ -127,6 +128,14 @@ function App() {
                 element={
                   <AdminRoute>
                     <AdminDashboard />
+                  </AdminRoute>
+                }
+              />
+              <Route
+                path="/admin/vod"
+                element={
+                  <AdminRoute>
+                    <VodManager />
                   </AdminRoute>
                 }
               />

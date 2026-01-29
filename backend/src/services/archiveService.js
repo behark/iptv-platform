@@ -11,12 +11,153 @@ const API_BASE = 'https://archive.org';
 const METADATA_BASE = 'https://archive.org/metadata';
 const DOWNLOAD_BASE = 'https://archive.org/download';
 
+const COLLECTIONS = {
+  feature_films: {
+    id: 'feature_films',
+    name: 'Feature Films',
+    description: 'Classic feature-length movies in the public domain',
+    mediatype: 'movies',
+    icon: '🎬',
+    estimatedCount: 27000
+  },
+  classic_tv: {
+    id: 'classic_tv',
+    name: 'Classic TV Shows',
+    description: 'Vintage television programs and series',
+    mediatype: 'movies',
+    icon: '📺',
+    estimatedCount: 5000
+  },
+  opensource_movies: {
+    id: 'opensource_movies',
+    name: 'Open Source Movies',
+    description: 'Community-contributed open source films',
+    mediatype: 'movies',
+    icon: '🎥',
+    estimatedCount: 15000
+  },
+  prelinger: {
+    id: 'prelinger',
+    name: 'Prelinger Archives',
+    description: 'Industrial, educational, and ephemeral films',
+    mediatype: 'movies',
+    icon: '🏭',
+    estimatedCount: 8000
+  },
+  moviesandfilms: {
+    id: 'moviesandfilms',
+    name: 'Movies & Films',
+    description: 'General movie collection',
+    mediatype: 'movies',
+    icon: '🎞️',
+    estimatedCount: 12000
+  },
+  classic_cartoons: {
+    id: 'classic_cartoons',
+    name: 'Classic Cartoons',
+    description: 'Vintage animated cartoons and shorts',
+    mediatype: 'movies',
+    icon: '🎨',
+    estimatedCount: 3000
+  },
+  film_noir: {
+    id: 'film_noir',
+    name: 'Film Noir',
+    description: 'Classic film noir and crime dramas',
+    mediatype: 'movies',
+    icon: '🕵️',
+    estimatedCount: 500
+  },
+  silent_films: {
+    id: 'silent_films',
+    name: 'Silent Films',
+    description: 'Classic silent era cinema',
+    mediatype: 'movies',
+    icon: '🎭',
+    estimatedCount: 2000
+  },
+  scifi: {
+    id: 'SciFi_Horror',
+    name: 'Sci-Fi & Horror',
+    description: 'Science fiction and horror classics',
+    mediatype: 'movies',
+    icon: '👽',
+    estimatedCount: 1500
+  },
+  comedy_films: {
+    id: 'comedy_films',
+    name: 'Comedy Films',
+    description: 'Classic comedy movies',
+    mediatype: 'movies',
+    icon: '😂',
+    estimatedCount: 2500
+  }
+};
+
 class ArchiveService {
   constructor() {
     this.client = axios.create({
       baseURL: API_BASE,
-      timeout: 30000
+      timeout: 60000
     });
+    this.collections = COLLECTIONS;
+    this.statsCache = null;
+    this.statsCacheTime = null;
+    this.CACHE_TTL = 10 * 60 * 1000; // 10 minutes
+    this.lastRequestTime = 0;
+    this.MIN_REQUEST_INTERVAL = 2000; // 2 seconds between requests
+  }
+
+  /**
+   * Rate-limited request wrapper with retry logic
+   */
+  async rateLimitedRequest(url, params, retries = 5) {
+    const now = Date.now();
+    const timeSinceLastRequest = now - this.lastRequestTime;
+
+    if (timeSinceLastRequest < this.MIN_REQUEST_INTERVAL) {
+      await new Promise(resolve =>
+        setTimeout(resolve, this.MIN_REQUEST_INTERVAL - timeSinceLastRequest)
+      );
+    }
+
+    this.lastRequestTime = Date.now();
+
+    for (let attempt = 0; attempt < retries; attempt++) {
+      try {
+        const response = await this.client.get(url, { params });
+        return response;
+      } catch (error) {
+        const isRateLimited = error.response?.status === 429;
+        const isTimeout = error.code === 'ECONNABORTED' || error.message?.includes('timeout');
+
+        if ((isRateLimited || isTimeout) && attempt < retries - 1) {
+          const backoffTime = Math.pow(2, attempt + 1) * 3000; // 6s, 12s, 24s, 48s
+          console.log(`Archive.org ${isRateLimited ? 'rate limited' : 'timeout'}, waiting ${backoffTime / 1000}s before retry ${attempt + 2}/${retries}`);
+          await new Promise(resolve => setTimeout(resolve, backoffTime));
+        } else {
+          throw error;
+        }
+      }
+    }
+  }
+
+  /**
+   * Get available collections with estimated counts
+   */
+  getCollections() {
+    return Object.entries(COLLECTIONS).map(([key, col]) => ({
+      ...col,
+      key,
+      count: col.estimatedCount
+    }));
+  }
+
+  /**
+   * Get collection info by ID
+   */
+  getCollection(collectionId) {
+    return COLLECTIONS[collectionId] || null;
   }
 
   /**
@@ -301,6 +442,190 @@ class ArchiveService {
       console.error(`IMDB search failed for ${imdbId}:`, error.message);
       return null;
     }
+  }
+
+  /**
+   * Browse a specific collection with pagination
+   * @param {string} collectionId - Collection ID
+   * @param {Object} options - Browse options
+   */
+  async browseCollection(collectionId, options = {}) {
+    const { page = 1, rows = 50, sort = 'downloads desc' } = options;
+    const collection = COLLECTIONS[collectionId];
+
+    if (!collection) {
+      console.error(`Unknown collection: ${collectionId}`);
+      return { items: [], total: 0, page: 1, pages: 0 };
+    }
+
+    try {
+      const response = await this.rateLimitedRequest('/advancedsearch.php', {
+        q: `collection:${collection.id} AND mediatype:${collection.mediatype}`,
+        fl: 'identifier,title,description,year,creator,runtime,downloads,avg_rating,language',
+        sort,
+        output: 'json',
+        rows,
+        page
+      });
+
+      const docs = response.data.response?.docs || [];
+      const total = response.data.response?.numFound || 0;
+
+      return {
+        items: docs.map(doc => ({
+          sourceId: doc.identifier,
+          title: doc.title,
+          description: doc.description,
+          year: doc.year ? parseInt(doc.year) : null,
+          creator: doc.creator,
+          runtime: doc.runtime,
+          downloads: doc.downloads,
+          rating: doc.avg_rating,
+          language: doc.language,
+          collection: collectionId
+        })),
+        total,
+        page,
+        pages: Math.ceil(total / rows)
+      };
+    } catch (error) {
+      console.error(`Browse collection failed for ${collectionId}:`, error.message);
+      return { items: [], total: 0, page: 1, pages: 0 };
+    }
+  }
+
+  /**
+   * Search across multiple collections
+   * @param {Object} params - Search parameters
+   */
+  async searchAllCollections(params = {}) {
+    const { query = '', rows = 50, page = 1, collections = null } = params;
+
+    const targetCollections = collections || Object.keys(COLLECTIONS);
+    const collectionQuery = targetCollections
+      .map(c => COLLECTIONS[c]?.id || c)
+      .map(id => `collection:${id}`)
+      .join(' OR ');
+
+    try {
+      let searchQuery = `(${collectionQuery}) AND mediatype:movies`;
+      if (query) {
+        searchQuery += ` AND (title:"${query}" OR description:"${query}" OR creator:"${query}")`;
+      }
+
+      const response = await this.rateLimitedRequest('/advancedsearch.php', {
+        q: searchQuery,
+        fl: 'identifier,title,description,year,creator,runtime,downloads,avg_rating,language,collection',
+        sort: 'downloads desc',
+        output: 'json',
+        rows,
+        page
+      });
+
+      const docs = response.data.response?.docs || [];
+      const total = response.data.response?.numFound || 0;
+
+      return {
+        items: docs.map(doc => ({
+          sourceId: doc.identifier,
+          title: doc.title,
+          description: doc.description,
+          year: doc.year ? parseInt(doc.year) : null,
+          creator: doc.creator,
+          runtime: doc.runtime,
+          downloads: doc.downloads,
+          rating: doc.avg_rating,
+          language: doc.language,
+          collection: Array.isArray(doc.collection) ? doc.collection[0] : doc.collection
+        })),
+        total,
+        page,
+        pages: Math.ceil(total / rows)
+      };
+    } catch (error) {
+      console.error('Search all collections failed:', error.message);
+      return { items: [], total: 0, page: 1, pages: 0 };
+    }
+  }
+
+  /**
+   * Get collection statistics with caching
+   */
+  async getCollectionStats(forceRefresh = false) {
+    // Return cached stats if still valid
+    if (!forceRefresh && this.statsCache && this.statsCacheTime) {
+      const age = Date.now() - this.statsCacheTime;
+      if (age < this.CACHE_TTL) {
+        console.log('Returning cached collection stats');
+        return this.statsCache;
+      }
+    }
+
+    const stats = [];
+    const collectionEntries = Object.entries(COLLECTIONS);
+
+    // Fetch stats with proper rate limiting
+    for (let i = 0; i < collectionEntries.length; i++) {
+      const [key, collection] = collectionEntries[i];
+
+      try {
+        const response = await this.rateLimitedRequest('/advancedsearch.php', {
+          q: `collection:${collection.id} AND mediatype:${collection.mediatype}`,
+          fl: 'identifier',
+          output: 'json',
+          rows: 0
+        });
+
+        stats.push({
+          ...collection,
+          key,
+          count: response.data.response?.numFound || 0
+        });
+
+        console.log(`Collection ${key}: ${response.data.response?.numFound || 0} items`);
+      } catch (error) {
+        console.error(`Stats fetch failed for ${key}:`, error.message);
+        stats.push({
+          ...collection,
+          key,
+          count: 0,
+          error: error.message
+        });
+      }
+    }
+
+    // Cache the results
+    this.statsCache = stats;
+    this.statsCacheTime = Date.now();
+
+    return stats;
+  }
+
+  /**
+   * Import from multiple collections at once
+   * @param {Object} options - Import options
+   */
+  async getItemsFromCollections(options = {}) {
+    const {
+      collections = ['feature_films'],
+      limitPerCollection = 20,
+      sort = 'downloads desc'
+    } = options;
+
+    const allItems = [];
+
+    for (const collectionId of collections) {
+      const result = await this.browseCollection(collectionId, {
+        rows: limitPerCollection,
+        sort
+      });
+      allItems.push(...result.items);
+
+      // Rate limiting
+      await new Promise(resolve => setTimeout(resolve, 500));
+    }
+
+    return allItems;
   }
 }
 

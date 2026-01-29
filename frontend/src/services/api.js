@@ -183,4 +183,20 @@ export const adminAPI = {
   updateSubscription: (id, data) => api.put(`/admin/subscriptions/${id}`, data)
 }
 
+export const vodAPI = {
+  getStats: () => api.get('/vod/stats'),
+  getCollections: () => api.get('/vod/collections'),
+  getCollectionStats: () => api.get('/vod/collections/stats'),
+  browseCollection: (id, params) => api.get(`/vod/collections/${id}/browse`, { params }),
+  search: (params) => api.get('/vod/search', { params }),
+  preview: (identifier) => api.get(`/vod/preview/${identifier}`),
+  importSingle: (data) => api.post('/vod/import/single', data),
+  importBatch: (data) => api.post('/vod/import/batch', data),
+  importCollection: (data) => api.post('/vod/import/collection', data),
+  getJobs: () => api.get('/vod/import/jobs'),
+  getJob: (id) => api.get(`/vod/import/jobs/${id}`),
+  deleteVideo: (id) => api.delete(`/vod/videos/${id}`),
+  toggleVideo: (id) => api.put(`/vod/videos/${id}/toggle`)
+}
+
 export default api

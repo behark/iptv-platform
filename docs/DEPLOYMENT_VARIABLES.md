@@ -33,6 +33,17 @@ ALLOWED_ORIGINS=https://your-app-name.vercel.app
 # Public Base URL (optional - used for playlist/EPG export links)
 PUBLIC_BASE_URL=https://your-backend-name.onrender.com
 
+# Export caching + token expiry (optional)
+PLAYLIST_CACHE_TTL_SECONDS=300
+PLAYLIST_CACHE_MAX_ITEMS=50
+EPG_CACHE_TTL_SECONDS=300
+EPG_CACHE_MAX_ITEMS=10
+PLAYLIST_TOKEN_TTL_DAYS=30
+
+# Export rate limiting (optional)
+EXPORTS_RATE_LIMIT_WINDOW_MINUTES=15
+EXPORTS_RATE_LIMIT_MAX=300
+
 # Stripe (get from https://dashboard.stripe.com/apikeys)
 STRIPE_SECRET_KEY=sk_live_your_stripe_secret_key
 STRIPE_WEBHOOK_SECRET=whsec_your_webhook_secret

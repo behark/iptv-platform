@@ -1,6 +1,7 @@
 {
   "name": "iptv-frontend",
   "version": "1.0.0",
+  "type": "module",
   "description": "Legal IPTV Platform Frontend",
   "private": true,
   "dependencies": {

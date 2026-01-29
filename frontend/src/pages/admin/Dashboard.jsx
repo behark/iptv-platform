@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
+import { Link, useNavigate, useLocation } from 'react-router-dom'
 import { useAuth } from '../../contexts/AuthContext'
 import api from '../../services/api'
 import toast from 'react-hot-toast'
@@ -230,8 +230,8 @@ const AdminDashboard = () => {
                         key={tab}
                         onClick={() => setActiveTab(tab)}
                         className={`pb-4 px-2 font-medium capitalize ${activeTab === tab
-                                ? 'text-primary-400 border-b-2 border-primary-400'
-                                : 'text-gray-400 hover:text-white'
+                            ? 'text-primary-400 border-b-2 border-primary-400'
+                            : 'text-gray-400 hover:text-white'
                             }`}
                     >
                         {tab}
@@ -246,6 +246,23 @@ const AdminDashboard = () => {
                         <StatCard title="Active Subscriptions" value={stats?.activeSubscriptions || 0} icon="💳" />
                         <StatCard title="Channels" value={stats?.totalChannels || 0} icon="📺" />
                         <StatCard title="Videos" value={stats?.totalVideos || 0} icon="🎬" />
+                    </div>
+
+                    {/* Quick Actions */}
+                    <div className="bg-slate-800 rounded-lg p-6">
+                        <h2 className="text-xl font-semibold text-white mb-4">Quick Actions</h2>
+                        <div className="grid sm:grid-cols-2 md:grid-cols-3 gap-4">
+                            <Link
+                                to="/admin/vod"
+                                className="flex items-center gap-3 p-4 bg-slate-700 hover:bg-slate-600 rounded-lg transition-colors"
+                            >
+                                <span className="text-2xl">🎬</span>
+                                <div>
+                                    <p className="text-white font-medium">VOD Manager</p>
+                                    <p className="text-gray-400 text-sm">Import movies from Archive.org</p>
+                                </div>
+                            </Link>
+                        </div>
                     </div>
 
                     <div className="grid md:grid-cols-2 gap-6">
@@ -625,10 +642,9 @@ const AdminDashboard = () => {
                                         <td className="px-6 py-4 text-gray-300">{device.name || '-'}</td>
                                         <td className="px-6 py-4 text-gray-300">{device.user?.email || '-'}</td>
                                         <td className="px-6 py-4">
-                                            <span className={`px-2 py-1 text-xs rounded ${
-                                                device.status === 'ACTIVE' ? 'bg-green-600' :
+                                            <span className={`px-2 py-1 text-xs rounded ${device.status === 'ACTIVE' ? 'bg-green-600' :
                                                 device.status === 'PENDING' ? 'bg-yellow-600' : 'bg-red-600'
-                                            } text-white`}>
+                                                } text-white`}>
                                                 {device.status}
                                             </span>
                                         </td>
