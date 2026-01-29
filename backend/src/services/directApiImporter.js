@@ -95,6 +95,7 @@ class BaseApiImporter {
                     const updates = {};
                     if (channel.logo && !existing.logo) updates.logo = channel.logo;
                     if (channel.description && !existing.description) updates.description = channel.description;
+                    if (!existing.fileExt && channel.fileExt) updates.fileExt = channel.fileExt;
 
                     if (Object.keys(updates).length > 0) {
                         await prisma.channel.update({
@@ -114,6 +115,7 @@ class BaseApiImporter {
                         logo: channel.logo,
                         streamUrl: channel.streamUrl,
                         streamType: channel.streamType || 'HLS',
+                        fileExt: channel.fileExt || null,
                         category: channel.category || 'Entertainment',
                         country: channel.country || 'US',
                         language: channel.language || 'en',

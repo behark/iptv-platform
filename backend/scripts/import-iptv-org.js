@@ -4,6 +4,7 @@ const axios = require('axios');
 const { PrismaClient } = require('@prisma/client');
 const fs = require('fs');
 const path = require('path');
+const { detectStreamInfo } = require('../src/utils/stream');
 
 const prisma = new PrismaClient();
 
@@ -82,21 +83,16 @@ function parseM3U(content, sourceCountry = null) {
                 description: nameMatch ? nameMatch[1].trim() : ''
             };
         } else if ((line.startsWith('http://') || line.startsWith('https://')) && currentChannel) {
+            const streamInfo = detectStreamInfo(line);
             currentChannel.streamUrl = line;
-            currentChannel.streamType = detectStreamType(line);
+            currentChannel.streamType = streamInfo.streamType;
+            currentChannel.fileExt = streamInfo.fileExt;
             channels.push(currentChannel);
             currentChannel = null;
         }
     }
 
     return channels;
-}
-
-function detectStreamType(url) {
-    if (url.includes('.m3u8')) return 'HLS';
-    if (url.includes('.mpd')) return 'DASH';
-    if (url.includes('.ts')) return 'MPEG_TS';
-    return 'HLS';
 }
 
 async function importFromUrl(url, options = {}) {
@@ -122,6 +118,7 @@ async function importFromUrl(url, options = {}) {
                 logo: channel.logo || null,
                 streamUrl: channel.streamUrl,
                 streamType: channel.streamType,
+                fileExt: channel.fileExt || null,
                 category: category || channel.category || 'General',
                 country: country?.toUpperCase() || channel.country || 'INT',
                 language: channel.language || 'en',

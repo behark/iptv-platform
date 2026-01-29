@@ -4,6 +4,7 @@
  */
 
 const axios = require('axios');
+const { detectStreamInfo, detectStreamType } = require('../utils/stream');
 
 /**
  * Detect playlist format from content or URL
@@ -67,8 +68,10 @@ function parseM3U(content) {
                 description: attrs.name || ''
             };
         } else if ((trimmed.startsWith('http://') || trimmed.startsWith('https://')) && currentChannel) {
+            const streamInfo = detectStreamInfo(trimmed);
             currentChannel.streamUrl = trimmed;
-            currentChannel.streamType = detectStreamType(trimmed);
+            currentChannel.streamType = streamInfo.streamType;
+            currentChannel.fileExt = streamInfo.fileExt;
             channels.push(currentChannel);
             currentChannel = null;
         }
@@ -166,6 +169,7 @@ function normalizeJSONChannel(item) {
 
     if (!streamUrl) return null;
 
+    const streamInfo = detectStreamInfo(streamUrl);
     return {
         name: item.name || item.title || item.channel_name || item.channelName || 'Unknown',
         logo: item.logo || item.image || item.thumbnail || item.icon ||
@@ -176,7 +180,8 @@ function normalizeJSONChannel(item) {
         language: (item.language || item.lang || '').toLowerCase() || null,
         description: item.description || item.desc || item.summary || item.name || '',
         streamUrl: streamUrl,
-        streamType: detectStreamType(streamUrl)
+        streamType: streamInfo.streamType,
+        fileExt: streamInfo.fileExt
     };
 }
 
@@ -300,26 +305,6 @@ function normalizePlutoChannel(item) {
 }
 
 /**
- * Detect stream type from URL
- */
-function detectStreamType(url) {
-    if (!url) return 'HLS';
-    const lower = url.toLowerCase();
-
-    if (lower.includes('.m3u8')) return 'HLS';
-    if (lower.includes('.mpd')) return 'DASH';
-    if (lower.includes('.ts')) return 'MPEGTS';
-    if (lower.includes('rtmp://')) return 'RTMP';
-    if (lower.includes('.mp4')) return 'MP4';
-    if (lower.includes('.mkv')) return 'MKV';
-    if (lower.includes('.avi')) return 'AVI';
-    if (lower.includes('youtube.com') || lower.includes('youtu.be')) return 'YOUTUBE';
-    if (lower.includes('dailymotion.com')) return 'DAILYMOTION';
-
-    return 'HLS';
-}
-
-/**
  * Universal parser - auto-detects format
  */
 async function parsePlaylist(content, url = '') {
@@ -361,6 +346,7 @@ module.exports = {
     parseXtreamSeries,
     parsePlaylist,
     detectStreamType,
+    detectStreamInfo,
     extractM3UAttributes,
     normalizeJSONChannel,
     normalizePlutoChannel

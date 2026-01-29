@@ -173,6 +173,7 @@ async function importChannels(channels, options = {}) {
                 if (channel.description && !existing.description) {
                     updates.description = channel.description.substring(0, 255);
                 }
+                if (!existing.fileExt && channel.fileExt) updates.fileExt = channel.fileExt;
 
                 if (Object.keys(updates).length > 0) {
                     await prisma.channel.update({
@@ -192,6 +193,7 @@ async function importChannels(channels, options = {}) {
                     logo: channel.logo,
                     streamUrl: channel.streamUrl,
                     streamType: channel.streamType || 'HLS',
+                    fileExt: channel.fileExt || null,
                     category: category || channel.category || 'General',
                     country: country || channel.country || 'INT',
                     language: channel.language || 'en',

@@ -4,6 +4,7 @@ const dns = require('dns').promises;
 const fs = require('fs').promises;
 const path = require('path');
 const prisma = require('../lib/prisma');
+const { detectStreamInfo } = require('../utils/stream');
 
 // Private IP ranges to block for SSRF protection
 const PRIVATE_IP_RANGES = [
@@ -223,6 +224,10 @@ function mergeChannel(base, candidate) {
         merged.streamType = candidate.streamType;
     }
 
+    if (!isPresent(merged.fileExt) && isPresent(candidate.fileExt)) {
+        merged.fileExt = candidate.fileExt;
+    }
+
     return merged;
 }
 
@@ -283,22 +288,16 @@ function parseM3U(content) {
                 description: fallbackName || ''
             };
         } else if ((line.startsWith('http://') || line.startsWith('https://')) && currentChannel) {
+            const streamInfo = detectStreamInfo(line);
             currentChannel.streamUrl = line;
-            currentChannel.streamType = detectStreamType(line);
+            currentChannel.streamType = streamInfo.streamType;
+            currentChannel.fileExt = streamInfo.fileExt;
             channels.push(currentChannel);
             currentChannel = null;
         }
     }
 
     return channels;
-}
-
-function detectStreamType(url) {
-    if (url.includes('.m3u8')) return 'HLS';
-    if (url.includes('.mpd')) return 'DASH';
-    if (url.includes('.ts')) return 'MPEGTS';
-    if (url.includes('rtmp://')) return 'RTMP';
-    return 'HLS';
 }
 
 async function validateStream(url, timeout = 5000) {
@@ -368,6 +367,7 @@ async function importFromFile(filePath, options = {}) {
                         logo: channel.logo,
                         streamUrl: channel.streamUrl,
                         streamType: channel.streamType,
+                        fileExt: channel.fileExt,
                         category: category || channel.category || 'Uncategorized',
                         country: country || channel.country || 'INT',
                         language: channel.language || 'en',
@@ -389,6 +389,9 @@ async function importFromFile(filePath, options = {}) {
 
                         if (channelData.logo && channelData.logo.trim() !== '') {
                             updates.logo = channelData.logo;
+                        }
+                        if (!existingChannel.fileExt && channelData.fileExt) {
+                            updates.fileExt = channelData.fileExt;
                         }
 
                         await prisma.channel.update({
@@ -486,6 +489,7 @@ async function importFromUrl(url, options = {}) {
                         logo: channel.logo,
                         streamUrl: channel.streamUrl,
                         streamType: channel.streamType,
+                        fileExt: channel.fileExt,
                         category: category || channel.category || 'Uncategorized',
                         country: country || channel.country || 'INT',
                         language: channel.language || 'en',
@@ -507,6 +511,9 @@ async function importFromUrl(url, options = {}) {
 
                         if (channelData.logo && channelData.logo.trim() !== '') {
                             updates.logo = channelData.logo;
+                        }
+                        if (!existingChannel.fileExt && channelData.fileExt) {
+                            updates.fileExt = channelData.fileExt;
                         }
 
                         await prisma.channel.update({

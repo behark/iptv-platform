@@ -76,6 +76,7 @@ model Channel {
   logo          String?
   streamUrl     String          @map("stream_url")
   streamType    StreamType      @default(HLS) @map("stream_type")
+  fileExt       String?         @map("file_ext")
   category      String?
   language      String?
   country       String?
@@ -295,8 +296,12 @@ enum SubStatus {
 enum StreamType {
   HLS
   DASH
-  RTMP
   MPEGTS
+  RTMP_INGEST
+  FILE
+  YOUTUBE
+  EXTERNAL
+  UNKNOWN
 }
 
 enum DeviceStatus {

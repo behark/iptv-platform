@@ -7,6 +7,7 @@
 
 const axios = require('axios');
 const { PrismaClient } = require('@prisma/client');
+const { detectStreamInfo } = require('../src/utils/stream');
 
 const prisma = new PrismaClient();
 
@@ -56,8 +57,10 @@ function parseM3U(content) {
             }
 
         } else if ((line.startsWith('http://') || line.startsWith('https://')) && currentChannel) {
+            const streamInfo = detectStreamInfo(line);
             currentChannel.streamUrl = line;
-            currentChannel.streamType = detectStreamType(line);
+            currentChannel.streamType = streamInfo.streamType;
+            currentChannel.fileExt = streamInfo.fileExt;
             currentChannel.description = currentChannel.name;
             channels.push(currentChannel);
             currentChannel = null;
@@ -109,14 +112,6 @@ function mapGroupToCountry(group) {
         'China': 'CN',
     };
     return countryMap[group] || null;
-}
-
-function detectStreamType(url) {
-    if (url.includes('.m3u8')) return 'HLS';
-    if (url.includes('.mpd')) return 'DASH';
-    if (url.includes('.ts')) return 'MPEG_TS';
-    if (url.includes('youtube.com')) return 'HLS';
-    return 'HLS';
 }
 
 async function importFromFreeTV(options = {}) {
@@ -212,6 +207,7 @@ async function importFromFreeTV(options = {}) {
                         logo: channel.logo || null,
                         streamUrl: channel.streamUrl,
                         streamType: channel.streamType,
+                        fileExt: channel.fileExt || null,
                         category: channel.category || 'General',
                         country: channel.country || 'INT',
                         language: 'en',

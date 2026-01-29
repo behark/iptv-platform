@@ -36,6 +36,15 @@ const EPG_CACHE_MAX_ITEMS = getEnvNumber('EPG_CACHE_MAX_ITEMS', 10);
 const playlistCache = new Map();
 const epgCache = new Map();
 
+const M3U_EXCLUDED_STREAM_TYPES = new Set(['YOUTUBE', 'EXTERNAL', 'RTMP_INGEST']);
+
+const filterM3UChannels = (channels = []) => {
+  return channels.filter(channel => {
+    const streamType = channel.streamType || 'HLS';
+    return !M3U_EXCLUDED_STREAM_TYPES.has(streamType);
+  });
+};
+
 const getCacheEntry = (cache, key) => {
   const entry = cache.get(key);
   if (!entry) return null;
@@ -560,7 +569,7 @@ router.get('/m3u', async (req, res) => {
     let m3u = cached?.value;
 
     if (!m3u) {
-      const channels = await getAccessibleChannels(user, subscription);
+      const channels = filterM3UChannels(await getAccessibleChannels(user, subscription));
       const baseUrl = getBaseUrl(req);
       const encodedMac = encodeURIComponent(record.device.macAddress);
       const epgUrl = `${baseUrl}/api/exports/epg.xml?token=${token}&mac=${encodedMac}`;
@@ -633,7 +642,7 @@ router.get('/epg.xml', async (req, res) => {
     let xml = cached?.value;
 
     if (!xml) {
-      const channels = await getAccessibleChannels(user, subscription);
+      const channels = filterM3UChannels(await getAccessibleChannels(user, subscription));
       const channelIds = Array.from(new Set(channels.map(channel => channel.id)));
 
       const entries = [];
@@ -727,7 +736,7 @@ router.get('/siptv/:mac', async (req, res) => {
     }
 
     // Get channels
-    const channels = await getAccessibleChannels(user, subscription);
+    const channels = filterM3UChannels(await getAccessibleChannels(user, subscription));
 
     // Build EPG URL
     const baseUrl = getBaseUrl(req);
@@ -773,7 +782,7 @@ router.get('/siptv/:mac/epg', async (req, res) => {
       return res.status(403).set('Content-Type', 'application/xml').send('<?xml version="1.0" encoding="UTF-8"?><tv></tv>');
     }
 
-    const channels = await getAccessibleChannels(user, subscription);
+    const channels = filterM3UChannels(await getAccessibleChannels(user, subscription));
     const channelIds = Array.from(new Set(channels.map(channel => channel.id)));
 
     const start = new Date();

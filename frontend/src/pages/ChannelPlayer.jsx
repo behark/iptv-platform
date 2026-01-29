@@ -1,6 +1,6 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { useParams } from 'react-router-dom'
-import { channelsAPI } from '../services/api'
+import { channelsAPI, historyAPI } from '../services/api'
 import VideoPlayer from '../components/VideoPlayer'
 import toast from 'react-hot-toast'
 
@@ -31,10 +31,23 @@ const ChannelPlayer = () => {
   const [playerError, setPlayerError] = useState('')
   const [playerKey, setPlayerKey] = useState(0)
   const [playerVisible, setPlayerVisible] = useState(true)
+  const watchStartTime = useRef(null)
+  const historyRecorded = useRef(false)
 
   useEffect(() => {
     loadChannel()
     setFavoriteIds(readFavoriteIds())
+    watchStartTime.current = Date.now()
+    historyRecorded.current = false
+
+    return () => {
+      if (channel && !historyRecorded.current) {
+        const duration = Math.floor((Date.now() - watchStartTime.current) / 1000)
+        if (duration > 5) {
+          historyAPI.addChannel(channel.id, duration).catch(() => { })
+        }
+      }
+    }
   }, [id])
 
   useEffect(() => {
@@ -69,6 +82,9 @@ const ChannelPlayer = () => {
           country: channelData.country
         })
         localStorage.setItem('iptv_last_opened_channel', JSON.stringify(channelData))
+
+        historyAPI.addChannel(channelData.id).catch(() => { })
+        historyRecorded.current = true
       }
     } catch (error) {
       toast.error('Failed to load channel')
@@ -127,6 +143,7 @@ const ChannelPlayer = () => {
           key={playerKey}
           streamUrl={channel.streamUrl}
           streamType={channel.streamType}
+          fileExt={channel.fileExt}
           title={channel.name}
           showMeta={false}
           onToggleFavorite={handleToggleFavorite}

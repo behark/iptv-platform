@@ -1,0 +1,9 @@
+-- Stream type enum updates
+ALTER TYPE "StreamType" RENAME VALUE 'RTMP' TO 'RTMP_INGEST';
+ALTER TYPE "StreamType" ADD VALUE IF NOT EXISTS 'FILE';
+ALTER TYPE "StreamType" ADD VALUE IF NOT EXISTS 'YOUTUBE';
+ALTER TYPE "StreamType" ADD VALUE IF NOT EXISTS 'EXTERNAL';
+ALTER TYPE "StreamType" ADD VALUE IF NOT EXISTS 'UNKNOWN';
+
+-- Channel metadata for direct file streams
+ALTER TABLE "channels" ADD COLUMN IF NOT EXISTS "file_ext" TEXT;

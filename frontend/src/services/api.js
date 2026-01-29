@@ -162,7 +162,9 @@ export const favoritesAPI = {
 
 export const historyAPI = {
   getAll: (params) => api.get('/history', { params }),
-  add: (data) => api.post('/history', data),
+  addChannel: (channelId, duration) => api.post(`/history/channel/${channelId}`, { duration }),
+  addVideo: (videoId, duration, completed) => api.post(`/history/video/${videoId}`, { duration, completed }),
+  remove: (id) => api.delete(`/history/${id}`),
   clear: () => api.delete('/history')
 }
 
