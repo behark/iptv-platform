@@ -3,64 +3,30 @@ import { Link } from 'react-router-dom'
 import { channelsAPI } from '../services/api'
 
 const REGION_SHORTCUTS = [
-  { code: 'XK', label: 'Kosovo' },
-  { code: 'AL', label: 'Albania' },
-  { code: 'MK', label: 'North Macedonia' },
-  { code: 'ME', label: 'Montenegro' },
-  { code: 'RS', label: 'Serbia' },
-  { code: 'BA', label: 'Bosnia and Herzegovina' },
-  { code: 'HR', label: 'Croatia' },
-  { code: 'SI', label: 'Slovenia' }
+  { code: 'XK', label: 'Kosovo', flag: '🇽🇰' },
+  { code: 'AL', label: 'Albania', flag: '🇦🇱' },
+  { code: 'MK', label: 'North Macedonia', flag: '🇲🇰' },
+  { code: 'ME', label: 'Montenegro', flag: '🇲🇪' },
+  { code: 'RS', label: 'Serbia', flag: '🇷🇸' },
+  { code: 'BA', label: 'Bosnia', flag: '🇧🇦' },
+  { code: 'HR', label: 'Croatia', flag: '🇭🇷' },
+  { code: 'SI', label: 'Slovenia', flag: '🇸🇮' }
 ]
 
 const BALKAN_SPOTLIGHT = [
-  { code: 'XK', label: 'Kosovo' },
-  { code: 'AL', label: 'Albania' }
+  { code: 'XK', label: 'Kosovo', flag: '🇽🇰' },
+  { code: 'AL', label: 'Albania', flag: '🇦🇱' }
 ]
 
-const CATEGORY_SPOTLIGHTS = [
-  {
-    category: 'News',
-    title: 'Newsroom',
-    description: 'Live headlines and nonstop coverage around the clock.',
-    tag: 'Breaking',
-    accent: 'from-slate-900 via-slate-900 to-slate-800'
-  },
-  {
-    category: 'Sports',
-    title: 'Match Day',
-    description: 'Live games, highlights, and studio talk shows.',
-    tag: 'Live',
-    accent: 'from-slate-900 via-slate-800 to-slate-700'
-  },
-  {
-    category: 'Movies',
-    title: 'Cinema Desk',
-    description: 'Feature films, classics, and late-night marathons.',
-    tag: 'Featured',
-    accent: 'from-slate-900 via-slate-900 to-slate-700'
-  },
-  {
-    category: 'Kids',
-    title: 'Kids Zone',
-    description: 'Family-friendly shows and safe picks for all ages.',
-    tag: 'Family',
-    accent: 'from-slate-900 via-slate-800 to-primary-900/30'
-  },
-  {
-    category: 'Entertainment',
-    title: 'Pop Culture',
-    description: 'Reality, lifestyle, and feel-good entertainment.',
-    tag: 'New',
-    accent: 'from-slate-900 via-slate-800 to-primary-900/20'
-  },
-  {
-    category: 'Music',
-    title: 'Live Sessions',
-    description: 'Music videos, concerts, and nonstop playlists.',
-    tag: '24/7',
-    accent: 'from-slate-900 via-slate-900 to-slate-800'
-  }
+const CATEGORY_CARDS = [
+  { category: 'News', icon: '📰', color: 'bg-red-50 text-red-600 border-red-100' },
+  { category: 'Sports', icon: '⚽', color: 'bg-green-50 text-green-600 border-green-100' },
+  { category: 'Movies', icon: '🎬', color: 'bg-purple-50 text-purple-600 border-purple-100' },
+  { category: 'Kids', icon: '🧸', color: 'bg-yellow-50 text-yellow-600 border-yellow-100' },
+  { category: 'Entertainment', icon: '🎭', color: 'bg-pink-50 text-pink-600 border-pink-100' },
+  { category: 'Music', icon: '🎵', color: 'bg-indigo-50 text-indigo-600 border-indigo-100' },
+  { category: 'Documentary', icon: '🌍', color: 'bg-teal-50 text-teal-600 border-teal-100' },
+  { category: 'Religious', icon: '🕊️', color: 'bg-amber-50 text-amber-600 border-amber-100' }
 ]
 
 const readRecentChannels = () => {
@@ -160,38 +126,36 @@ const Home = () => {
   }, [])
 
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-12">
-      <section className="relative overflow-hidden rounded-3xl border border-slate-800 bg-gradient-to-br from-slate-950 via-slate-900 to-slate-900/70 p-8 md:p-12">
-        <div className="absolute -right-16 -top-20 h-64 w-64 rounded-full bg-primary-500/20 blur-3xl" />
-        <div className="absolute left-10 bottom-0 h-32 w-72 rounded-full bg-slate-800/60 blur-3xl" />
-        <div className="relative grid gap-10 lg:grid-cols-[1.2fr_0.8fr] items-center">
+    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-8">
+      {/* Hero Section */}
+      <section className="bg-white rounded-2xl shadow-sm border border-slate-100 p-6 md:p-8">
+        <div className="grid gap-8 lg:grid-cols-[1fr_320px] items-start">
           <div>
-            <p className="text-sm uppercase tracking-[0.2em] text-primary-200/80 mb-4">
-              Home Base
-            </p>
-            <h1 className="text-4xl md:text-5xl font-semibold text-white leading-tight">
-              Stream live channels tailored to your region and routine.
+            <h1 className="text-2xl md:text-3xl font-bold text-slate-800 leading-tight">
+              Welcome back 👋
             </h1>
-            <p className="text-lg text-slate-300 mt-4 max-w-xl">
-              Jump into the Balkan spotlight, catch up on your latest picks, or browse the full lineup in seconds.
+            <p className="text-slate-500 mt-2 max-w-lg">
+              Stream live TV, catch up on movies, or browse channels from the Balkans and beyond.
             </p>
-            <div className="mt-8 flex flex-wrap gap-4">
+            <div className="mt-6 flex flex-wrap gap-3">
               <Link
                 to="/channels"
-                className="bg-primary-600 hover:bg-primary-500 text-white px-6 py-3 rounded-xl font-medium"
+                className="inline-flex items-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white px-5 py-2.5 rounded-lg font-medium transition-colors"
               >
-                Browse Channels
+                <span>📺</span> Live TV
               </Link>
               <Link
                 to="/videos"
-                className="border border-slate-600 hover:border-primary-400 text-white px-6 py-3 rounded-xl font-medium"
+                className="inline-flex items-center gap-2 bg-slate-100 hover:bg-slate-200 text-slate-700 px-5 py-2.5 rounded-lg font-medium transition-colors"
               >
-                Watch Videos
+                <span>🎬</span> Movies
               </Link>
             </div>
-            <div className="mt-8">
-              <p className="text-xs uppercase tracking-wide text-slate-400 mb-3">
-                Quick region picks
+
+            {/* Quick Region Picks */}
+            <div className="mt-6 pt-6 border-t border-slate-100">
+              <p className="text-xs font-medium uppercase tracking-wide text-slate-400 mb-3">
+                Browse by region
               </p>
               <div className="flex flex-wrap gap-2">
                 {REGION_SHORTCUTS.map((region) => (
@@ -199,61 +163,66 @@ const Home = () => {
                     key={region.code}
                     to="/channels"
                     state={{ presetFilters: { country: region.code } }}
-                    className="px-3 py-1.5 rounded-full border border-slate-700 text-sm text-slate-200 hover:border-primary-400 hover:text-white"
+                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-slate-50 border border-slate-200 text-sm text-slate-600 hover:bg-indigo-50 hover:border-indigo-200 hover:text-indigo-700 transition-colors"
                   >
+                    <span>{region.flag}</span>
                     {region.label}
                   </Link>
                 ))}
               </div>
             </div>
           </div>
-          <div className="space-y-4">
-            <div className="rounded-2xl border border-slate-800 bg-slate-900/70 p-4">
-              <p className="text-xs uppercase tracking-wide text-slate-400">Continue watching</p>
-              {lastChannel ? (
-                <Link
-                  to={`/channels/${lastChannel.id}`}
-                  className="mt-4 flex items-center gap-3 rounded-xl border border-slate-700 bg-slate-900/60 p-3 hover:border-primary-400 transition"
-                >
-                  <div className="h-12 w-20 rounded-lg bg-slate-800 overflow-hidden flex items-center justify-center">
-                    {lastChannel.logo ? (
-                      <img
-                        src={lastChannel.logo}
-                        alt={lastChannel.name}
-                        className="h-full w-full object-cover"
-                        loading="lazy"
-                      />
-                    ) : (
-                      <span className="text-xs text-slate-400">No logo</span>
-                    )}
-                  </div>
-                  <div>
-                    <p className="text-sm font-semibold text-white">{lastChannel.name || 'Last opened channel'}</p>
-                    <p className="text-xs text-slate-400 mt-1">
-                      {lastChannel.category || 'Jump back in with one click.'}
-                    </p>
-                  </div>
-                </Link>
-              ) : (
-                <div className="mt-4 rounded-xl border border-dashed border-slate-700 bg-slate-900/40 p-4 text-sm text-slate-400">
-                  Start a channel to build your continue watching queue.
+
+          {/* Continue Watching Card */}
+          <div className="bg-slate-50 rounded-xl p-4 border border-slate-100">
+            <p className="text-xs font-medium uppercase tracking-wide text-slate-400 mb-3">
+              Continue watching
+            </p>
+            {lastChannel ? (
+              <Link
+                to={`/channels/${lastChannel.id}`}
+                className="flex items-center gap-3 p-3 bg-white rounded-lg border border-slate-200 hover:border-indigo-300 hover:shadow-sm transition-all card-hover"
+              >
+                <div className="h-12 w-16 rounded-lg bg-slate-100 overflow-hidden flex items-center justify-center shrink-0">
+                  {lastChannel.logo ? (
+                    <img
+                      src={lastChannel.logo}
+                      alt={lastChannel.name}
+                      className="h-full w-full object-contain"
+                      loading="lazy"
+                    />
+                  ) : (
+                    <span className="text-lg">📺</span>
+                  )}
                 </div>
-              )}
-            </div>
-            <div className="rounded-2xl border border-slate-800 bg-slate-900/70 p-4">
-              <p className="text-xs uppercase tracking-wide text-slate-400">Balkan spotlight</p>
-              <p className="text-sm text-slate-300 mt-2">
-                Kosovo and Albania channels are now pinned to the top of the lineup.
+                <div className="min-w-0">
+                  <p className="text-sm font-semibold text-slate-800 truncate">{lastChannel.name}</p>
+                  <p className="text-xs text-slate-500 mt-0.5">
+                    {lastChannel.category || 'Live channel'}
+                  </p>
+                </div>
+                <span className="ml-auto text-indigo-500">▶</span>
+              </Link>
+            ) : (
+              <div className="p-4 bg-white rounded-lg border border-dashed border-slate-200 text-sm text-slate-400 text-center">
+                Start watching to see your history here
+              </div>
+            )}
+
+            {/* Balkan Spotlight */}
+            <div className="mt-4 pt-4 border-t border-slate-200">
+              <p className="text-xs font-medium text-slate-500 mb-2">
+                🌟 Balkan spotlight
               </p>
-              <div className="mt-4 flex flex-wrap gap-2">
+              <div className="flex gap-2">
                 {BALKAN_SPOTLIGHT.map((region) => (
                   <Link
                     key={region.code}
                     to="/channels"
                     state={{ presetFilters: { country: region.code } }}
-                    className="px-3 py-1.5 rounded-full border border-slate-700 text-sm text-slate-200 hover:border-primary-400 hover:text-white"
+                    className="flex-1 text-center px-3 py-2 rounded-lg bg-white border border-slate-200 text-sm text-slate-600 hover:bg-indigo-50 hover:border-indigo-200 hover:text-indigo-700 transition-colors"
                   >
-                    {region.label}
+                    {region.flag} {region.label}
                   </Link>
                 ))}
               </div>
@@ -262,85 +231,88 @@ const Home = () => {
         </div>
       </section>
 
-      <section className="space-y-4">
-        <div className="flex items-center justify-between">
+      {/* Recent Channels */}
+      <section>
+        <div className="flex items-center justify-between mb-4">
           <div>
-            <h2 className="text-2xl font-semibold text-white">Continue watching</h2>
-            <p className="text-sm text-slate-400">Pick up right where you left off.</p>
+            <h2 className="text-lg font-semibold text-slate-800">Recently Watched</h2>
+            <p className="text-sm text-slate-500">Pick up where you left off</p>
           </div>
-          <Link to="/history" className="text-sm text-slate-300 hover:text-white">
-            View history
+          <Link to="/history" className="text-sm text-indigo-600 hover:text-indigo-700 font-medium">
+            View all →
           </Link>
         </div>
         {recentChannels.length > 0 ? (
-          <div className="flex gap-4 overflow-x-auto pb-3">
+          <div className="flex gap-4 overflow-x-auto pb-2 -mx-4 px-4">
             {recentChannels.map((channel) => (
               <Link
                 key={channel.id}
                 to={`/channels/${channel.id}`}
-                className="group w-56 shrink-0 rounded-2xl border border-slate-800 bg-slate-900/60 p-3 hover:border-primary-400 transition"
+                className="group w-44 shrink-0 bg-white rounded-xl border border-slate-200 p-3 hover:shadow-md hover:border-indigo-200 transition-all card-hover"
               >
-                <div className="h-32 rounded-xl bg-slate-800 overflow-hidden flex items-center justify-center">
+                <div className="h-24 rounded-lg bg-slate-50 overflow-hidden flex items-center justify-center">
                   {channel.logo ? (
                     <img
                       src={channel.logo}
                       alt={channel.name}
-                      className="h-full w-full object-cover"
+                      className="h-full w-full object-contain p-2"
                       loading="lazy"
                     />
                   ) : (
-                    <span className="text-xs text-slate-400">No logo</span>
+                    <span className="text-2xl">📺</span>
                   )}
                 </div>
-                <div className="mt-3">
-                  <h3 className="text-sm font-semibold text-white truncate">{channel.name}</h3>
-                  <p className="text-xs text-slate-400 mt-1">
-                    {channel.category || 'Live channel'}
+                <div className="mt-2">
+                  <h3 className="text-sm font-medium text-slate-800 truncate">{channel.name}</h3>
+                  <p className="text-xs text-slate-400 mt-0.5 truncate">
+                    {channel.category || 'Live'}
                   </p>
                 </div>
               </Link>
             ))}
           </div>
         ) : (
-          <div className="rounded-2xl border border-slate-800 bg-slate-900/60 p-6 text-sm text-slate-400">
-            Keep watching channels to build your personal shelf.
+          <div className="bg-white rounded-xl border border-slate-200 p-6 text-center">
+            <p className="text-slate-400 text-sm">Watch channels to build your history</p>
+            <Link to="/channels" className="inline-block mt-3 text-indigo-600 text-sm font-medium hover:text-indigo-700">
+              Browse channels →
+            </Link>
           </div>
         )}
       </section>
 
-      <section className="space-y-4">
-        <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+      {/* Featured Balkan Channels */}
+      <section>
+        <div className="flex items-center justify-between mb-4">
           <div>
-            <h2 className="text-2xl font-semibold text-white">Balkan spotlight</h2>
-            <p className="text-sm text-slate-400">
-              Curated channels from Kosovo and Albania, ready to go.
-            </p>
+            <h2 className="text-lg font-semibold text-slate-800">🌟 Balkan Channels</h2>
+            <p className="text-sm text-slate-500">Featured channels from Kosovo & Albania</p>
           </div>
-          <div className="flex flex-wrap gap-2">
+          <div className="flex gap-2">
             {BALKAN_SPOTLIGHT.map((region) => (
               <Link
                 key={region.code}
                 to="/channels"
                 state={{ presetFilters: { country: region.code } }}
-                className="px-3 py-1.5 rounded-full border border-slate-700 text-sm text-slate-200 hover:border-primary-400 hover:text-white"
+                className="px-3 py-1.5 rounded-full bg-slate-100 text-sm text-slate-600 hover:bg-indigo-50 hover:text-indigo-700 transition-colors"
               >
-                {region.label}
+                {region.flag} {region.label}
               </Link>
             ))}
           </div>
         </div>
 
         {featuredLoading && (
-          <div className="flex gap-4 overflow-x-auto pb-3">
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4">
             {Array.from({ length: 6 }).map((_, index) => (
               <div
                 key={`featured-skeleton-${index}`}
-                className="w-56 shrink-0 rounded-2xl border border-slate-800 bg-slate-900/60 p-3 animate-pulse"
+                className="bg-white rounded-xl border border-slate-200 p-3 animate-pulse"
               >
-                <div className="h-32 rounded-xl bg-slate-800" />
-                <div className="mt-3 space-y-2">
-                  <div className="h-4 bg-slate-800 rounded" />
-                  <div className="h-3 bg-slate-800 rounded w-2/3" />
+                <div className="h-20 rounded-lg bg-slate-100" />
+                <div className="mt-2 space-y-2">
+                  <div className="h-3 bg-slate-100 rounded" />
+                  <div className="h-2 bg-slate-100 rounded w-2/3" />
                 </div>
               </div>
             ))}
@@ -348,13 +320,13 @@ const Home = () => {
         )}
 
         {!featuredLoading && featuredError && (
-          <div className="rounded-2xl border border-slate-800 bg-slate-900/60 p-6 text-sm text-slate-300">
-            <p>{featuredError}</p>
-            <div className="mt-4 flex flex-wrap gap-3">
+          <div className="bg-white rounded-xl border border-slate-200 p-6 text-center">
+            <p className="text-slate-500 text-sm">{featuredError}</p>
+            <div className="mt-4 flex justify-center gap-3">
               {needsPlan ? (
                 <Link
                   to="/plans"
-                  className="bg-primary-600 hover:bg-primary-500 text-white px-4 py-2 rounded-lg text-sm"
+                  className="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-lg text-sm font-medium"
                 >
                   View plans
                 </Link>
@@ -362,51 +334,45 @@ const Home = () => {
                 <button
                   type="button"
                   onClick={loadFeaturedChannels}
-                  className="bg-slate-700 hover:bg-slate-600 text-white px-4 py-2 rounded-lg text-sm"
+                  className="bg-slate-100 hover:bg-slate-200 text-slate-700 px-4 py-2 rounded-lg text-sm font-medium"
                 >
                   Retry
                 </button>
               )}
-              <Link
-                to="/channels"
-                className="border border-slate-600 hover:border-primary-400 text-white px-4 py-2 rounded-lg text-sm"
-              >
-                Browse all channels
-              </Link>
             </div>
           </div>
         )}
 
         {!featuredLoading && !featuredError && featuredChannels.length === 0 && (
-          <div className="rounded-2xl border border-slate-800 bg-slate-900/60 p-6 text-sm text-slate-400">
-            Balkan channels will appear here once they are available in your plan.
+          <div className="bg-white rounded-xl border border-slate-200 p-6 text-center">
+            <p className="text-slate-400 text-sm">Balkan channels will appear here once available</p>
           </div>
         )}
 
         {!featuredLoading && !featuredError && featuredChannels.length > 0 && (
-          <div className="flex gap-4 overflow-x-auto pb-3">
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4">
             {featuredChannels.map((channel) => (
               <Link
                 key={channel.id}
                 to={`/channels/${channel.id}`}
-                className="group w-56 shrink-0 rounded-2xl border border-slate-800 bg-slate-900/60 p-3 hover:border-primary-400 transition"
+                className="group bg-white rounded-xl border border-slate-200 p-3 hover:shadow-md hover:border-indigo-200 transition-all card-hover"
               >
-                <div className="h-32 rounded-xl bg-slate-800 overflow-hidden flex items-center justify-center">
+                <div className="h-20 rounded-lg bg-slate-50 overflow-hidden flex items-center justify-center">
                   {channel.logo ? (
                     <img
                       src={channel.logo}
                       alt={channel.name}
-                      className="h-full w-full object-cover"
+                      className="h-full w-full object-contain p-2"
                       loading="lazy"
                     />
                   ) : (
-                    <span className="text-xs text-slate-400">No logo</span>
+                    <span className="text-2xl">📺</span>
                   )}
                 </div>
-                <div className="mt-3">
-                  <h3 className="text-sm font-semibold text-white truncate">{channel.name}</h3>
-                  <p className="text-xs text-slate-400 mt-1">
-                    {channel.category || 'Live channel'}
+                <div className="mt-2">
+                  <h3 className="text-sm font-medium text-slate-800 truncate">{channel.name}</h3>
+                  <p className="text-xs text-slate-400 mt-0.5 truncate">
+                    {channel.category || 'Live'}
                   </p>
                 </div>
               </Link>
@@ -415,33 +381,46 @@ const Home = () => {
         )}
       </section>
 
-      <section className="space-y-4">
-        <div>
-          <h2 className="text-2xl font-semibold text-white">Pick a category</h2>
-          <p className="text-sm text-slate-400">Set the tone for what you want to watch next.</p>
+      {/* Categories */}
+      <section>
+        <div className="mb-4">
+          <h2 className="text-lg font-semibold text-slate-800">Browse by Category</h2>
+          <p className="text-sm text-slate-500">Find channels by what you're in the mood for</p>
         </div>
-        <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-          {CATEGORY_SPOTLIGHTS.map((category) => (
+        <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-8 gap-3">
+          {CATEGORY_CARDS.map((cat) => (
             <Link
-              key={category.category}
+              key={cat.category}
               to="/channels"
-              state={{ presetFilters: { category: category.category } }}
-              className={`group relative overflow-hidden rounded-2xl border border-slate-800 bg-gradient-to-br ${category.accent} p-5`}
+              state={{ presetFilters: { category: cat.category } }}
+              className={`flex flex-col items-center gap-2 p-4 rounded-xl border ${cat.color} hover:shadow-md transition-all card-hover`}
             >
-              <div className="absolute -right-10 -top-10 h-24 w-24 rounded-full bg-primary-500/10 blur-2xl" />
-              <div className="relative">
-                <div className="flex items-center justify-between text-xs uppercase tracking-wide text-slate-400">
-                  <span>{category.category}</span>
-                  <span className="px-2 py-1 rounded-full border border-slate-700 text-[10px] text-slate-300">
-                    {category.tag}
-                  </span>
-                </div>
-                <h3 className="mt-4 text-lg font-semibold text-white">{category.title}</h3>
-                <p className="mt-2 text-sm text-slate-300">{category.description}</p>
-                <p className="mt-6 text-sm text-primary-200">Explore category</p>
-              </div>
+              <span className="text-2xl">{cat.icon}</span>
+              <span className="text-sm font-medium">{cat.category}</span>
             </Link>
           ))}
+        </div>
+      </section>
+
+      {/* Quick Stats */}
+      <section className="bg-white rounded-xl border border-slate-200 p-6">
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-6 text-center">
+          <div>
+            <p className="text-2xl font-bold text-indigo-600">29K+</p>
+            <p className="text-sm text-slate-500 mt-1">Live Channels</p>
+          </div>
+          <div>
+            <p className="text-2xl font-bold text-purple-600">140+</p>
+            <p className="text-sm text-slate-500 mt-1">Movies</p>
+          </div>
+          <div>
+            <p className="text-2xl font-bold text-green-600">50+</p>
+            <p className="text-sm text-slate-500 mt-1">Countries</p>
+          </div>
+          <div>
+            <p className="text-2xl font-bold text-amber-600">24/7</p>
+            <p className="text-sm text-slate-500 mt-1">Streaming</p>
+          </div>
         </div>
       </section>
     </div>

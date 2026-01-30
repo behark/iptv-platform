@@ -17,32 +17,36 @@ const Navbar = () => {
   const isActive = (path) => location.pathname === path
 
   const navLinks = [
-    { to: '/channels', label: 'Channels' },
-    { to: '/videos', label: 'Videos' },
-    { to: '/favorites', label: 'Favorites' },
-    { to: '/history', label: 'History' },
-    { to: '/plans', label: 'Plans' }
+    { to: '/', label: 'Home', icon: '🏠' },
+    { to: '/channels', label: 'Live TV', icon: '📺' },
+    { to: '/videos', label: 'Movies', icon: '🎬' },
+    { to: '/favorites', label: 'Favorites', icon: '⭐' },
+    { to: '/history', label: 'History', icon: '🕐' }
   ]
 
   return (
-    <nav className="bg-slate-800 border-b border-slate-700">
+    <nav className="bg-white border-b border-slate-200 sticky top-0 z-50 shadow-sm">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex justify-between h-16">
-          <div className="flex">
-            <Link to="/" className="flex items-center">
-              <span className="text-xl font-bold text-primary-400">IPTV</span>
+        <div className="flex justify-between h-14">
+          <div className="flex items-center">
+            <Link to="/" className="flex items-center gap-2">
+              <div className="w-8 h-8 bg-indigo-600 rounded-lg flex items-center justify-center">
+                <span className="text-white font-bold text-sm">TV</span>
+              </div>
+              <span className="text-lg font-semibold text-slate-800 hidden sm:block">StreamHub</span>
             </Link>
             {user && (
-              <div className="hidden md:ml-6 md:flex md:space-x-6">
+              <div className="hidden md:ml-8 md:flex md:space-x-1">
                 {navLinks.map((link) => (
                   <Link
                     key={link.to}
                     to={link.to}
-                    className={`inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium ${isActive(link.to)
-                        ? 'border-primary-500 text-white'
-                        : 'border-transparent text-gray-300 hover:border-primary-500 hover:text-white'
+                    className={`inline-flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${isActive(link.to)
+                      ? 'bg-indigo-50 text-indigo-700'
+                      : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'
                       }`}
                   >
+                    <span className="text-base">{link.icon}</span>
                     {link.label}
                   </Link>
                 ))}
@@ -50,53 +54,65 @@ const Navbar = () => {
             )}
           </div>
 
-          <div className="hidden md:flex md:items-center">
+          <div className="hidden md:flex md:items-center md:gap-3">
             {user ? (
-              <div className="flex items-center space-x-4">
+              <>
                 {user.role === 'ADMIN' && (
                   <Link
                     to="/admin"
-                    className="text-purple-400 hover:text-purple-300 px-3 py-2 rounded-md text-sm font-medium"
+                    className="text-purple-600 hover:bg-purple-50 px-3 py-2 rounded-lg text-sm font-medium transition-colors"
                   >
                     Admin
                   </Link>
                 )}
                 <Link
-                  to="/profile"
-                  className="text-gray-300 hover:text-white px-3 py-2 rounded-md text-sm font-medium"
+                  to="/plans"
+                  className="text-slate-600 hover:bg-slate-100 px-3 py-2 rounded-lg text-sm font-medium transition-colors"
                 >
-                  {user.username}
+                  Plans
+                </Link>
+                <div className="w-px h-6 bg-slate-200" />
+                <Link
+                  to="/profile"
+                  className="flex items-center gap-2 text-slate-700 hover:bg-slate-100 px-3 py-2 rounded-lg text-sm font-medium transition-colors"
+                >
+                  <div className="w-7 h-7 bg-indigo-100 rounded-full flex items-center justify-center">
+                    <span className="text-indigo-600 text-xs font-semibold">
+                      {user.username?.charAt(0).toUpperCase()}
+                    </span>
+                  </div>
+                  <span className="hidden lg:block">{user.username}</span>
                 </Link>
                 <button
                   onClick={handleLogout}
-                  className="bg-primary-600 hover:bg-primary-700 text-white px-4 py-2 rounded-md text-sm font-medium"
+                  className="text-slate-500 hover:text-red-600 hover:bg-red-50 px-3 py-2 rounded-lg text-sm font-medium transition-colors"
                 >
                   Logout
                 </button>
-              </div>
+              </>
             ) : (
-              <div className="flex items-center space-x-4">
+              <>
                 <Link
                   to="/login"
-                  className="text-gray-300 hover:text-white px-3 py-2 rounded-md text-sm font-medium"
+                  className="text-slate-600 hover:text-slate-900 px-4 py-2 text-sm font-medium transition-colors"
                 >
-                  Login
+                  Sign in
                 </Link>
                 <Link
                   to="/register"
-                  className="bg-primary-600 hover:bg-primary-700 text-white px-4 py-2 rounded-md text-sm font-medium"
+                  className="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors"
                 >
-                  Sign Up
+                  Get Started
                 </Link>
-              </div>
+              </>
             )}
           </div>
 
           <div className="md:hidden flex items-center">
             <button
               onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-              className="text-gray-400 hover:text-white p-2"
-              aria-label={mobileMenuOpen ? 'Close navigation menu' : 'Open navigation menu'}
+              className="text-slate-500 hover:text-slate-700 hover:bg-slate-100 p-2 rounded-lg transition-colors"
+              aria-label={mobileMenuOpen ? 'Close menu' : 'Open menu'}
               aria-expanded={mobileMenuOpen}
             >
               {mobileMenuOpen ? (
@@ -114,8 +130,8 @@ const Navbar = () => {
       </div>
 
       {mobileMenuOpen && (
-        <div className="md:hidden bg-slate-800 border-t border-slate-700">
-          <div className="px-2 pt-2 pb-3 space-y-1">
+        <div className="md:hidden bg-white border-t border-slate-100">
+          <div className="px-3 py-3 space-y-1">
             {user ? (
               <>
                 {navLinks.map((link) => (
@@ -123,56 +139,68 @@ const Navbar = () => {
                     key={link.to}
                     to={link.to}
                     onClick={() => setMobileMenuOpen(false)}
-                    className={`block px-3 py-2 rounded-md text-base font-medium ${isActive(link.to)
-                        ? 'bg-slate-700 text-white'
-                        : 'text-gray-300 hover:bg-slate-700 hover:text-white'
+                    className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-base font-medium transition-colors ${isActive(link.to)
+                      ? 'bg-indigo-50 text-indigo-700'
+                      : 'text-slate-600 hover:bg-slate-50'
                       }`}
                   >
+                    <span>{link.icon}</span>
                     {link.label}
                   </Link>
                 ))}
-                <div className="border-t border-slate-700 pt-2 mt-2">
+                <div className="border-t border-slate-100 pt-2 mt-2 space-y-1">
+                  <Link
+                    to="/plans"
+                    onClick={() => setMobileMenuOpen(false)}
+                    className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-base font-medium text-slate-600 hover:bg-slate-50"
+                  >
+                    <span>💎</span>
+                    Plans
+                  </Link>
                   {user.role === 'ADMIN' && (
                     <Link
                       to="/admin"
                       onClick={() => setMobileMenuOpen(false)}
-                      className="block px-3 py-2 rounded-md text-base font-medium text-purple-400 hover:bg-slate-700"
+                      className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-base font-medium text-purple-600 hover:bg-purple-50"
                     >
+                      <span>⚙️</span>
                       Admin Dashboard
                     </Link>
                   )}
                   <Link
                     to="/profile"
                     onClick={() => setMobileMenuOpen(false)}
-                    className="block px-3 py-2 rounded-md text-base font-medium text-gray-300 hover:bg-slate-700 hover:text-white"
+                    className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-base font-medium text-slate-600 hover:bg-slate-50"
                   >
-                    Profile ({user.username})
+                    <span>👤</span>
+                    Profile
                   </Link>
                   <button
                     onClick={handleLogout}
-                    className="w-full text-left px-3 py-2 rounded-md text-base font-medium text-red-400 hover:bg-slate-700"
+                    className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-base font-medium text-red-600 hover:bg-red-50"
                   >
+                    <span>🚪</span>
                     Logout
                   </button>
                 </div>
               </>
             ) : (
-              <>
+              <div className="space-y-2 pt-2">
                 <Link
                   to="/login"
                   onClick={() => setMobileMenuOpen(false)}
-                  className="block px-3 py-2 rounded-md text-base font-medium text-gray-300 hover:bg-slate-700 hover:text-white"
+                  className="block px-4 py-2.5 rounded-lg text-center text-base font-medium text-slate-600 hover:bg-slate-50 border border-slate-200"
                 >
-                  Login
+                  Sign in
                 </Link>
                 <Link
                   to="/register"
                   onClick={() => setMobileMenuOpen(false)}
-                  className="block px-3 py-2 rounded-md text-base font-medium bg-primary-600 text-white hover:bg-primary-700"
+                  className="block px-4 py-2.5 rounded-lg text-center text-base font-medium bg-indigo-600 text-white hover:bg-indigo-700"
                 >
-                  Sign Up
+                  Get Started
                 </Link>
-              </>
+              </div>
             )}
           </div>
         </div>

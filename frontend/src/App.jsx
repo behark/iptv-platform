@@ -28,7 +28,7 @@ function App() {
     <ErrorBoundary>
       <AuthProvider>
         <Router future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
-          <div className="min-h-screen bg-slate-900">
+          <div className="min-h-screen bg-slate-50">
             <Navbar />
             <Routes>
               <Route path="/login" element={<Login />} />
