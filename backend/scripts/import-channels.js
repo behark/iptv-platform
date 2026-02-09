@@ -5,12 +5,18 @@ const {
     importFromFile,
     importByCategory,
     importByCountry,
+    importByLanguage,
     importAllCategories,
     importPopularCountries,
+    importBalkanChannels,
+    importFromLocalPlaylist,
     getStats,
     cleanupDeadChannels,
     CATEGORY_SOURCES,
-    COUNTRY_SOURCES
+    COUNTRY_SOURCES,
+    LANGUAGE_SOURCES,
+    BALKAN_COUNTRIES,
+    BALKAN_LANGUAGES
 } = require('../src/services/channelImporter');
 
 const args = process.argv.slice(2);
@@ -122,7 +128,7 @@ async function main() {
                 const urlResult = await importFromUrl(url);
                 console.log(`\n✅ Imported ${urlResult.imported} channels`);
                 break;
-            
+
             case 'file':
                 const file = args[1];
                 if (!file) {
@@ -132,6 +138,35 @@ async function main() {
                 console.log(`📥 Importing from local file: ${file}\n`);
                 const fileResult = await importFromFile(file);
                 console.log(`\n✅ Imported ${fileResult.imported} channels`);
+                break;
+
+            case 'balkan':
+                console.log('🌍 Importing ALL Balkan channels (countries + languages)...\n');
+                const balkanResult = await importBalkanChannels();
+                console.log('\n✅ Balkan import complete!');
+                break;
+
+            case 'gjirafa':
+                console.log('🇽🇰🇦🇱 Importing Gjirafa Video channels (Kosovo/Albania)...\n');
+                console.log('Run: node backend/scripts/import-gjirafa.js');
+                console.log('  --tv-only    Only TV channels');
+                console.log('  --radio-only Only radio stations');
+                console.log('  --verify     Check stream availability');
+                console.log('  --dry-run    Preview without writing');
+                require('./import-gjirafa');
+                return;
+
+            case 'language':
+                const lang = args[1];
+                if (!lang) {
+                    console.log('Available languages:');
+                    Object.keys(LANGUAGE_SOURCES).forEach(l => console.log(`  - ${l}`));
+                    console.log('\nUsage: node import-channels.js language <code>');
+                    break;
+                }
+                console.log(`🗣️ Importing language: ${lang}`);
+                const langResult = await importByLanguage(lang);
+                console.log(`\n✅ Imported ${langResult.imported} channels`);
                 break;
 
             case 'quick':
@@ -154,9 +189,12 @@ async function main() {
                 console.log('Commands:');
                 console.log('  all          Import ALL channels (~8,000+)');
                 console.log('  quick        Quick import (news, sports, entertainment, movies)');
+                console.log('  balkan       Import ALL Balkan countries + languages');
+                console.log('  gjirafa      Import Gjirafa Video channels (Kosovo/Albania)');
                 console.log('  category     Import specific category');
                 console.log('  categories   Import all categories');
                 console.log('  country      Import specific country');
+                console.log('  language     Import specific language (sqi, srp, bos, hrv...)');
                 console.log('  popular      Import popular countries');
                 console.log('  url <url>    Import from custom M3U URL');
                 console.log('  file <path>  Import from local M3U file');
@@ -164,8 +202,10 @@ async function main() {
                 console.log('  cleanup      Check for dead channels');
                 console.log('\nExamples:');
                 console.log('  node import-channels.js quick');
+                console.log('  node import-channels.js balkan');
+                console.log('  node import-channels.js language sqi');
                 console.log('  node import-channels.js category news');
-                console.log('  node import-channels.js country us');
+                console.log('  node import-channels.js country al');
                 console.log('  node import-channels.js file iptv/streams/us.m3u');
                 console.log('  node import-channels.js all');
                 break;

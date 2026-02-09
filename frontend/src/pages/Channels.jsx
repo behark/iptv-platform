@@ -334,6 +334,8 @@ const Channels = () => {
       if (filters.language) params.language = filters.language
       if (filters.country) params.country = filters.country
       if (filters.search) params.search = filters.search
+      if (filters.hasLogo) params.hasLogo = 'true'
+      if (filters.streamType) params.streamType = filters.streamType
       if (filters.tab === 'Favorites') params.ids = favoriteIds.join(',')
 
       const requests = [channelsAPI.getAll(params, controller.signal)]
@@ -448,7 +450,7 @@ const Channels = () => {
   const visibleChannels = useMemo(() => dedupedChannels, [dedupedChannels])
 
   const hasFilters = Boolean(
-    filters.search || filters.category || filters.language || filters.country || filters.sort !== 'name-asc' || filters.tab !== 'All'
+    filters.search || filters.category || filters.language || filters.country || filters.sort !== 'name-asc' || filters.tab !== 'All' || filters.hasLogo || filters.streamType
   )
 
   const isDefaultView =
@@ -489,7 +491,7 @@ const Channels = () => {
       loadChannels({ nextPage: 1, append: false })
     }, delay)
     return () => clearTimeout(timer)
-  }, [filters.category, filters.language, filters.country, filters.search, filters.sort, filters.tab, favoritesKey])
+  }, [filters.category, filters.language, filters.country, filters.search, filters.sort, filters.tab, filters.hasLogo, filters.streamType, favoritesKey])
 
   const resetFilters = () => {
     setFilters({
@@ -498,9 +500,21 @@ const Channels = () => {
       country: '',
       search: '',
       sort: 'name-asc',
-      tab: 'All'
+      tab: 'All',
+      hasLogo: false,
+      streamType: ''
     })
     setCountryQuery('')
+  }
+
+  const SORT_LABELS = {
+    'name-asc': 'Name (A-Z)',
+    'name-desc': 'Name (Z-A)',
+    'country-asc': 'Country (A-Z)',
+    'country-desc': 'Country (Z-A)',
+    'category-asc': 'Category (A-Z)',
+    'category-desc': 'Category (Z-A)',
+    'recently-added': 'Recently Added'
   }
 
   const filterChips = useMemo(() => {
@@ -520,8 +534,14 @@ const Channels = () => {
     if (filters.search) {
       chips.push({ key: 'search', label: `Search: ${filters.search}` })
     }
+    if (filters.hasLogo) {
+      chips.push({ key: 'hasLogo', label: 'Has Logo' })
+    }
+    if (filters.streamType) {
+      chips.push({ key: 'streamType', label: `Type: ${filters.streamType}` })
+    }
     if (filters.sort !== 'name-asc') {
-      chips.push({ key: 'sort', label: `Sort: ${filters.sort === 'name-desc' ? 'Z-A' : 'A-Z'}` })
+      chips.push({ key: 'sort', label: `Sort: ${SORT_LABELS[filters.sort] || filters.sort}` })
     }
     return chips
   }, [filters])
@@ -542,13 +562,17 @@ const Channels = () => {
           return { ...prev, search: '' }
         case 'sort':
           return { ...prev, sort: 'name-asc' }
+        case 'hasLogo':
+          return { ...prev, hasLogo: false }
+        case 'streamType':
+          return { ...prev, streamType: '' }
         default:
           return prev
       }
     })
   }
 
-  const tabs = ['All', 'News', 'Movies', 'Sports', 'Kids', 'Favorites']
+  const tabs = ['All', 'News', 'Movies', 'Sports', 'Entertainment', 'Music', 'Documentary', 'Kids', 'Favorites']
 
   const resolutionLabel = (channel) => channel.resolution || channel.quality || ''
 
@@ -757,6 +781,8 @@ const Channels = () => {
               ))}
             </div>
           </div>
+        </div>
+        <div className="flex flex-wrap items-center gap-4 pt-2 border-t border-slate-700/50">
           <label className="text-sm text-slate-300 flex items-center gap-2">
             Sort
             <select
@@ -766,6 +792,32 @@ const Channels = () => {
             >
               <option value="name-asc">Name (A-Z)</option>
               <option value="name-desc">Name (Z-A)</option>
+              <option value="country-asc">Country (A-Z)</option>
+              <option value="country-desc">Country (Z-A)</option>
+              <option value="category-asc">Category (A-Z)</option>
+              <option value="category-desc">Category (Z-A)</option>
+              <option value="recently-added">Recently Added</option>
+            </select>
+          </label>
+          <label className="text-sm text-slate-300 flex items-center gap-2 cursor-pointer select-none">
+            <input
+              type="checkbox"
+              checked={filters.hasLogo || false}
+              onChange={(e) => setFilters({ ...filters, hasLogo: e.target.checked })}
+              className="w-4 h-4 rounded border-slate-600 bg-slate-900 text-primary-500 focus:ring-primary-500 focus:ring-offset-0"
+            />
+            Has Logo
+          </label>
+          <label className="text-sm text-slate-300 flex items-center gap-2">
+            Type
+            <select
+              className="px-3 py-2 bg-slate-900 border border-slate-700 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-primary-500"
+              value={filters.streamType || ''}
+              onChange={(e) => setFilters({ ...filters, streamType: e.target.value })}
+            >
+              <option value="">All Types</option>
+              <option value="live">Live</option>
+              <option value="vod">VOD</option>
             </select>
           </label>
         </div>

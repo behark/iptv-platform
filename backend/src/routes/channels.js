@@ -19,12 +19,13 @@ router.get('/', authenticate, requireSubscription, async (req, res) => {
       limit,
       sort,
       ids,
-      priority
+      priority,
+      hasLogo,
+      streamType
     } = req.query;
 
     const pageNumber = Math.max(parseInt(page, 10) || 1, 1);
     const limitNumber = Math.min(Math.max(parseInt(limit, 10) || 50, 1), 500);
-    const sortDirection = sort === 'name-desc' ? 'desc' : 'asc';
     const filters = [{ isActive: true }];
 
     // Admin/Moderator can see all channels, regular users see only their plan's channels
@@ -113,15 +114,52 @@ router.get('/', authenticate, requireSubscription, async (req, res) => {
         ]
       });
     }
+    if (hasLogo === 'true') {
+      filters.push({ logo: { not: null } });
+    }
+    if (streamType === 'live') {
+      filters.push({ isLive: true });
+    } else if (streamType === 'vod') {
+      filters.push({ isLive: false });
+    }
 
     const where = { AND: filters };
     const skip = (pageNumber - 1) * limitNumber;
 
-    // When priority is requested and no country filter, sort AL/XK first
+    // Build sort order based on sort parameter
     const usePriority = priority === 'true' && !country;
-    const orderBy = usePriority
-      ? [{ sortOrder: 'asc' }, { name: sortDirection }]
-      : [{ name: sortDirection }];
+    const buildOrderBy = () => {
+      const base = [];
+      if (usePriority) {
+        base.push({ sortOrder: 'asc' });
+      }
+      switch (sort) {
+        case 'name-desc':
+          base.push({ name: 'desc' });
+          break;
+        case 'country-asc':
+          base.push({ country: 'asc' }, { name: 'asc' });
+          break;
+        case 'country-desc':
+          base.push({ country: 'desc' }, { name: 'asc' });
+          break;
+        case 'category-asc':
+          base.push({ category: 'asc' }, { name: 'asc' });
+          break;
+        case 'category-desc':
+          base.push({ category: 'desc' }, { name: 'asc' });
+          break;
+        case 'recently-added':
+          base.push({ createdAt: 'desc' });
+          break;
+        case 'name-asc':
+        default:
+          base.push({ name: 'asc' });
+          break;
+      }
+      return base;
+    };
+    const orderBy = buildOrderBy();
 
     const total = await prisma.channel.count({ where });
     const channels = await prisma.channel.findMany({

@@ -88,7 +88,15 @@ async function validateUrlForSSRF(urlString) {
                     'iptv-org.github.io',
                     'github.com',
                     'githubusercontent.com',
-                    'raw.githubusercontent.com'
+                    'raw.githubusercontent.com',
+                    'gjirafa.net',
+                    'gjirafa.com',
+                    'tring.al',
+                    'rtsh.al',
+                    'a2news.com',
+                    'bhtelecom.ba',
+                    'rtvbn.tv',
+                    'rtrs.tv'
                 ];
 
                 const isTrusted = trustedDomains.some(domain =>
@@ -160,8 +168,83 @@ const COUNTRY_SOURCES = {
     sa: 'https://iptv-org.github.io/iptv/countries/sa.m3u',
     eg: 'https://iptv-org.github.io/iptv/countries/eg.m3u',
     al: 'https://iptv-org.github.io/iptv/countries/al.m3u',
-    xk: 'https://iptv-org.github.io/iptv/countries/xk.m3u'
+    xk: 'https://iptv-org.github.io/iptv/countries/xk.m3u',
+    mk: 'https://iptv-org.github.io/iptv/countries/mk.m3u',
+    me: 'https://iptv-org.github.io/iptv/countries/me.m3u',
+    rs: 'https://iptv-org.github.io/iptv/countries/rs.m3u',
+    ba: 'https://iptv-org.github.io/iptv/countries/ba.m3u',
+    hr: 'https://iptv-org.github.io/iptv/countries/hr.m3u',
+    si: 'https://iptv-org.github.io/iptv/countries/si.m3u',
+    bg: 'https://iptv-org.github.io/iptv/countries/bg.m3u',
+    ro: 'https://iptv-org.github.io/iptv/countries/ro.m3u',
+    gr: 'https://iptv-org.github.io/iptv/countries/gr.m3u'
 };
+
+const LANGUAGE_SOURCES = {
+    sqi: 'https://iptv-org.github.io/iptv/languages/sqi.m3u',
+    srp: 'https://iptv-org.github.io/iptv/languages/srp.m3u',
+    bos: 'https://iptv-org.github.io/iptv/languages/bos.m3u',
+    hrv: 'https://iptv-org.github.io/iptv/languages/hrv.m3u',
+    mkd: 'https://iptv-org.github.io/iptv/languages/mkd.m3u',
+    slv: 'https://iptv-org.github.io/iptv/languages/slv.m3u',
+    bul: 'https://iptv-org.github.io/iptv/languages/bul.m3u',
+    ron: 'https://iptv-org.github.io/iptv/languages/ron.m3u',
+    ell: 'https://iptv-org.github.io/iptv/languages/ell.m3u',
+    tur: 'https://iptv-org.github.io/iptv/languages/tur.m3u'
+};
+
+const FREETV_SOURCES = {
+    al: 'https://raw.githubusercontent.com/Free-TV/IPTV/master/playlists/playlist_albania.m3u8',
+    xk: 'https://raw.githubusercontent.com/Free-TV/IPTV/master/playlists/playlist_kosovo.m3u8',
+    mk: 'https://raw.githubusercontent.com/Free-TV/IPTV/master/playlists/playlist_north_macedonia.m3u8',
+    me: 'https://raw.githubusercontent.com/Free-TV/IPTV/master/playlists/playlist_montenegro.m3u8',
+    rs: 'https://raw.githubusercontent.com/Free-TV/IPTV/master/playlists/playlist_serbia.m3u8',
+    ba: 'https://raw.githubusercontent.com/Free-TV/IPTV/master/playlists/playlist_bosnia_and_herzegovina.m3u8',
+    hr: 'https://raw.githubusercontent.com/Free-TV/IPTV/master/playlists/playlist_croatia.m3u8',
+    si: 'https://raw.githubusercontent.com/Free-TV/IPTV/master/playlists/playlist_slovenia.m3u8',
+    bg: 'https://raw.githubusercontent.com/Free-TV/IPTV/master/playlists/playlist_bulgaria.m3u8',
+    ro: 'https://raw.githubusercontent.com/Free-TV/IPTV/master/playlists/playlist_romania.m3u8',
+    gr: 'https://raw.githubusercontent.com/Free-TV/IPTV/master/playlists/playlist_greece.m3u8'
+};
+
+const FREETV_FULL = 'https://raw.githubusercontent.com/Free-TV/IPTV/master/playlist.m3u8';
+
+const BALKAN_COUNTRIES = ['al', 'xk', 'mk', 'me', 'rs', 'ba', 'hr', 'si', 'bg', 'ro', 'gr'];
+const BALKAN_LANGUAGES = ['sqi', 'srp', 'bos', 'hrv', 'mkd', 'slv', 'bul', 'ron', 'ell'];
+
+const BALKAN_NAME_PATTERNS = [
+    /\bRTK\s*[1-4]?\b/i, /\bKlan\b/i, /\bTop\s*Channel\b/i, /\bVizion\s*Plus\b/i,
+    /\bRTV\s*21\b/i, /\bAlsat\b/i, /\bKohavision\b/i, /\bTring\b/i, /\bDigitAlb\b/i,
+    /\bA2\s*CNN\b/i, /\bReport\s*TV\b/i, /\bOra\s*News\b/i, /\bNews\s*24.*Alb/i,
+    /\bTV\s*Arb[eë]ria\b/i, /\bTV\s*Opoja\b/i, /\bTV\s*Dielli\b/i, /\bABC\s*News.*Alb/i,
+    /\bT7\b/i, /\bDukagjini\b/i, /\bKlan\s*Kosova\b/i, /\bATV\s*Kosov/i, /\bTV\s*Era\b/i,
+    /\bBesa\s*TV\b/i, /\bTV\s*Prizren\b/i, /\bKanal\s*10.*KS/i, /\bTV\s*Tema\b/i,
+    /\bRTV\s*Pend/i, /\bTV\s*Mitrov/i, /\bSyri\b/i, /\bEuronews\s*Alb/i, /\bAlpo\s*TV\b/i,
+    /\bCNA\b.*\bal\b/i, /\bTropoja\b/i, /\bTop\s*News.*\bal\b/i, /\bPanorama\s*TV\b/i,
+    /\bTV\s*7\s*Albania\b/i, /\bTV\s*Apollon\b/i, /\bAlbKanale/i, /\bKanali\s*7\b/i,
+    /\bRTS\s*[1-3]?\b/i, /\bRTV\s*[1-2]\b.*\brs\b/i, /\bN1\s*Bosn/i, /\bN1\s*Serb/i,
+    /\bHRT\s*[1-4]\b/i, /\bRTL\s*Croatia\b/i, /\bNova\s*TV.*hr\b/i,
+    /\bBHT\s*1\b/i, /\bFederalna/i, /\bRTRS\b/i, /\bRTV\s*BN\b/i,
+    /\bMRT\s*[1-5]?\b/i, /\bKanal\s*5.*mk\b/i, /\bSitel\b/i, /\bTelma\b/i,
+    /\bTV\s*21.*mk\b/i,
+    /\bZICO\s*TV\b/i, /\bPRO\s*1\b/i, /\bRTV\s*Besa\b/i, /\bTV\s*News\b.*\bxk\b/i,
+    /\bGlam\s*Radio\b/i, /\bRadio\s*Dukagjini\b/i, /\bRadio\s*Kosova\b/i,
+    /\bRadio\s*Prishtina\b/i, /\bRadio\s*Gjakova\b/i, /\bClubFM\s*Kosova\b/i,
+    /\bTV\s*Arb[eë]ria\s*[1-5]?\b/i, /\bTV\s*Dielli\b/i, /\bTV\s*Opoja\b/i,
+    /\bRTV\s*Pendimi\b/i, /\bZjarr\s*TV\b/i, /\bTopEstrada\b/i,
+    /\bAlbDreams\b/i, /\bShqiponja\s*TV\b/i, /\bDrita\s*TV\b/i,
+    /\bAlbUK\b/i, /\bGlobe\s*TV\b/i, /\bNRG\s*Muzik\b/i, /\bDasma\s*TV\b/i,
+    /\bFestina\s*TV\b/i, /\bUlqini\s*TV\b/i, /\bBulevard\s*TV\b/i,
+    /\bRTV\s*Zik\b/i, /\bRTV\s*Flaka\b/i, /\bTV\s*Mitrovica\b/i,
+    /\bAlbFilm\b/i, /\bTV\s*KOHA\b/i, /\bRTV\s*Ilirida\b/i,
+    /\bTV\s*Rozafa\b/i, /\bTV\s*Kopliku\b/i, /\bRTV\s*Presheva\b/i,
+    /\bTV\s*Apollon\b/i, /\bRTV\s*Islam\b/i, /\bRTSH\s*[1-3]?\b/i
+];
+
+const BALKAN_GROUP_PATTERNS = [
+    /albania/i, /kosovo/i, /serbia/i, /croatia/i, /bosni/i,
+    /montenegr/i, /macedoni/i, /balkan/i, /shqip/i, /ex[\.\-\s]*yu/i
+];
 
 function normalizeAttr(value) {
     if (value === null || value === undefined) return null;
@@ -600,6 +683,153 @@ async function importPopularCountries(options = {}) {
     return results;
 }
 
+async function importByLanguage(langCode, options = {}) {
+    const url = LANGUAGE_SOURCES[langCode.toLowerCase()];
+    if (!url) {
+        throw new Error(`Unknown language: ${langCode}. Available: ${Object.keys(LANGUAGE_SOURCES).join(', ')}`);
+    }
+    return importFromUrl(url, { ...options, language: langCode });
+}
+
+function isBalkanChannel(channel) {
+    const name = channel.name || '';
+    const group = channel.category || '';
+    const country = (channel.country || '').toUpperCase();
+
+    const balkanCountrySet = new Set(BALKAN_COUNTRIES.map(c => c.toUpperCase()));
+    if (balkanCountrySet.has(country)) return true;
+
+    for (const pattern of BALKAN_NAME_PATTERNS) {
+        if (pattern.test(name)) return true;
+    }
+    for (const pattern of BALKAN_GROUP_PATTERNS) {
+        if (pattern.test(group)) return true;
+    }
+
+    return false;
+}
+
+async function importBalkanChannels(options = {}) {
+    const results = { countries: {}, languages: {}, freetv: {} };
+    let totalImported = 0;
+
+    console.log('\n=== Phase 1: iptv-org Country Playlists ===');
+    for (const country of BALKAN_COUNTRIES) {
+        console.log(`\nImporting country: ${country.toUpperCase()}`);
+        try {
+            const result = await importByCountry(country, options);
+            results.countries[country] = result;
+            totalImported += result.imported || 0;
+        } catch (error) {
+            results.countries[country] = { error: error.message };
+        }
+    }
+
+    console.log('\n=== Phase 2: iptv-org Language Playlists ===');
+    for (const lang of BALKAN_LANGUAGES) {
+        console.log(`\nImporting language: ${lang}`);
+        try {
+            const result = await importByLanguage(lang, options);
+            results.languages[lang] = result;
+            totalImported += result.imported || 0;
+        } catch (error) {
+            results.languages[lang] = { error: error.message };
+        }
+    }
+
+    console.log('\n=== Phase 3: Free-TV/IPTV Playlists ===');
+    for (const [country, url] of Object.entries(FREETV_SOURCES)) {
+        console.log(`\nImporting Free-TV ${country.toUpperCase()}: ${url}`);
+        try {
+            const result = await importFromUrl(url, { ...options, country: country.toUpperCase() });
+            results.freetv[country] = result;
+            totalImported += result.imported || 0;
+        } catch (error) {
+            results.freetv[country] = { error: error.message };
+        }
+    }
+
+    console.log(`\n=== Balkan Import Complete: ${totalImported} new channels imported ===`);
+    return results;
+}
+
+async function importFromLocalPlaylist(filePath, filterOptions = {}) {
+    const { countries = [], languages = [], useNameMatching = true } = filterOptions;
+    const countrySet = new Set(countries.map(c => c.toUpperCase()));
+    const langSet = new Set(languages.map(l => l.toLowerCase()));
+    const hasFilters = countrySet.size > 0 || langSet.size > 0 || useNameMatching;
+
+    console.log(`Reading local playlist: ${filePath}`);
+    const content = await fs.readFile(filePath, 'utf-8');
+    const allChannels = parseM3U(content);
+    console.log(`Parsed ${allChannels.length} total channels from file`);
+
+    let filtered = allChannels;
+    if (hasFilters) {
+        filtered = allChannels.filter(ch => {
+            const matchCountry = countrySet.size > 0 && ch.country && countrySet.has(ch.country.toUpperCase());
+            const matchLang = langSet.size > 0 && ch.language && langSet.has(ch.language.toLowerCase());
+            const matchName = useNameMatching && isBalkanChannel(ch);
+            return matchCountry || matchLang || matchName;
+        });
+        console.log(`Filtered to ${filtered.length} channels (country tags + name/group matching)`);
+    }
+
+    const channels = dedupeChannelsByStreamUrl(filtered);
+    console.log(`After dedup: ${channels.length} unique channels`);
+
+    let imported = 0;
+    let skipped = 0;
+    let failed = 0;
+
+    for (const channel of channels) {
+        try {
+            const channelData = {
+                name: channel.name.substring(0, 255),
+                description: (channel.description || channel.name || '').substring(0, 255),
+                logo: channel.logo,
+                streamUrl: channel.streamUrl,
+                streamType: channel.streamType,
+                fileExt: channel.fileExt,
+                category: channel.category || 'Uncategorized',
+                country: channel.country || 'INT',
+                language: channel.language || 'en',
+                epgId: channel.epgId,
+                isActive: true,
+                isLive: true
+            };
+
+            const existing = await prisma.channel.findFirst({
+                where: { streamUrl: channel.streamUrl }
+            });
+
+            if (existing) {
+                const updates = {};
+                if (channel.logo && !existing.logo) updates.logo = channel.logo;
+                if (channel.name && existing.name === 'Unknown') updates.name = channel.name.substring(0, 255);
+                if (!existing.fileExt && channel.fileExt) updates.fileExt = channel.fileExt;
+                if (Object.keys(updates).length > 0) {
+                    await prisma.channel.update({ where: { id: existing.id }, data: updates });
+                }
+                skipped++;
+                continue;
+            }
+
+            await prisma.channel.create({ data: channelData });
+            imported++;
+
+            if (imported % 100 === 0) {
+                process.stdout.write(`\r  Imported: ${imported}`);
+            }
+        } catch (error) {
+            failed++;
+        }
+    }
+
+    console.log(`\nResult: imported=${imported} skipped=${skipped} failed=${failed}`);
+    return { imported, skipped, failed, total: channels.length };
+}
+
 async function getStats() {
     const totalChannels = await prisma.channel.count();
     const activeChannels = await prisma.channel.count({ where: { isActive: true } });
@@ -665,15 +895,26 @@ module.exports = {
     FREE_SOURCES,
     CATEGORY_SOURCES,
     COUNTRY_SOURCES,
+    LANGUAGE_SOURCES,
+    FREETV_SOURCES,
+    FREETV_FULL,
+    BALKAN_COUNTRIES,
+    BALKAN_LANGUAGES,
+    BALKAN_NAME_PATTERNS,
+    BALKAN_GROUP_PATTERNS,
     parseM3U,
     validateStream,
     validateUrlForSSRF,
+    isBalkanChannel,
     importFromFile,
     importFromUrl,
     importByCategory,
     importByCountry,
+    importByLanguage,
     importAllCategories,
     importPopularCountries,
+    importBalkanChannels,
+    importFromLocalPlaylist,
     getStats,
     cleanupDeadChannels
 };

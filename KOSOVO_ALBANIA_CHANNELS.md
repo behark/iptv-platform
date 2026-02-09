@@ -7,26 +7,55 @@ This document provides information about where to find free, legal Kosovo and Al
 You can now import Kosovo and Albanian channels directly using the importer:
 
 ```bash
-# Import Albanian channels (18 channels)
+# Import Albanian channels
 node backend/scripts/import-channels.js country al
 
-# Import Kosovo channels (13 channels)
+# Import Kosovo channels
 node backend/scripts/import-channels.js country xk
 
-# Import both
-node backend/scripts/import-channels.js country al && node backend/scripts/import-channels.js country xk
+# Import ALL Balkan countries + languages in one command
+node backend/scripts/import-channels.js balkan
+
+# Import by language (Albanian language channels from ALL countries)
+node backend/scripts/import-channels.js language sqi
+
+# Bulk Balkan import (countries + languages + optional local playlist)
+node backend/scripts/import-balkan.js
+node backend/scripts/import-balkan.js --local        # Also import from local playlist
+node backend/scripts/import-balkan.js --stats         # Show current Balkan stats
+
+# Enrich missing channel logos
+node backend/scripts/enrich-logos.js                  # All channels
+node backend/scripts/enrich-logos.js --country AL     # Only Albanian channels
+node backend/scripts/enrich-logos.js --dry-run        # Preview without changes
 ```
 
-## Primary Sources
+## Import Sources (All Integrated)
 
-### 1. IPTV-org (Already Integrated)
-- **Albania**: https://iptv-org.github.io/iptv/countries/al.m3u (18 channels)
-- **Kosovo**: https://iptv-org.github.io/iptv/countries/xk.m3u (13 channels)
-- **Status**: ✅ Already added to your importer
-- **Quality**: High - regularly maintained, legal streams
-- **Channels include**: News, Entertainment, Music, Kids channels
+### 1. IPTV-org Country Playlists
+- **Albania**: https://iptv-org.github.io/iptv/countries/al.m3u
+- **Kosovo**: https://iptv-org.github.io/iptv/countries/xk.m3u
+- Plus 9 more Balkan countries: MK, ME, RS, BA, HR, SI, BG, RO, GR
+- **Quality**: High - curated, legal streams
 
-### 2. Official Broadcasters (Direct Sources)
+### 2. IPTV-org Language Playlists
+- **Albanian (sqi)**: https://iptv-org.github.io/iptv/languages/sqi.m3u
+- Plus 8 more: Serbian, Bosnian, Croatian, Macedonian, Slovenian, Bulgarian, Romanian, Greek
+- Catches Albanian-language channels tagged under other countries
+
+### 3. Free-TV/IPTV (Second Major Source)
+- **Albania**: https://raw.githubusercontent.com/Free-TV/IPTV/master/playlists/playlist_albania.m3u8
+- **Kosovo**: https://raw.githubusercontent.com/Free-TV/IPTV/master/playlists/playlist_kosovo.m3u8
+- All 11 Balkan countries have separate verified playlists
+- Different stream URLs from iptv-org = more unique channels
+
+### 4. Local Playlist Smart Matching
+- Scans `iptv_full_playlist.m3u` (29,000+ channels) using **name-based pattern matching**
+- Matches 50+ known Balkan channel name patterns (RTK, Klan, Top Channel, etc.)
+- Also matches by group-title keywords (Albania, Kosovo, Balkanic, etc.)
+- Catches ~274 Balkan channels that are tagged as `INT` but are actually Balkan
+
+### 5. Official Broadcasters (Direct Sources)
 
 #### Albanian Channels
 - **RTSh (Radio Televizioni Shqiptar)**: 
