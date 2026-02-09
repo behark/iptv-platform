@@ -153,7 +153,7 @@ const GJIRAFA_TV_CHANNELS = [
     {
         name: 'ZICO TV',
         streamUrl: `${GJ_LIVE}/gjvideo-livestream/zico-tv/index.m3u8`,
-        logo: null,
+        logo: 'https://g0eylj1rzj.gjirafa.net/media/y1k0kk/thumbnails/retina.jpg',
         epgId: 'ZicoTV.xk',
         category: 'Entertainment',
         country: 'XK',
@@ -162,7 +162,7 @@ const GJIRAFA_TV_CHANNELS = [
     {
         name: 'PRO1',
         streamUrl: `${GJ_LIVE}/gjvideo-livestream/pro1-tv/index.m3u8`,
-        logo: null,
+        logo: 'https://g0eylj1rzj.gjirafa.net/media/zzgyqg/thumbnails/retina.jpg',
         epgId: 'PRO1.xk',
         category: 'Entertainment',
         country: 'XK',
@@ -171,7 +171,7 @@ const GJIRAFA_TV_CHANNELS = [
     {
         name: 'ATV Live',
         streamUrl: `${GJ_LIVE}/gjvideo-livestream/atv-live/index.m3u8`,
-        logo: null,
+        logo: 'https://g0eylj1rzj.gjirafa.net/media/zyq001/thumbnails/retina.jpg',
         epgId: 'ATV.xk',
         category: 'General',
         country: 'XK',
@@ -180,7 +180,7 @@ const GJIRAFA_TV_CHANNELS = [
     {
         name: 'RTV Besa HD',
         streamUrl: `${GJ_LIVE}/gjvideo-livestream/rtv-besa/index.m3u8`,
-        logo: null,
+        logo: 'https://i.imgur.com/Qi3mz4Q.png',
         epgId: 'RTVBesa.xk',
         category: 'General',
         country: 'XK',
@@ -189,7 +189,7 @@ const GJIRAFA_TV_CHANNELS = [
     {
         name: 'TV News',
         streamUrl: `${GJ_LIVE}/gjvideo-livestream/tv-news/index.m3u8`,
-        logo: null,
+        logo: 'https://g0eylj1rzj.gjirafa.net/media/zzy1kt/thumbnails/retina.jpg',
         epgId: 'TVNews.xk',
         category: 'News',
         country: 'XK',
@@ -204,7 +204,7 @@ const GJIRAFA_RADIO_CHANNELS = [
     {
         name: 'Glam Radio',
         streamUrl: `${GJ_LIVE}/gjvideo-livestream/glamradio-fm/index.m3u8`,
-        logo: null,
+        logo: 'https://g0eylj1rzj.gjirafa.net/media/ykyzkk/thumbnails/retina.jpg',
         epgId: 'GlamRadio.xk',
         category: 'Music',
         country: 'XK',
@@ -213,7 +213,7 @@ const GJIRAFA_RADIO_CHANNELS = [
     {
         name: 'Glam Radio Gold',
         streamUrl: `${GJ_LIVE}/gjvideo-livestream/glamradio-gold/index.m3u8`,
-        logo: null,
+        logo: 'https://g0eylj1rzj.gjirafa.net/media/ykgxzz/thumbnails/retina.jpg',
         epgId: 'GlamRadioGold.xk',
         category: 'Music',
         country: 'XK',
@@ -222,7 +222,7 @@ const GJIRAFA_RADIO_CHANNELS = [
     {
         name: 'Glam Radio Cafe',
         streamUrl: `${GJ_LIVE}/gjvideo-livestream/glamradio-cafe/index.m3u8`,
-        logo: null,
+        logo: 'https://g0eylj1rzj.gjirafa.net/media/ykgxzg/thumbnails/retina.jpg',
         epgId: 'GlamRadioCafe.xk',
         category: 'Music',
         country: 'XK',
@@ -231,7 +231,7 @@ const GJIRAFA_RADIO_CHANNELS = [
     {
         name: 'Radio ClubFM Albania',
         streamUrl: `${GJ_LIVE}/gjvideo-livestream/clubfm-albania/index.m3u8`,
-        logo: null,
+        logo: 'https://g0eylj1rzj.gjirafa.net/media/y1zqzk/thumbnails/retina.jpg',
         epgId: 'ClubFMAlbania.al',
         category: 'Music',
         country: 'AL',
@@ -240,7 +240,7 @@ const GJIRAFA_RADIO_CHANNELS = [
     {
         name: 'Radio ClubFM Kosova',
         streamUrl: `${GJ_LIVE}/gjvideo-livestream/clubfm-kosova/index.m3u8`,
-        logo: null,
+        logo: 'https://g0eylj1rzj.gjirafa.net/media/y1zqz1/thumbnails/retina.jpg',
         epgId: 'ClubFMKosova.xk',
         category: 'Music',
         country: 'XK',
@@ -249,7 +249,7 @@ const GJIRAFA_RADIO_CHANNELS = [
     {
         name: 'Radio Dukagjini',
         streamUrl: `${GJ_LIVE}/gjvideo-livestream/radio-dukagjini/index.m3u8`,
-        logo: null,
+        logo: 'https://g0eylj1rzj.gjirafa.net/media/y1z1tq/thumbnails/retina.jpg',
         epgId: 'RadioDukagjini.xk',
         category: 'Music',
         country: 'XK',
@@ -258,7 +258,7 @@ const GJIRAFA_RADIO_CHANNELS = [
     {
         name: 'Top Albania Radio',
         streamUrl: `${GJ_LIVE}/gjvideo-livestream/top-albania-radio-live/index.m3u8`,
-        logo: null,
+        logo: 'https://g0eylj1rzj.gjirafa.net/media/y1gty0/thumbnails/retina.jpg',
         epgId: 'TopAlbaniaRadio.al',
         category: 'Music',
         country: 'AL',
@@ -267,7 +267,7 @@ const GJIRAFA_RADIO_CHANNELS = [
     {
         name: 'Paper Radio OnAir',
         streamUrl: `${GJ_LIVE}/gjvideo-livestream/paper-radio-onair/index.m3u8`,
-        logo: null,
+        logo: 'https://g0eylj1rzj.gjirafa.net/media/y1010x/thumbnails/retina.jpg',
         epgId: 'PaperRadio.xk',
         category: 'Music',
         country: 'XK',
@@ -276,7 +276,7 @@ const GJIRAFA_RADIO_CHANNELS = [
     {
         name: 'Radio Gjakova',
         streamUrl: `${GJ_LIVE}/gjvideo-livestream/radio-gjakova-live/index.m3u8`,
-        logo: null,
+        logo: 'https://g0eylj1rzj.gjirafa.net/media/y1kzg1/thumbnails/retina.jpg',
         epgId: 'RadioGjakova.xk',
         category: 'Music',
         country: 'XK',
@@ -285,7 +285,7 @@ const GJIRAFA_RADIO_CHANNELS = [
     {
         name: 'Radio Prishtina',
         streamUrl: `${GJ_LIVE}/gjvideo-livestream/radio-prishtina/index.m3u8`,
-        logo: null,
+        logo: 'https://g0eylj1rzj.gjirafa.net/media/zy1tk0/thumbnails/retina.jpg',
         epgId: 'RadioPrishtina.xk',
         category: 'Music',
         country: 'XK',
@@ -294,7 +294,7 @@ const GJIRAFA_RADIO_CHANNELS = [
     {
         name: 'Radio Kosova 1',
         streamUrl: `${GJ_LIVE}/gjvideo-livestream/radio-kosova-1/index.m3u8`,
-        logo: null,
+        logo: 'https://g0eylj1rzj.gjirafa.net/media/zzxkyx/thumbnails/retina.jpg',
         epgId: 'RadioKosova1.xk',
         category: 'Music',
         country: 'XK',
@@ -303,7 +303,7 @@ const GJIRAFA_RADIO_CHANNELS = [
     {
         name: 'Radio Kosova 2',
         streamUrl: `${GJ_LIVE}/gjvideo-livestream/radio-kosova-2/index.m3u8`,
-        logo: null,
+        logo: 'https://g0eylj1rzj.gjirafa.net/media/zzxkyt/thumbnails/retina.jpg',
         epgId: 'RadioKosova2.xk',
         category: 'Music',
         country: 'XK',
