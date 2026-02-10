@@ -13,6 +13,7 @@ import ResetPassword from './pages/ResetPassword'
 import Channels from './pages/Channels'
 import ChannelPlayer from './pages/ChannelPlayer'
 import Videos from './pages/Videos'
+import Radio from './pages/Radio'
 import VideoPlayer from './pages/VideoPlayer'
 import Plans from './pages/Plans'
 import Profile from './pages/Profile'
@@ -72,6 +73,14 @@ function App() {
                 element={
                   <PrivateRoute>
                     <VideoPlayer />
+                  </PrivateRoute>
+                }
+              />
+              <Route
+                path="/radio"
+                element={
+                  <PrivateRoute>
+                    <Radio />
                   </PrivateRoute>
                 }
               />

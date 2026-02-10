@@ -94,6 +94,13 @@ router.post('/register', [
       }
     });
   } catch (error) {
+    if (error.code === 'P2002') {
+      const field = error.meta?.target?.[0] || 'email';
+      return res.status(400).json({
+        success: false,
+        message: `A user with this ${field} already exists`
+      });
+    }
     console.error('Registration error:', error);
     res.status(500).json({
       success: false,

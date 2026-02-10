@@ -11,7 +11,7 @@ const prisma = new PrismaClient();
 // @access  Private (requires subscription)
 router.get('/', authenticate, requireSubscription, async (req, res) => {
   try {
-    const { category, search, limit = 20, page = 1 } = req.query;
+    const { category, search, sort, limit = 20, page = 1 } = req.query;
     const skip = (parseInt(page) - 1) * parseInt(limit);
 
     const where = {
@@ -26,14 +26,31 @@ router.get('/', authenticate, requireSubscription, async (req, res) => {
       ];
     }
 
-    const [videos, total] = await Promise.all([
+    const orderByMap = {
+      'title-asc': { title: 'asc' },
+      'title-desc': { title: 'desc' },
+      'views-desc': { views: 'desc' },
+      'views-asc': { views: 'asc' },
+      'year-desc': { year: 'desc' },
+      'year-asc': { year: 'asc' },
+      'recently-added': { createdAt: 'desc' }
+    };
+    const orderBy = orderByMap[sort] || { createdAt: 'desc' };
+
+    const [videos, total, categories] = await Promise.all([
       prisma.video.findMany({
         where,
         skip,
         take: parseInt(limit),
-        orderBy: { createdAt: 'desc' }
+        orderBy
       }),
-      prisma.video.count({ where })
+      prisma.video.count({ where }),
+      prisma.video.groupBy({
+        by: ['category'],
+        where: { isActive: true },
+        _count: true,
+        orderBy: { _count: { category: 'desc' } }
+      })
     ]);
 
     res.json({
@@ -44,7 +61,12 @@ router.get('/', authenticate, requireSubscription, async (req, res) => {
         total,
         pages: Math.ceil(total / parseInt(limit))
       },
-      data: { videos }
+      data: {
+        videos,
+        categories: categories
+          .filter(c => c.category)
+          .map(c => ({ name: c.category, count: c._count }))
+      }
     });
   } catch (error) {
     console.error('Get videos error:', error);

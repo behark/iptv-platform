@@ -20,6 +20,7 @@ const Navbar = () => {
     { to: '/', label: 'Home', icon: '🏠' },
     { to: '/channels', label: 'Live TV', icon: '📺' },
     { to: '/videos', label: 'Movies', icon: '🎬' },
+    { to: '/radio', label: 'Radio', icon: '📻' },
     { to: '/favorites', label: 'Favorites', icon: '⭐' },
     { to: '/history', label: 'History', icon: '🕐' }
   ]
