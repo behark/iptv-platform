@@ -11,9 +11,18 @@ export const useAuth = () => {
   return context
 }
 
+const safeParseUser = () => {
+  try {
+    const raw = localStorage.getItem('user')
+    return raw ? JSON.parse(raw) : null
+  } catch {
+    localStorage.removeItem('user')
+    return null
+  }
+}
+
 export const AuthProvider = ({ children }) => {
-  const storedUser = localStorage.getItem('user')
-  const [user, setUser] = useState(storedUser ? JSON.parse(storedUser) : null)
+  const [user, setUser] = useState(safeParseUser)
   const [loading, setLoading] = useState(true)
   const [token, setToken] = useState(localStorage.getItem('token'))
 

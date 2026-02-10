@@ -60,10 +60,22 @@ app.use(cors({
 // Rate limiting
 const limiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 100, // limit each IP to 100 requests per windowMs
-  skip: (req) => req.path.startsWith('/exports')
+  max: 1000, // limit each IP to 1000 requests per windowMs
+  skip: (req) => req.path.startsWith('/exports'),
+  standardHeaders: true,
+  legacyHeaders: false
 });
 app.use('/api/', limiter);
+
+// Stricter rate limit for auth routes to prevent brute-force
+const authLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 20,
+  standardHeaders: true,
+  legacyHeaders: false
+});
+app.use('/api/auth/login', authLimiter);
+app.use('/api/auth/register', authLimiter);
 
 const exportsWindowMinutes = getEnvNumber('EXPORTS_RATE_LIMIT_WINDOW_MINUTES', 15);
 const exportsMax = getEnvNumber('EXPORTS_RATE_LIMIT_MAX', 300);
@@ -93,7 +105,9 @@ app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
 // Logging
-if (process.env.NODE_ENV === 'development') {
+if (process.env.NODE_ENV === 'production') {
+  app.use(morgan('[:date[iso]] :method :url :status :res[content-length] - :response-time ms'));
+} else {
   app.use(morgan('dev'));
 }
 
@@ -140,9 +154,32 @@ app.use((req, res) => {
 
 const PORT = process.env.PORT || 5000;
 
-app.listen(PORT, () => {
+const server = app.listen(PORT, () => {
   console.log(`🚀 IPTV Backend Server running on port ${PORT}`);
   console.log(`📡 Environment: ${process.env.NODE_ENV || 'development'}`);
 });
+
+// Graceful shutdown
+const gracefulShutdown = (signal) => {
+  console.log(`\n${signal} received. Shutting down gracefully...`);
+  server.close(() => {
+    console.log('HTTP server closed.');
+    const prisma = require('./lib/prisma');
+    prisma.$disconnect().then(() => {
+      console.log('Database connection closed.');
+      process.exit(0);
+    }).catch(() => {
+      process.exit(1);
+    });
+  });
+  // Force shutdown after 10 seconds
+  setTimeout(() => {
+    console.error('Forced shutdown after timeout.');
+    process.exit(1);
+  }, 10000);
+};
+
+process.on('SIGTERM', () => gracefulShutdown('SIGTERM'));
+process.on('SIGINT', () => gracefulShutdown('SIGINT'));
 
 module.exports = app;

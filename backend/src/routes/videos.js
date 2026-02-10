@@ -1,10 +1,9 @@
 const express = require('express');
-const { PrismaClient } = require('@prisma/client');
 const { authenticate, requireSubscription } = require('../middleware/auth');
 const subtitleService = require('../services/subtitleService');
+const prisma = require('../lib/prisma');
 
 const router = express.Router();
-const prisma = new PrismaClient();
 
 // @route   GET /api/videos
 // @desc    Get all videos

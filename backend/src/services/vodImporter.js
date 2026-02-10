@@ -4,7 +4,6 @@
  * Uses ffsubsync for automatic subtitle synchronization
  */
 
-const { PrismaClient } = require('@prisma/client');
 const { exec } = require('child_process');
 const { promisify } = require('util');
 const fs = require('fs').promises;
@@ -13,9 +12,9 @@ const axios = require('axios');
 
 const archiveService = require('./archiveService');
 const subtitleService = require('./subtitleService');
+const prisma = require('../lib/prisma');
 
 const execAsync = promisify(exec);
-const prisma = new PrismaClient();
 
 class VodImporter {
   constructor() {

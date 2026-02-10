@@ -1,9 +1,8 @@
 const express = require('express');
-const { PrismaClient } = require('@prisma/client');
 const { authenticate, requireSubscription } = require('../middleware/auth');
+const prisma = require('../lib/prisma');
 
 const router = express.Router();
-const prisma = new PrismaClient();
 
 // @route   GET /api/epg/:channelId
 // @desc    Get EPG for a channel

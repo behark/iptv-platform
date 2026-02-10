@@ -1,9 +1,8 @@
 const express = require('express');
-const { PrismaClient } = require('@prisma/client');
 const { authenticate, authorize, requireSubscription } = require('../middleware/auth');
+const prisma = require('../lib/prisma');
 
 const router = express.Router();
-const prisma = new PrismaClient();
 
 // @route   GET /api/channels
 // @desc    Get all channels (filtered by subscription)
@@ -305,9 +304,24 @@ router.post('/', authenticate, authorize('ADMIN'), async (req, res) => {
 // @access  Private (Admin)
 router.put('/:id', authenticate, authorize('ADMIN'), async (req, res) => {
   try {
+    const { name, description, logo, streamUrl, streamType, fileExt, category, language, country, isLive, isActive, epgId, sortOrder } = req.body;
     const channel = await prisma.channel.update({
       where: { id: req.params.id },
-      data: req.body
+      data: {
+        ...(name !== undefined && { name }),
+        ...(description !== undefined && { description }),
+        ...(logo !== undefined && { logo }),
+        ...(streamUrl !== undefined && { streamUrl }),
+        ...(streamType !== undefined && { streamType }),
+        ...(fileExt !== undefined && { fileExt }),
+        ...(category !== undefined && { category }),
+        ...(language !== undefined && { language }),
+        ...(country !== undefined && { country }),
+        ...(isLive !== undefined && { isLive }),
+        ...(isActive !== undefined && { isActive }),
+        ...(epgId !== undefined && { epgId }),
+        ...(sortOrder !== undefined && { sortOrder })
+      }
     });
 
     res.json({

@@ -1,16 +1,21 @@
 const express = require('express');
-const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
-const { PrismaClient } = require('@prisma/client');
 const { authenticate } = require('../middleware/auth');
+const prisma = require('../lib/prisma');
 
 const router = express.Router();
-const prisma = new PrismaClient();
+
+const stripe = process.env.STRIPE_SECRET_KEY
+  ? require('stripe')(process.env.STRIPE_SECRET_KEY)
+  : null;
 
 // @route   POST /api/payments/create-checkout
 // @desc    Create Stripe checkout session
 // @access  Private
 router.post('/create-checkout', authenticate, async (req, res) => {
   try {
+    if (!stripe) {
+      return res.status(503).json({ success: false, message: 'Payment service not configured' });
+    }
     const { planId } = req.body;
 
     const plan = await prisma.plan.findUnique({
@@ -75,6 +80,9 @@ router.post('/create-checkout', authenticate, async (req, res) => {
 // @desc    Stripe webhook handler
 // @access  Public (Stripe signature verification)
 router.post('/webhook', async (req, res) => {
+  if (!stripe) {
+    return res.status(503).send('Payment service not configured');
+  }
   const sig = req.headers['stripe-signature'];
   let event;
 

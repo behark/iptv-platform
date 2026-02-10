@@ -3,10 +3,8 @@
  * Imports YouTube videos with Albanian captions to the database
  */
 
-const { PrismaClient } = require('@prisma/client');
 const youtubeService = require('./youtubeService');
-
-const prisma = new PrismaClient();
+const prisma = require('../lib/prisma');
 
 class YouTubeImporter {
   constructor() {
