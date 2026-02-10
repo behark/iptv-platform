@@ -234,7 +234,7 @@ router.post('/import/batch',
   authenticate,
   authorize('ADMIN'),
   [
-    body('identifiers').isArray({ min: 1, max: 50 }).withMessage('Provide 1-50 identifiers'),
+    body('identifiers').isArray({ min: 1, max: 200 }).withMessage('Provide 1-200 identifiers'),
     body('identifiers.*').isString().notEmpty(),
     body('skipExisting').optional().isBoolean().toBoolean(),
     body('syncSubtitles').optional().isBoolean().toBoolean()
@@ -299,14 +299,14 @@ router.post('/import/collection',
   authorize('ADMIN'),
   [
     body('collection').notEmpty().withMessage('Collection ID is required'),
-    body('limit').optional().isInt({ min: 1, max: 100 }).toInt(),
+    body('limit').optional().isInt({ min: 1, max: 500 }).toInt(),
     body('skipExisting').optional().isBoolean().toBoolean(),
     body('syncSubtitles').optional().isBoolean().toBoolean()
   ],
   validate,
   async (req, res) => {
     try {
-      const { collection, limit = 20, skipExisting = true, syncSubtitles = false } = req.body;
+      const { collection, limit = 50, skipExisting = true, syncSubtitles = false } = req.body;
 
       const jobId = `import_${Date.now()}`;
       activeJobs.set(jobId, {
@@ -374,7 +374,7 @@ router.post('/import/collection',
               console.log(`Failed: ${item.sourceId} - ${error.message}`);
             }
 
-            await new Promise(resolve => setTimeout(resolve, 3000));
+            await new Promise(resolve => setTimeout(resolve, 2000));
           }
 
           job.status = 'completed';

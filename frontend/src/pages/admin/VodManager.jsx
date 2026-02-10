@@ -35,6 +35,7 @@ const VodManager = () => {
         skipExisting: true,
         syncSubtitles: false
     })
+    const [importLimit, setImportLimit] = useState(50)
     const [importing, setImporting] = useState(false)
     const [importJobs, setImportJobs] = useState([])
 
@@ -184,16 +185,17 @@ const VodManager = () => {
         }
     }
 
-    const importFromCollection = async (collectionId) => {
+    const importFromCollection = async (collectionId, customLimit) => {
         if (!collectionId) return
         setImporting(true)
         try {
             const response = await api.post('/vod/import/collection', {
                 collection: collectionId,
-                limit: 20,
+                limit: customLimit || importLimit,
                 ...importOptions
             })
             toast.success(`Import job started: ${response.data.data.jobId}`)
+            setActiveTab('jobs')
             loadImportJobs()
         } catch (error) {
             toast.error(error.response?.data?.message || 'Collection import failed')
@@ -311,7 +313,7 @@ const VodManager = () => {
                     {/* Import Options */}
                     <div className="bg-slate-800 rounded-lg p-6">
                         <h2 className="text-xl font-semibold text-white mb-4">Import Options</h2>
-                        <div className="flex flex-wrap gap-6">
+                        <div className="flex flex-wrap gap-6 items-center">
                             <label className="flex items-center gap-2 text-gray-300 cursor-pointer">
                                 <input
                                     type="checkbox"
@@ -336,7 +338,24 @@ const VodManager = () => {
                                 />
                                 Sync subtitles (slower)
                             </label>
+                            <label className="flex items-center gap-2 text-gray-300">
+                                Import limit per collection
+                                <select
+                                    value={importLimit}
+                                    onChange={(e) => setImportLimit(parseInt(e.target.value))}
+                                    className="px-3 py-1.5 bg-slate-700 border border-slate-600 rounded-lg text-white text-sm focus:outline-none focus:border-primary-500"
+                                >
+                                    <option value={20}>20</option>
+                                    <option value={50}>50</option>
+                                    <option value={100}>100</option>
+                                    <option value={200}>200</option>
+                                    <option value={500}>500 (max)</option>
+                                </select>
+                            </label>
                         </div>
+                        <p className="text-xs text-gray-500 mt-3">
+                            Each movie takes ~2 seconds to import (Archive.org rate limit). Importing 500 movies ≈ ~17 minutes. Import runs in the background — your IPTV stays fast.
+                        </p>
                     </div>
                 </div>
             )}
@@ -366,7 +385,7 @@ const VodManager = () => {
                                 </div>
                                 <h3 className="text-white font-semibold">{col.name}</h3>
                                 <p className="text-gray-400 text-sm mb-3">{col.description}</p>
-                                <div className="flex gap-2">
+                                <div className="flex flex-wrap gap-2 items-center">
                                     <button
                                         onClick={() => {
                                             setSelectedCollection(col.key || col.id)
@@ -381,7 +400,14 @@ const VodManager = () => {
                                         disabled={importing}
                                         className="text-sm text-green-400 hover:text-green-300 disabled:opacity-50"
                                     >
-                                        Import Top 20
+                                        Import {importLimit}
+                                    </button>
+                                    <button
+                                        onClick={() => importFromCollection(col.key || col.id, 500)}
+                                        disabled={importing}
+                                        className="text-sm text-amber-400 hover:text-amber-300 disabled:opacity-50"
+                                    >
+                                        Import Max (500)
                                     </button>
                                 </div>
                             </div>
@@ -553,8 +579,8 @@ const VodManager = () => {
                                         <div>
                                             <span className="text-white font-medium">Collection: {job.collection}</span>
                                             <span className={`ml-3 px-2 py-1 text-xs rounded ${job.status === 'completed' ? 'bg-green-600' :
-                                                    job.status === 'failed' ? 'bg-red-600' :
-                                                        'bg-yellow-600'
+                                                job.status === 'failed' ? 'bg-red-600' :
+                                                    'bg-yellow-600'
                                                 } text-white`}>
                                                 {job.status}
                                             </span>
@@ -698,8 +724,8 @@ const MovieCard = ({ item, selected, onToggle, onPreview, onImport, importing })
                 <button
                     onClick={onToggle}
                     className={`flex-1 py-1 text-xs rounded ${selected
-                            ? 'bg-primary-600 text-white'
-                            : 'bg-slate-700 text-gray-300 hover:bg-slate-600'
+                        ? 'bg-primary-600 text-white'
+                        : 'bg-slate-700 text-gray-300 hover:bg-slate-600'
                         }`}
                 >
                     {selected ? 'Selected' : 'Select'}
