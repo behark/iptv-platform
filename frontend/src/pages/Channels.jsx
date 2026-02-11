@@ -552,7 +552,10 @@ const Channels = () => {
     !filters.category &&
     !filters.language &&
     !filters.country &&
-    !filters.search
+    !filters.search &&
+    !filters.hasLogo &&
+    !filters.streamType &&
+    filters.sort === 'name-asc'
 
   const handleViewModeChange = (mode) => {
     setViewMode(mode)
