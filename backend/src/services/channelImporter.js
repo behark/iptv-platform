@@ -898,12 +898,14 @@ async function getStats() {
 
     const byCategory = await prisma.channel.groupBy({
         by: ['category'],
+        where: { isActive: true },
         _count: { id: true },
         orderBy: { _count: { id: 'desc' } }
     });
 
     const byCountry = await prisma.channel.groupBy({
         by: ['country'],
+        where: { isActive: true },
         _count: { id: true },
         orderBy: { _count: { id: 'desc' } },
         take: 20
