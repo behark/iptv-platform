@@ -4,6 +4,49 @@ const prisma = require('../lib/prisma');
 
 const router = express.Router();
 
+const LANGUAGE_ALIAS_GROUPS = [
+  ['en', 'eng', 'english'],
+  ['es', 'spa', 'spanish'],
+  ['fr', 'fre', 'french'],
+  ['ar', 'arabic'],
+  ['hi', 'hin', 'hindi'],
+  ['pt', 'por', 'portuguese'],
+  ['de', 'ger', 'deu', 'german'],
+  ['it', 'ita', 'italian'],
+  ['tr', 'tur', 'turkish'],
+  ['ja', 'jpn', 'japanese'],
+  ['sq', 'sqi', 'alb', 'albanian'],
+  ['sr', 'srp', 'serbian'],
+  ['bs', 'bos', 'bosnian'],
+  ['hr', 'hrv', 'croatian'],
+  ['mk', 'mkd', 'macedonian'],
+  ['sl', 'slv', 'slovenian'],
+  ['el', 'ell', 'greek'],
+  ['ro', 'ron', 'rum', 'romanian'],
+  ['ru', 'rus', 'russian'],
+  ['zh', 'zho', 'chi', 'chinese'],
+  ['ko', 'kor', 'korean']
+];
+
+const languageAliasIndex = new Map();
+LANGUAGE_ALIAS_GROUPS.forEach((group) => {
+  group.forEach((value) => {
+    languageAliasIndex.set(value, group);
+  });
+});
+
+const normalizeText = (value) => (typeof value === 'string' ? value.trim() : '');
+
+const expandLanguageQuery = (value) => {
+  const normalized = normalizeText(value).toLowerCase();
+  if (!normalized) return [];
+
+  const aliases = languageAliasIndex.get(normalized);
+  if (!aliases) return [normalized];
+
+  return Array.from(new Set(aliases));
+};
+
 // @route   GET /api/channels
 // @desc    Get all channels (filtered by subscription)
 // @access  Private (requires subscription)
@@ -102,9 +145,31 @@ router.get('/', authenticate, requireSubscription, async (req, res) => {
       filters.push({ id: { in: idFilter } });
     }
 
-    if (category) filters.push({ category });
-    if (language) filters.push({ language });
-    if (country) filters.push({ country });
+    const normalizedCategory = normalizeText(category);
+    const normalizedLanguage = normalizeText(language);
+    const normalizedCountry = normalizeText(country).toUpperCase();
+
+    if (normalizedCategory) {
+      filters.push({ category: { equals: normalizedCategory, mode: 'insensitive' } });
+    }
+
+    if (normalizedLanguage) {
+      const languageOptions = expandLanguageQuery(normalizedLanguage);
+      if (languageOptions.length === 1) {
+        filters.push({ language: { equals: languageOptions[0], mode: 'insensitive' } });
+      } else {
+        filters.push({
+          OR: languageOptions.map((value) => ({
+            language: { equals: value, mode: 'insensitive' }
+          }))
+        });
+      }
+    }
+
+    if (normalizedCountry) {
+      filters.push({ country: { equals: normalizedCountry, mode: 'insensitive' } });
+    }
+
     if (search) {
       filters.push({
         OR: [
@@ -115,6 +180,7 @@ router.get('/', authenticate, requireSubscription, async (req, res) => {
     }
     if (hasLogo === 'true') {
       filters.push({ logo: { not: null } });
+      filters.push({ logo: { not: '' } });
     }
     if (streamType === 'live') {
       filters.push({ isLive: true });
@@ -126,7 +192,7 @@ router.get('/', authenticate, requireSubscription, async (req, res) => {
     const skip = (pageNumber - 1) * limitNumber;
 
     // Build sort order based on sort parameter
-    const usePriority = priority === 'true' && !country;
+    const usePriority = priority === 'true' && !normalizedCountry;
     const buildOrderBy = () => {
       const base = [];
       if (usePriority) {

@@ -44,6 +44,7 @@ const NAME_HINTS = [
 
 function parseArgs(argv) {
   const args = argv.slice(2);
+  const hasFlag = (name) => args.includes(`--${name}`);
   const getValue = (name, fallback) => {
     const inline = args.find((arg) => arg.startsWith(`--${name}=`));
     if (inline) {
@@ -65,7 +66,8 @@ function parseArgs(argv) {
   const defaultReport = path.resolve(__dirname, '../../logs', `unknown-country-normalization-${stamp}.json`);
 
   return {
-    apply: args.includes('--apply'),
+    apply: hasFlag('apply'),
+    disallowHostOnly: hasFlag('disallow-host-only'),
     limit: Number.isInteger(limitValue) && limitValue > 0 ? limitValue : 50000,
     minScore: Number.isInteger(minScoreValue) && minScoreValue > 0 ? minScoreValue : 4,
     reportPath: reportArg ? path.resolve(reportArg) : defaultReport
@@ -131,7 +133,8 @@ function inferFromName(channel, votes) {
   }
 }
 
-function chooseSuggestion(channel, minScore) {
+function chooseSuggestion(channel, options) {
+  const { minScore, disallowHostOnly } = options;
   const votes = new Map();
   inferFromEpgId(channel, votes);
   inferFromStreamHost(channel, votes);
@@ -151,6 +154,10 @@ function chooseSuggestion(channel, minScore) {
   }
 
   const confidence = Math.min(99, 60 + (best.score * 8));
+  if (disallowHostOnly && best.reasons.length === 1 && best.reasons[0] === 'host-tld') {
+    return null;
+  }
+
   return {
     id: channel.id,
     name: channel.name,
@@ -173,6 +180,7 @@ async function main() {
   console.log(`Mode: ${opts.apply ? 'APPLY' : 'DRY-RUN'}`);
   console.log(`Limit: ${opts.limit}`);
   console.log(`Min score: ${opts.minScore}`);
+  console.log(`Disallow host-only: ${opts.disallowHostOnly ? 'yes' : 'no'}`);
 
   const candidates = await prisma.channel.findMany({
     where: {
@@ -199,7 +207,7 @@ async function main() {
 
   const suggestions = [];
   for (const channel of candidates) {
-    const suggestion = chooseSuggestion(channel, opts.minScore);
+    const suggestion = chooseSuggestion(channel, opts);
     if (suggestion) suggestions.push(suggestion);
   }
 
@@ -207,6 +215,15 @@ async function main() {
     acc[row.to] = (acc[row.to] || 0) + 1;
     return acc;
   }, {});
+  const byReason = {};
+  const byReasonCombo = {};
+  for (const row of suggestions) {
+    for (const reason of row.reasons) {
+      byReason[reason] = (byReason[reason] || 0) + 1;
+    }
+    const combo = [...row.reasons].sort().join('+');
+    byReasonCombo[combo] = (byReasonCombo[combo] || 0) + 1;
+  }
 
   console.log(`High-confidence suggestions: ${suggestions.length}`);
   const sortedCountries = Object.entries(byCountry).sort((a, b) => b[1] - a[1]);
@@ -237,12 +254,15 @@ async function main() {
     mode: opts.apply ? 'apply' : 'dry-run',
     limit: opts.limit,
     minScore: opts.minScore,
+    disallowHostOnly: opts.disallowHostOnly,
     totals: {
       candidates: candidates.length,
       suggestions: suggestions.length,
       applied
     },
     byCountry,
+    byReason,
+    byReasonCombo,
     sample: suggestions.slice(0, 200)
   };
 
@@ -261,4 +281,3 @@ main()
   .finally(async () => {
     await prisma.$disconnect();
   });
-

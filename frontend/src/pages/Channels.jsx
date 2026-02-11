@@ -200,6 +200,25 @@ const formatLanguageBadge = (language) => {
   return normalized.toUpperCase()
 }
 
+const normalizeCategoryFilterValue = (value) => (value || '').trim()
+
+const normalizeCountryFilterValue = (value) => (value || '').trim().toUpperCase()
+
+const normalizeLanguageFilterValue = (value) => {
+  const normalized = (value || '').toLowerCase().trim()
+  if (!normalized) return ''
+  if (LANGUAGE_LABELS[normalized]) return normalized
+
+  let selectedKey = ''
+  for (const [key, details] of Object.entries(LANGUAGE_LABELS)) {
+    if ((details.label || '').toLowerCase() !== normalized) continue
+    if (!selectedKey || key.length < selectedKey.length) {
+      selectedKey = key
+    }
+  }
+  return selectedKey || normalized
+}
+
 const parseChannelName = (rawName) => {
   const original = rawName || ''
   let displayName = original.trim()
@@ -264,26 +283,37 @@ const Channels = () => {
     country: location.state?.presetFilters?.country || '',
     search: location.state?.presetFilters?.search || '',
     sort: 'name-asc',
-    tab: location.state?.presetFilters?.tab || 'All'
+    tab: location.state?.presetFilters?.tab || 'All',
+    hasLogo: Boolean(location.state?.presetFilters?.hasLogo),
+    streamType: location.state?.presetFilters?.streamType || ''
   }))
   const [countryQuery, setCountryQuery] = useState(() => {
     const preset = location.state?.presetFilters?.country || ''
     return preset ? formatCountryValue(preset) : ''
   })
 
+  const applyFavoriteSnapshot = (favorites) => {
+    const channelFavorites = favorites.filter((favorite) => favorite.channelId)
+    const ids = channelFavorites.map((favorite) => favorite.channelId)
+    const idMap = {}
+    channelFavorites.forEach((favorite) => {
+      idMap[favorite.channelId] = favorite.id
+    })
+    setFavoriteIds(ids)
+    setFavoriteRecordIds(idMap)
+    localStorage.setItem('iptv_favorite_channel_ids', JSON.stringify(ids))
+    return { ids, idMap }
+  }
+
+  const fetchAndSyncChannelFavorites = async () => {
+    const response = await favoritesAPI.getAll()
+    const favorites = response.data.data?.favorites || []
+    return applyFavoriteSnapshot(favorites)
+  }
+
   const loadChannelFavorites = async () => {
     try {
-      const response = await favoritesAPI.getAll()
-      const favorites = response.data.data?.favorites || []
-      const channelFavorites = favorites.filter((favorite) => favorite.channelId)
-      const ids = channelFavorites.map((favorite) => favorite.channelId)
-      const idMap = {}
-      channelFavorites.forEach((favorite) => {
-        idMap[favorite.channelId] = favorite.id
-      })
-      setFavoriteIds(ids)
-      setFavoriteRecordIds(idMap)
-      localStorage.setItem('iptv_favorite_channel_ids', JSON.stringify(ids))
+      await fetchAndSyncChannelFavorites()
     } catch {
       const localIds = readFavoriteIds()
       setFavoriteIds(localIds)
@@ -358,9 +388,13 @@ const Channels = () => {
         sort: CLIENT_SORTS.has(filters.sort) ? 'name-asc' : filters.sort
       }
 
-      if (resolvedCategory) params.category = resolvedCategory
-      if (filters.language) params.language = filters.language
-      if (filters.country) params.country = filters.country
+      const normalizedCategory = normalizeCategoryFilterValue(resolvedCategory)
+      const normalizedLanguage = normalizeLanguageFilterValue(filters.language)
+      const normalizedCountry = normalizeCountryFilterValue(filters.country)
+
+      if (normalizedCategory) params.category = normalizedCategory
+      if (normalizedLanguage) params.language = normalizedLanguage
+      if (normalizedCountry) params.country = normalizedCountry
       if (filters.search) params.search = filters.search
       if (filters.hasLogo) params.hasLogo = 'true'
       if (filters.streamType) params.streamType = filters.streamType
@@ -648,8 +682,32 @@ const Channels = () => {
 
     setFavoriteActionChannelId(channelId)
     try {
-      const favoriteId = favoriteRecordIds[channelId]
-      if (favoriteId) {
+      const isFavorite = favoriteIds.includes(channelId)
+      if (isFavorite) {
+        let favoriteId = favoriteRecordIds[channelId]
+        if (!favoriteId) {
+          try {
+            const refreshed = await fetchAndSyncChannelFavorites()
+            favoriteId = refreshed.idMap[channelId]
+          } catch {
+            favoriteId = null
+          }
+        }
+
+        if (!favoriteId) {
+          setFavoriteIds((prev) => {
+            const next = prev.filter((id) => id !== channelId)
+            localStorage.setItem('iptv_favorite_channel_ids', JSON.stringify(next))
+            return next
+          })
+          setFavoriteRecordIds((prev) => {
+            const next = { ...prev }
+            delete next[channelId]
+            return next
+          })
+          return
+        }
+
         await favoritesAPI.remove(favoriteId)
         setFavoriteIds((prev) => {
           const next = prev.filter((id) => id !== channelId)
@@ -798,12 +856,12 @@ const Channels = () => {
                 placeholder="Search channels, categories, or regions..."
                 className="w-full px-4 py-2 pr-10 bg-slate-900 border border-slate-700 rounded-lg text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-primary-500"
                 value={filters.search}
-                onChange={(e) => setFilters({ ...filters, search: e.target.value })}
+                onChange={(e) => setFilters((prev) => ({ ...prev, search: e.target.value }))}
               />
               {filters.search && (
                 <button
                   type="button"
-                  onClick={() => setFilters({ ...filters, search: '' })}
+                  onClick={() => setFilters((prev) => ({ ...prev, search: '' }))}
                   className="absolute right-2 top-1/2 -translate-y-1/2 text-xs text-slate-400 hover:text-white"
                   aria-label="Clear search"
                 >
@@ -819,7 +877,7 @@ const Channels = () => {
               placeholder="All categories"
               className="px-4 py-2 bg-slate-900 border border-slate-700 rounded-lg text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-primary-500"
               value={filters.category}
-              onChange={(e) => setFilters({ ...filters, category: e.target.value })}
+              onChange={(e) => setFilters((prev) => ({ ...prev, category: e.target.value }))}
             />
             <datalist id="channel-categories">
               {availableCategories.map((category) => (
@@ -834,7 +892,7 @@ const Channels = () => {
               placeholder="All languages"
               className="px-4 py-2 bg-slate-900 border border-slate-700 rounded-lg text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-primary-500"
               value={filters.language}
-              onChange={(e) => setFilters({ ...filters, language: e.target.value })}
+              onChange={(e) => setFilters((prev) => ({ ...prev, language: e.target.value }))}
             />
             <datalist id="channel-languages">
               {availableLanguages.map((language) => (
@@ -870,7 +928,7 @@ const Channels = () => {
               {POPULAR_COUNTRY_CODES.map((country) => (
                 <button
                   key={country}
-                  onClick={() => setFilters({ ...filters, country })}
+                  onClick={() => setFilters((prev) => ({ ...prev, country }))}
                   className={`text-xs px-3 py-1 rounded-full border ${filters.country === country
                     ? 'bg-primary-500/20 border-primary-400 text-primary-200'
                     : 'border-slate-600 text-slate-300 hover:text-white'
@@ -888,7 +946,7 @@ const Channels = () => {
             <select
               className="px-4 py-2 bg-slate-900 border border-slate-700 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-primary-500"
               value={filters.sort}
-              onChange={(e) => setFilters({ ...filters, sort: e.target.value })}
+              onChange={(e) => setFilters((prev) => ({ ...prev, sort: e.target.value }))}
             >
               <option value="name-asc">Name (A-Z)</option>
               <option value="name-desc">Name (Z-A)</option>
@@ -905,7 +963,7 @@ const Channels = () => {
             <input
               type="checkbox"
               checked={filters.hasLogo || false}
-              onChange={(e) => setFilters({ ...filters, hasLogo: e.target.checked })}
+              onChange={(e) => setFilters((prev) => ({ ...prev, hasLogo: e.target.checked }))}
               className="w-4 h-4 rounded border-slate-600 bg-slate-900 text-primary-500 focus:ring-primary-500 focus:ring-offset-0"
             />
             Has Logo
@@ -915,7 +973,7 @@ const Channels = () => {
             <select
               className="px-3 py-2 bg-slate-900 border border-slate-700 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-primary-500"
               value={filters.streamType || ''}
-              onChange={(e) => setFilters({ ...filters, streamType: e.target.value })}
+              onChange={(e) => setFilters((prev) => ({ ...prev, streamType: e.target.value }))}
             >
               <option value="">All Types</option>
               <option value="live">Live</option>
