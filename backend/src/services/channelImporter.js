@@ -384,6 +384,8 @@ function parseM3U(content) {
 }
 
 async function validateStream(url, timeout = 5000) {
+    const validateStatus = (status) => status >= 200 && status < 400;
+
     try {
         // Validate URL for SSRF before making request
         const isSafe = await validateUrlForSSRF(url);
@@ -392,16 +394,32 @@ async function validateStream(url, timeout = 5000) {
             return false;
         }
 
-        const response = await axios.head(url, {
+        await axios.head(url, {
             timeout,
             headers: {
                 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
             },
-            maxRedirects: 5
+            maxRedirects: 5,
+            validateStatus
         });
-        return response.status === 200 || response.status === 302;
+        return true;
     } catch {
-        return false;
+        // Some providers block HEAD requests. Fall back to GET with minimal body.
+        try {
+            await axios.get(url, {
+                timeout,
+                headers: {
+                    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
+                    Range: 'bytes=0-1024'
+                },
+                maxRedirects: 5,
+                responseType: 'stream',
+                validateStatus
+            });
+            return true;
+        } catch {
+            return false;
+        }
     }
 }
 
@@ -411,6 +429,7 @@ async function importFromFile(filePath, options = {}) {
         validateStreams = false,
         category = null,
         country = null,
+        language = null,
         batchSize = 100,
         onProgress = null
     } = options;
@@ -453,7 +472,7 @@ async function importFromFile(filePath, options = {}) {
                         fileExt: channel.fileExt,
                         category: category || channel.category || 'Uncategorized',
                         country: country || channel.country || 'INT',
-                        language: channel.language || 'en',
+                        language: language || channel.language || 'en',
                         epgId: channel.epgId,
                         isActive: true,
                         isLive: true
@@ -475,6 +494,18 @@ async function importFromFile(filePath, options = {}) {
                         }
                         if (!existingChannel.fileExt && channelData.fileExt) {
                             updates.fileExt = channelData.fileExt;
+                        }
+                        if ((!existingChannel.country || existingChannel.country === 'INT') && channelData.country && channelData.country !== 'INT') {
+                            updates.country = channelData.country;
+                        }
+                        if ((!existingChannel.language || existingChannel.language === 'en') && channelData.language && channelData.language !== 'en') {
+                            updates.language = channelData.language;
+                        }
+                        if (!existingChannel.epgId && channelData.epgId) {
+                            updates.epgId = channelData.epgId;
+                        }
+                        if ((!existingChannel.description || existingChannel.description === existingChannel.name) && channelData.description) {
+                            updates.description = channelData.description;
                         }
 
                         await prisma.channel.update({
@@ -519,6 +550,7 @@ async function importFromUrl(url, options = {}) {
         validateStreams = false,
         category = null,
         country = null,
+        language = null,
         batchSize = 100,
         onProgress = null
     } = options;
@@ -575,7 +607,7 @@ async function importFromUrl(url, options = {}) {
                         fileExt: channel.fileExt,
                         category: category || channel.category || 'Uncategorized',
                         country: country || channel.country || 'INT',
-                        language: channel.language || 'en',
+                        language: language || channel.language || 'en',
                         epgId: channel.epgId,
                         isActive: true,
                         isLive: true
@@ -597,6 +629,18 @@ async function importFromUrl(url, options = {}) {
                         }
                         if (!existingChannel.fileExt && channelData.fileExt) {
                             updates.fileExt = channelData.fileExt;
+                        }
+                        if ((!existingChannel.country || existingChannel.country === 'INT') && channelData.country && channelData.country !== 'INT') {
+                            updates.country = channelData.country;
+                        }
+                        if ((!existingChannel.language || existingChannel.language === 'en') && channelData.language && channelData.language !== 'en') {
+                            updates.language = channelData.language;
+                        }
+                        if (!existingChannel.epgId && channelData.epgId) {
+                            updates.epgId = channelData.epgId;
+                        }
+                        if ((!existingChannel.description || existingChannel.description === existingChannel.name) && channelData.description) {
+                            updates.description = channelData.description;
                         }
 
                         await prisma.channel.update({

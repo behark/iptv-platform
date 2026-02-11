@@ -13,6 +13,33 @@ const axios = require('axios');
 const prisma = require('../lib/prisma');
 const { parseXtreamCodes, parseXtreamVOD, parseXtreamSeries } = require('./playlistParsers');
 
+function parseDurationToSeconds(value) {
+    if (typeof value === 'number' && Number.isFinite(value)) {
+        return Math.max(0, Math.floor(value));
+    }
+
+    if (typeof value !== 'string') return null;
+    const trimmed = value.trim();
+    if (!trimmed) return null;
+
+    if (/^\d+$/.test(trimmed)) {
+        return Number.parseInt(trimmed, 10);
+    }
+
+    const parts = trimmed.split(':').map((part) => Number.parseInt(part, 10));
+    if (parts.some((part) => !Number.isFinite(part) || part < 0)) {
+        return null;
+    }
+
+    if (parts.length === 3) {
+        return parts[0] * 3600 + parts[1] * 60 + parts[2];
+    }
+    if (parts.length === 2) {
+        return parts[0] * 60 + parts[1];
+    }
+    return null;
+}
+
 class XtreamImporter {
     constructor(serverUrl, username, password) {
         // Clean up server URL
@@ -277,8 +304,14 @@ class XtreamImporter {
 
         for (const item of items) {
             try {
-                const existing = await prisma.vODContent.findFirst({
-                    where: { streamUrl: item.streamUrl }
+                const sourceId = item.xtreamId ? String(item.xtreamId) : null;
+                const existing = await prisma.video.findFirst({
+                    where: {
+                        OR: [
+                            ...(sourceId ? [{ sourceType_sourceId: { sourceType: 'xtream', sourceId } }] : []),
+                            { videoUrl: item.streamUrl }
+                        ]
+                    }
                 });
 
                 if (existing) {
@@ -286,16 +319,18 @@ class XtreamImporter {
                     continue;
                 }
 
-                await prisma.vODContent.create({
+                await prisma.video.create({
                     data: {
                         title: (item.name || 'Unknown').substring(0, 255),
                         description: (item.description || '').substring(0, 1000),
                         thumbnail: item.logo,
-                        streamUrl: item.streamUrl,
+                        videoUrl: item.streamUrl,
                         category: item.category || 'Movies',
                         year: item.year ? parseInt(item.year) : null,
-                        duration: item.duration,
-                        rating: item.rating,
+                        duration: parseDurationToSeconds(item.duration),
+                        tags: [],
+                        sourceType: 'xtream',
+                        sourceId,
                         isActive: true
                     }
                 });
