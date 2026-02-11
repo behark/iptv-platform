@@ -15,6 +15,7 @@
     "import:quick": "node scripts/import-channels.js quick",
     "import:all": "node scripts/import-channels.js all",
     "import:stats": "node scripts/import-channels.js stats",
+    "normalize:unknown-country": "node scripts/normalize-unknown-countries.js",
     "vod": "node scripts/import-vod.js",
     "vod:popular": "node scripts/import-vod.js popular",
     "vod:albanian": "node scripts/import-vod.js albanian",
