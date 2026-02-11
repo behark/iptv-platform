@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { Link, useLocation } from 'react-router-dom'
-import { channelsAPI } from '../services/api'
+import { channelsAPI, favoritesAPI } from '../services/api'
 import toast from 'react-hot-toast'
 
 const DEFAULT_CATEGORIES = [
@@ -140,6 +140,7 @@ const LANGUAGE_LABELS = {
 
 const PAGE_SIZE = 200
 const PRIORITY_COUNTRIES = ['XK', 'AL']
+const CLIENT_SORTS = new Set(['favorites-first', 'recently-watched'])
 
 const mergeUniqueChannels = (primary, secondary) => {
   const seen = new Set()
@@ -245,6 +246,8 @@ const Channels = () => {
   const [loadingMore, setLoadingMore] = useState(false)
   const [error, setError] = useState('')
   const [favoriteIds, setFavoriteIds] = useState([])
+  const [favoriteRecordIds, setFavoriteRecordIds] = useState({})
+  const [favoriteActionChannelId, setFavoriteActionChannelId] = useState(null)
   const [recentChannels, setRecentChannels] = useState([])
   const [priorityChannels, setPriorityChannels] = useState([])
   const [page, setPage] = useState(1)
@@ -268,8 +271,30 @@ const Channels = () => {
     return preset ? formatCountryValue(preset) : ''
   })
 
+  const loadChannelFavorites = async () => {
+    try {
+      const response = await favoritesAPI.getAll()
+      const favorites = response.data.data?.favorites || []
+      const channelFavorites = favorites.filter((favorite) => favorite.channelId)
+      const ids = channelFavorites.map((favorite) => favorite.channelId)
+      const idMap = {}
+      channelFavorites.forEach((favorite) => {
+        idMap[favorite.channelId] = favorite.id
+      })
+      setFavoriteIds(ids)
+      setFavoriteRecordIds(idMap)
+      localStorage.setItem('iptv_favorite_channel_ids', JSON.stringify(ids))
+    } catch {
+      const localIds = readFavoriteIds()
+      setFavoriteIds(localIds)
+      const fallbackMap = {}
+      localIds.forEach((id) => { fallbackMap[id] = null })
+      setFavoriteRecordIds(fallbackMap)
+    }
+  }
+
   useEffect(() => {
-    setFavoriteIds(readFavoriteIds())
+    loadChannelFavorites()
     setRecentChannels(readRecentChannels())
   }, [])
 
@@ -319,7 +344,10 @@ const Channels = () => {
         !filters.category &&
         !filters.language &&
         !filters.country &&
-        !filters.search
+        !filters.search &&
+        !filters.hasLogo &&
+        !filters.streamType &&
+        filters.sort === 'name-asc'
 
       const tabCategory = filters.tab !== 'All' && filters.tab !== 'Favorites' ? filters.tab : ''
       const resolvedCategory = tabCategory || filters.category
@@ -327,7 +355,7 @@ const Channels = () => {
       const params = {
         page: nextPage,
         limit: PAGE_SIZE,
-        sort: filters.sort
+        sort: CLIENT_SORTS.has(filters.sort) ? 'name-asc' : filters.sort
       }
 
       if (resolvedCategory) params.category = resolvedCategory
@@ -447,7 +475,39 @@ const Channels = () => {
     return map
   }, [availableCountries])
 
-  const visibleChannels = useMemo(() => dedupedChannels, [dedupedChannels])
+  const visibleChannels = useMemo(() => {
+    if (!CLIENT_SORTS.has(filters.sort)) {
+      return dedupedChannels
+    }
+
+    const sorted = [...dedupedChannels]
+    const favoriteSet = new Set(favoriteIds)
+    const recentIndex = new Map(recentChannels.map((channel, index) => [channel.id, index]))
+
+    if (filters.sort === 'favorites-first') {
+      sorted.sort((a, b) => {
+        const aFav = favoriteSet.has(a.id) ? 1 : 0
+        const bFav = favoriteSet.has(b.id) ? 1 : 0
+        if (aFav !== bFav) return bFav - aFav
+        return (a.name || '').localeCompare(b.name || '')
+      })
+      return sorted
+    }
+
+    if (filters.sort === 'recently-watched') {
+      sorted.sort((a, b) => {
+        const aRecent = recentIndex.has(a.id)
+        const bRecent = recentIndex.has(b.id)
+        if (aRecent && bRecent) return recentIndex.get(a.id) - recentIndex.get(b.id)
+        if (aRecent) return -1
+        if (bRecent) return 1
+        return (a.name || '').localeCompare(b.name || '')
+      })
+      return sorted
+    }
+
+    return sorted
+  }, [dedupedChannels, filters.sort, favoriteIds, recentChannels])
 
   const hasFilters = Boolean(
     filters.search || filters.category || filters.language || filters.country || filters.sort !== 'name-asc' || filters.tab !== 'All' || filters.hasLogo || filters.streamType
@@ -514,7 +574,9 @@ const Channels = () => {
     'country-desc': 'Country (Z-A)',
     'category-asc': 'Category (A-Z)',
     'category-desc': 'Category (Z-A)',
-    'recently-added': 'Recently Added'
+    'recently-added': 'Recently Added',
+    'favorites-first': 'Favorites First',
+    'recently-watched': 'Recently Watched'
   }
 
   const filterChips = useMemo(() => {
@@ -581,12 +643,50 @@ const Channels = () => {
     return badge || null
   }
 
-  const toggleFavorite = (channelId) => {
-    setFavoriteIds((prev) => {
-      const next = prev.includes(channelId) ? prev.filter((id) => id !== channelId) : [...prev, channelId]
-      localStorage.setItem('iptv_favorite_channel_ids', JSON.stringify(next))
-      return next
-    })
+  const toggleFavorite = async (channelId) => {
+    if (favoriteActionChannelId === channelId) return
+
+    setFavoriteActionChannelId(channelId)
+    try {
+      const favoriteId = favoriteRecordIds[channelId]
+      if (favoriteId) {
+        await favoritesAPI.remove(favoriteId)
+        setFavoriteIds((prev) => {
+          const next = prev.filter((id) => id !== channelId)
+          localStorage.setItem('iptv_favorite_channel_ids', JSON.stringify(next))
+          return next
+        })
+        setFavoriteRecordIds((prev) => {
+          const next = { ...prev }
+          delete next[channelId]
+          return next
+        })
+      } else {
+        const response = await favoritesAPI.addChannel(channelId)
+        const newFavoriteId = response.data.data?.favorite?.id
+        if (!newFavoriteId) {
+          throw new Error('Missing favorite id')
+        }
+        setFavoriteIds((prev) => {
+          const next = prev.includes(channelId) ? prev : [...prev, channelId]
+          localStorage.setItem('iptv_favorite_channel_ids', JSON.stringify(next))
+          return next
+        })
+        setFavoriteRecordIds((prev) => ({
+          ...prev,
+          [channelId]: newFavoriteId
+        }))
+      }
+    } catch (error) {
+      const message = error.response?.data?.message || 'Failed to update favorite'
+      if (error.response?.status === 400 && /already/i.test(message)) {
+        await loadChannelFavorites()
+        return
+      }
+      toast.error(message)
+    } finally {
+      setFavoriteActionChannelId(null)
+    }
   }
 
   const handleLongPressStart = (event, channelId) => {
@@ -797,6 +897,8 @@ const Channels = () => {
               <option value="category-asc">Category (A-Z)</option>
               <option value="category-desc">Category (Z-A)</option>
               <option value="recently-added">Recently Added</option>
+              <option value="favorites-first">Favorites First</option>
+              <option value="recently-watched">Recently Watched</option>
             </select>
           </label>
           <label className="text-sm text-slate-300 flex items-center gap-2 cursor-pointer select-none">
@@ -958,11 +1060,19 @@ const Channels = () => {
                         </span>
                       )}
                     </div>
-                    {isFavorite && (
-                      <span className="absolute top-2 right-2 text-lg" aria-label="Favorite">
-                        ⭐
-                      </span>
-                    )}
+                    <button
+                      type="button"
+                      onClick={(event) => {
+                        event.preventDefault()
+                        event.stopPropagation()
+                        toggleFavorite(channel.id)
+                      }}
+                      disabled={favoriteActionChannelId === channel.id}
+                      className="absolute top-2 right-2 text-lg px-2 py-1 rounded-full bg-black/60 hover:bg-black/80 disabled:opacity-60"
+                      aria-label={isFavorite ? 'Remove from favorites' : 'Add to favorites'}
+                    >
+                      {isFavorite ? '⭐' : '☆'}
+                    </button>
                   </div>
                   {actionChannelId === channel.id && (
                     <div className="absolute inset-0 bg-slate-900/90 flex flex-col items-center justify-center gap-3 text-sm text-white">
@@ -974,9 +1084,12 @@ const Channels = () => {
                           toggleFavorite(channel.id)
                           setActionChannelId(null)
                         }}
+                        disabled={favoriteActionChannelId === channel.id}
                         className="px-4 py-2 rounded-full bg-primary-500/80 hover:bg-primary-500 min-h-[44px]"
                       >
-                        {isFavorite ? 'Remove Favorite' : 'Add to Favorites'}
+                        {favoriteActionChannelId === channel.id
+                          ? 'Updating...'
+                          : (isFavorite ? 'Remove Favorite' : 'Add to Favorites')}
                       </button>
                       <button
                         type="button"
@@ -1134,11 +1247,19 @@ const Channels = () => {
                         ))}
                       </div>
                     </div>
-                    {isFavorite && (
-                      <span className="text-lg" aria-label="Favorite">
-                        ⭐
-                      </span>
-                    )}
+                    <button
+                      type="button"
+                      onClick={(event) => {
+                        event.preventDefault()
+                        event.stopPropagation()
+                        toggleFavorite(channel.id)
+                      }}
+                      disabled={favoriteActionChannelId === channel.id}
+                      className="text-lg px-2 py-1 rounded-full bg-black/40 hover:bg-black/60 disabled:opacity-60"
+                      aria-label={isFavorite ? 'Remove from favorites' : 'Add to favorites'}
+                    >
+                      {isFavorite ? '⭐' : '☆'}
+                    </button>
                   </div>
                   {actionChannelId === channel.id && (
                     <div className="absolute inset-0 bg-slate-900/90 flex flex-col items-center justify-center gap-3 text-sm text-white">
@@ -1150,9 +1271,12 @@ const Channels = () => {
                           toggleFavorite(channel.id)
                           setActionChannelId(null)
                         }}
+                        disabled={favoriteActionChannelId === channel.id}
                         className="px-4 py-2 rounded-full bg-primary-500/80 hover:bg-primary-500 min-h-[44px]"
                       >
-                        {isFavorite ? 'Remove Favorite' : 'Add to Favorites'}
+                        {favoriteActionChannelId === channel.id
+                          ? 'Updating...'
+                          : (isFavorite ? 'Remove Favorite' : 'Add to Favorites')}
                       </button>
                       <button
                         type="button"
