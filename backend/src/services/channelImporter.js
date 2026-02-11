@@ -406,7 +406,7 @@ async function validateStream(url, timeout = 5000) {
     } catch {
         // Some providers block HEAD requests. Fall back to GET with minimal body.
         try {
-            await axios.get(url, {
+            const response = await axios.get(url, {
                 timeout,
                 headers: {
                     'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
@@ -416,6 +416,8 @@ async function validateStream(url, timeout = 5000) {
                 responseType: 'stream',
                 validateStatus
             });
+            // Prevent dangling sockets when validating many channels.
+            response.data?.destroy?.();
             return true;
         } catch {
             return false;
@@ -447,6 +449,7 @@ async function importFromFile(filePath, options = {}) {
         }
 
         let imported = 0;
+        let updated = 0;
         let skipped = 0;
         let failed = 0;
 
@@ -483,13 +486,8 @@ async function importFromFile(filePath, options = {}) {
                     });
 
                     if (existingChannel) {
-                        const updates = {
-                            name: channelData.name,
-                            category: channelData.category,
-                            updatedAt: new Date()
-                        };
-
-                        if (channelData.logo && channelData.logo.trim() !== '') {
+                        const updates = {};
+                        if (channelData.logo && channelData.logo.trim() !== '' && !existingChannel.logo) {
                             updates.logo = channelData.logo;
                         }
                         if (!existingChannel.fileExt && channelData.fileExt) {
@@ -507,16 +505,27 @@ async function importFromFile(filePath, options = {}) {
                         if ((!existingChannel.description || existingChannel.description === existingChannel.name) && channelData.description) {
                             updates.description = channelData.description;
                         }
+                        if (!isMeaningfulName(existingChannel.name) && isMeaningfulName(channelData.name)) {
+                            updates.name = channelData.name;
+                        }
+                        if (!isMeaningfulCategory(existingChannel.category) && isMeaningfulCategory(channelData.category)) {
+                            updates.category = channelData.category;
+                        }
 
-                        await prisma.channel.update({
-                            where: { id: existingChannel.id },
-                            data: updates
-                        });
+                        if (Object.keys(updates).length > 0) {
+                            updates.updatedAt = new Date();
+                            await prisma.channel.update({
+                                where: { id: existingChannel.id },
+                                data: updates
+                            });
+                            updated++;
+                        } else {
+                            skipped++;
+                        }
                     } else {
                         await prisma.channel.create({ data: channelData });
+                        imported++;
                     }
-
-                    imported++;
                 } catch (error) {
                     failed++;
                     if (process.env.DEBUG) {
@@ -530,15 +539,16 @@ async function importFromFile(filePath, options = {}) {
                     processed: Math.min(i + batchSize, channels.length),
                     total: channels.length,
                     imported,
+                    updated,
                     skipped,
                     failed
                 });
             }
 
-            console.log(`Progress: ${Math.min(i + batchSize, channels.length)}/${channels.length} (Imported: ${imported})`);
+            console.log(`Progress: ${Math.min(i + batchSize, channels.length)}/${channels.length} (Imported: ${imported}, Updated: ${updated})`);
         }
 
-        return { imported, skipped, failed, total: channels.length };
+        return { imported, updated, skipped, failed, total: channels.length };
     } catch (error) {
         console.error(`Error importing from ${filePath}:`, error.message);
         throw error;
@@ -582,6 +592,7 @@ async function importFromUrl(url, options = {}) {
         }
 
         let imported = 0;
+        let updated = 0;
         let skipped = 0;
         let failed = 0;
 
@@ -618,13 +629,8 @@ async function importFromUrl(url, options = {}) {
                     });
 
                     if (existingChannel) {
-                        const updates = {
-                            name: channelData.name,
-                            category: channelData.category,
-                            updatedAt: new Date()
-                        };
-
-                        if (channelData.logo && channelData.logo.trim() !== '') {
+                        const updates = {};
+                        if (channelData.logo && channelData.logo.trim() !== '' && !existingChannel.logo) {
                             updates.logo = channelData.logo;
                         }
                         if (!existingChannel.fileExt && channelData.fileExt) {
@@ -642,16 +648,27 @@ async function importFromUrl(url, options = {}) {
                         if ((!existingChannel.description || existingChannel.description === existingChannel.name) && channelData.description) {
                             updates.description = channelData.description;
                         }
+                        if (!isMeaningfulName(existingChannel.name) && isMeaningfulName(channelData.name)) {
+                            updates.name = channelData.name;
+                        }
+                        if (!isMeaningfulCategory(existingChannel.category) && isMeaningfulCategory(channelData.category)) {
+                            updates.category = channelData.category;
+                        }
 
-                        await prisma.channel.update({
-                            where: { id: existingChannel.id },
-                            data: updates
-                        });
+                        if (Object.keys(updates).length > 0) {
+                            updates.updatedAt = new Date();
+                            await prisma.channel.update({
+                                where: { id: existingChannel.id },
+                                data: updates
+                            });
+                            updated++;
+                        } else {
+                            skipped++;
+                        }
                     } else {
                         await prisma.channel.create({ data: channelData });
+                        imported++;
                     }
-
-                    imported++;
                 } catch (error) {
                     failed++;
                     if (process.env.DEBUG) {
@@ -665,15 +682,16 @@ async function importFromUrl(url, options = {}) {
                     processed: Math.min(i + batchSize, channels.length),
                     total: channels.length,
                     imported,
+                    updated,
                     skipped,
                     failed
                 });
             }
 
-            console.log(`Progress: ${Math.min(i + batchSize, channels.length)}/${channels.length} (Imported: ${imported})`);
+            console.log(`Progress: ${Math.min(i + batchSize, channels.length)}/${channels.length} (Imported: ${imported}, Updated: ${updated})`);
         }
 
-        return { imported, skipped, failed, total: channels.length };
+        return { imported, updated, skipped, failed, total: channels.length };
     } catch (error) {
         console.error(`Error importing from ${url}:`, error.message);
         throw error;
