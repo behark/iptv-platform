@@ -1,7 +1,7 @@
 const express = require('express');
 const { query, validationResult } = require('express-validator');
 const prisma = require('../lib/prisma');
-const { authenticate } = require('../middleware/auth');
+const { authenticate, requireSubscription } = require('../middleware/auth');
 
 const router = express.Router();
 
@@ -10,6 +10,7 @@ const router = express.Router();
 // @access  Private
 router.get('/',
   authenticate,
+  requireSubscription,
   [
     query('q').trim().isLength({ min: 1, max: 100 }).withMessage('Search query is required'),
     query('type').optional().isIn(['all', 'channels', 'videos']).withMessage('Invalid type'),
@@ -29,10 +30,22 @@ router.get('/',
       const { q, type = 'all', limit = 20, page = 1 } = req.query;
       const skip = (page - 1) * limit;
       const searchQuery = q.toLowerCase();
+      const isPrivileged = req.user.role === 'ADMIN' || req.user.role === 'MODERATOR';
+
+      let allowedChannelIds = null;
+      if (!isPrivileged) {
+        const channelAccess = await prisma.channelAccess.findMany({
+          where: { planId: req.subscription.planId },
+          select: { channelId: true }
+        });
+        allowedChannelIds = channelAccess.map((entry) => entry.channelId);
+      }
 
       const results = {
         channels: [],
         videos: [],
+        channelCount: 0,
+        videoCount: 0,
         total: 0
       };
 
@@ -46,28 +59,37 @@ router.get('/',
             { category: { contains: searchQuery, mode: 'insensitive' } }
           ]
         };
+        if (allowedChannelIds) {
+          if (allowedChannelIds.length === 0) {
+            results.channelCount = 0;
+          } else {
+            channelWhere.id = { in: allowedChannelIds };
+          }
+        }
 
-        const [channels, channelCount] = await Promise.all([
-          prisma.channel.findMany({
-            where: channelWhere,
-            select: {
-              id: true,
-              name: true,
-              description: true,
-              logo: true,
-              category: true,
-              country: true,
-              isLive: true
-            },
-            skip: type === 'channels' ? skip : 0,
-            take: type === 'channels' ? limit : Math.min(limit, 10),
-            orderBy: { name: 'asc' }
-          }),
-          prisma.channel.count({ where: channelWhere })
-        ]);
+        if (!allowedChannelIds || allowedChannelIds.length > 0) {
+          const [channels, channelCount] = await Promise.all([
+            prisma.channel.findMany({
+              where: channelWhere,
+              select: {
+                id: true,
+                name: true,
+                description: true,
+                logo: true,
+                category: true,
+                country: true,
+                isLive: true
+              },
+              skip: type === 'channels' ? skip : 0,
+              take: type === 'channels' ? limit : Math.min(limit, 10),
+              orderBy: { name: 'asc' }
+            }),
+            prisma.channel.count({ where: channelWhere })
+          ]);
 
-        results.channels = channels;
-        results.channelCount = channelCount;
+          results.channels = channels;
+          results.channelCount = channelCount;
+        }
       }
 
       // Search videos

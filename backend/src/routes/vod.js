@@ -18,6 +18,14 @@ const validate = (req, res, next) => {
   next();
 };
 
+const extractGroupCount = (group, field) => {
+  if (!group?._count) return 0;
+  if (typeof group._count === 'number') return group._count;
+  if (typeof group._count[field] === 'number') return group._count[field];
+  if (typeof group._count._all === 'number') return group._count._all;
+  return 0;
+};
+
 // Track active import jobs
 const activeJobs = new Map();
 
@@ -498,11 +506,11 @@ router.get('/stats',
           withoutSubtitles: total - withSubtitles,
           categories: byCategory.map(c => ({
             name: c.category || 'Uncategorized',
-            count: c._count
+            count: extractGroupCount(c, 'category')
           })),
           sources: bySource.map(s => ({
             name: s.sourceType || 'manual',
-            count: s._count
+            count: extractGroupCount(s, 'sourceType')
           })),
           recentImports
         }

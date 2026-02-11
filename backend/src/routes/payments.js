@@ -8,6 +8,12 @@ const stripe = process.env.STRIPE_SECRET_KEY
   ? require('stripe')(process.env.STRIPE_SECRET_KEY)
   : null;
 
+const getFrontendBaseUrl = () => {
+  const raw = process.env.FRONTEND_URL || '';
+  const normalized = raw.trim().replace(/^['"]|['"]$/g, '').replace(/\/+$/, '');
+  return normalized || null;
+};
+
 // @route   POST /api/payments/create-checkout
 // @desc    Create Stripe checkout session
 // @access  Private
@@ -15,6 +21,10 @@ router.post('/create-checkout', authenticate, async (req, res) => {
   try {
     if (!stripe) {
       return res.status(503).json({ success: false, message: 'Payment service not configured' });
+    }
+    const frontendBaseUrl = getFrontendBaseUrl();
+    if (!frontendBaseUrl) {
+      return res.status(503).json({ success: false, message: 'Payment redirect URL not configured' });
     }
     const { planId } = req.body;
 
@@ -51,8 +61,8 @@ router.post('/create-checkout', authenticate, async (req, res) => {
         }
       ],
       mode: plan.duration === 30 || plan.duration === 365 ? 'subscription' : 'payment',
-      success_url: `${process.env.FRONTEND_URL}/payment/success?session_id={CHECKOUT_SESSION_ID}`,
-      cancel_url: `${process.env.FRONTEND_URL}/payment/cancel`,
+      success_url: `${frontendBaseUrl}/payment/success?session_id={CHECKOUT_SESSION_ID}`,
+      cancel_url: `${frontendBaseUrl}/payment/cancel`,
       customer_email: req.user.email,
       metadata: {
         userId: req.user.id,
@@ -83,7 +93,13 @@ router.post('/webhook', async (req, res) => {
   if (!stripe) {
     return res.status(503).send('Payment service not configured');
   }
+  if (!process.env.STRIPE_WEBHOOK_SECRET) {
+    return res.status(503).send('Webhook signing secret not configured');
+  }
   const sig = req.headers['stripe-signature'];
+  if (!sig) {
+    return res.status(400).send('Missing Stripe signature');
+  }
   let event;
 
   try {

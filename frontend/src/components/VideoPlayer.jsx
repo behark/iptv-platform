@@ -294,14 +294,16 @@ const VideoPlayer = ({
         Your browser does not support the video tag.
       </video>
       <div className="absolute top-3 right-3 flex gap-2">
-        <button
-          type="button"
-          onClick={onToggleFavorite}
-          className="h-11 w-11 rounded-full bg-black/60 text-white flex items-center justify-center hover:bg-black/80"
-          aria-label={isFavorite ? 'Remove from favorites' : 'Add to favorites'}
-        >
-          {isFavorite ? '⭐' : '☆'}
-        </button>
+        {onToggleFavorite && (
+          <button
+            type="button"
+            onClick={onToggleFavorite}
+            className="h-11 w-11 rounded-full bg-black/60 text-white flex items-center justify-center hover:bg-black/80"
+            aria-label={isFavorite ? 'Remove from favorites' : 'Add to favorites'}
+          >
+            {isFavorite ? '⭐' : '☆'}
+          </button>
+        )}
         <button
           type="button"
           onClick={handleToggleMute}

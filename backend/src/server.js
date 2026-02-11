@@ -30,6 +30,25 @@ const getEnvNumber = (name, fallback) => {
   return Number.isFinite(parsed) ? parsed : fallback;
 };
 
+const normalizeOrigin = (value) =>
+  value
+    .trim()
+    .replace(/^['"]|['"]$/g, '')
+    .replace(/\/+$/, '');
+
+const getAllowedOrigins = () => {
+  const raw =
+    process.env.ALLOWED_ORIGINS ||
+    process.env.CORS_ORIGIN ||
+    process.env.FRONTEND_URL ||
+    'http://localhost:3000';
+
+  return raw
+    .split(/[,\n]/)
+    .map(normalizeOrigin)
+    .filter(Boolean);
+};
+
 // Trust Render's proxy so rate limiting can read X-Forwarded-For headers.
 app.set('trust proxy', 1);
 
@@ -48,8 +67,8 @@ app.use(cors({
     }
 
     // In production, check against allowed origins
-    const allowedOrigins = process.env.ALLOWED_ORIGINS?.split(',') || ['http://localhost:3000'];
-    if (allowedOrigins.includes(origin)) {
+    const allowedOrigins = getAllowedOrigins();
+    if (allowedOrigins.includes(normalizeOrigin(origin))) {
       return callback(null, true);
     }
     return callback(new Error('Not allowed by CORS'));

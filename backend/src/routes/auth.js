@@ -5,9 +5,19 @@ const crypto = require('crypto');
 const { body, validationResult } = require('express-validator');
 const prisma = require('../lib/prisma');
 const { authenticate } = require('../middleware/auth');
-const { addToBlacklist, isBlacklisted } = require('../services/tokenBlacklist');
+const { addToBlacklist } = require('../services/tokenBlacklist');
+const { sendPasswordResetEmail } = require('../services/emailService');
 
 const router = express.Router();
+
+const getResetTokenTtlMs = () => {
+  const raw = Number.parseInt(process.env.RESET_TOKEN_TTL_MINUTES || '60', 10);
+  const minutes = Number.isFinite(raw) && raw > 0 ? raw : 60;
+  return minutes * 60 * 1000;
+};
+
+const isPasswordResetEmailConfigured = () =>
+  Boolean(process.env.SMTP_HOST && process.env.SMTP_USER && process.env.SMTP_PASS);
 
 // @route   POST /api/auth/register
 // @desc    Register a new user
@@ -263,40 +273,65 @@ router.post('/forgot-password', [
       });
     }
 
+    if (!isPasswordResetEmailConfigured() && process.env.NODE_ENV === 'production') {
+      return res.status(503).json({
+        success: false,
+        message: 'Password reset is temporarily unavailable. Please contact support.'
+      });
+    }
+
     const { email } = req.body;
 
     const user = await prisma.user.findUnique({
       where: { email }
     });
 
-    // Always return success to prevent email enumeration
-    if (!user) {
-      return res.json({
-        success: true,
-        message: 'If an account exists with this email, a reset link has been sent'
+    let debugToken = null;
+    if (user) {
+      const resetToken = crypto.randomBytes(32).toString('hex');
+      const tokenHash = crypto
+        .createHash('sha256')
+        .update(resetToken)
+        .digest('hex');
+      const expiresAt = new Date(Date.now() + getResetTokenTtlMs());
+
+      await prisma.passwordResetToken.deleteMany({
+        where: {
+          userId: user.id,
+          OR: [
+            { usedAt: null },
+            { expiresAt: { lt: new Date() } }
+          ]
+        }
       });
+
+      await prisma.passwordResetToken.create({
+        data: {
+          userId: user.id,
+          tokenHash,
+          expiresAt
+        }
+      });
+
+      const baseUrl = (process.env.FRONTEND_URL || 'http://localhost:3000').replace(/\/$/, '');
+      const resetLink = `${baseUrl}/reset-password?token=${encodeURIComponent(resetToken)}`;
+
+      try {
+        const result = await sendPasswordResetEmail({ to: user.email, resetLink });
+        if (!result.sent && process.env.NODE_ENV !== 'production') {
+          debugToken = resetToken;
+        }
+      } catch (sendError) {
+        if (process.env.NODE_ENV !== 'production') {
+          debugToken = resetToken;
+        }
+      }
     }
 
-    // Generate reset token
-    const resetToken = crypto.randomBytes(32).toString('hex');
-    const resetTokenHash = crypto
-      .createHash('sha256')
-      .update(resetToken)
-      .digest('hex');
-
-    // Store reset token (expires in 1 hour)
-    // Note: In production, store resetToken and resetTokenExpiry in User model
-    // For now, we'll use a simple in-memory approach or you can add these fields
-
-    // TODO: Send email with reset link
-    // For now, just log the token (remove in production)
-    console.log('Password reset token:', resetToken);
-
-    res.json({
+    return res.json({
       success: true,
       message: 'If an account exists with this email, a reset link has been sent',
-      // Remove this in production - only for development testing
-      ...(process.env.NODE_ENV === 'development' && { resetToken })
+      ...(process.env.NODE_ENV !== 'production' && debugToken ? { resetToken: debugToken } : {})
     });
   } catch (error) {
     console.error('Forgot password error:', error);
@@ -333,17 +368,53 @@ router.post('/reset-password', [
 
     const { token, password } = req.body;
 
-    // Hash the token to compare with stored hash
-    const resetTokenHash = crypto
+    const tokenHash = crypto
       .createHash('sha256')
       .update(token)
       .digest('hex');
 
-    // TODO: Find user by reset token and check expiry
-    // This requires adding resetToken and resetTokenExpiry fields to User model
+    const tokenRecord = await prisma.passwordResetToken.findFirst({
+      where: {
+        tokenHash,
+        usedAt: null,
+        expiresAt: {
+          gte: new Date()
+        }
+      },
+      include: {
+        user: {
+          select: { id: true, isActive: true }
+        }
+      }
+    });
 
-    // For now, return a placeholder response
-    res.json({
+    if (!tokenRecord || !tokenRecord.user?.isActive) {
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid or expired reset token'
+      });
+    }
+
+    const hashedPassword = await bcrypt.hash(password, 12);
+
+    await prisma.$transaction([
+      prisma.user.update({
+        where: { id: tokenRecord.userId },
+        data: { password: hashedPassword }
+      }),
+      prisma.passwordResetToken.update({
+        where: { id: tokenRecord.id },
+        data: { usedAt: new Date() }
+      }),
+      prisma.passwordResetToken.deleteMany({
+        where: {
+          userId: tokenRecord.userId,
+          id: { not: tokenRecord.id }
+        }
+      })
+    ]);
+
+    return res.json({
       success: true,
       message: 'Password has been reset successfully'
     });

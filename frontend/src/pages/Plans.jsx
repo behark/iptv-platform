@@ -27,8 +27,12 @@ const Plans = () => {
     try {
       setProcessing(planId)
       const response = await paymentsAPI.createCheckout(planId)
+      const checkoutUrl = response.data?.data?.url || response.data?.url
+      if (!checkoutUrl) {
+        throw new Error('Missing checkout URL')
+      }
       // Redirect to Stripe checkout
-      window.location.href = response.data.url
+      window.location.href = checkoutUrl
     } catch (error) {
       toast.error('Failed to create checkout session')
       setProcessing(null)

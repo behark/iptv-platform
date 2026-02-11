@@ -65,10 +65,11 @@ api.interceptors.request.use(
 api.interceptors.response.use(
   (response) => response,
   async (error) => {
-    const originalRequest = error.config
+    const originalRequest = error.config || {}
 
     // Handle 401 errors - unauthorized
-    if (error.response?.status === 401 && !originalRequest._isRetry) {
+    const isAuthEndpoint = typeof originalRequest.url === 'string' && originalRequest.url.startsWith('/auth/')
+    if (error.response?.status === 401 && !originalRequest._isRetry && !isAuthEndpoint) {
       originalRequest._isRetry = true
       localStorage.removeItem('token')
       localStorage.removeItem('user')
@@ -156,8 +157,10 @@ export const usersAPI = {
 
 export const favoritesAPI = {
   getAll: () => api.get('/favorites'),
-  add: (data) => api.post('/favorites', data),
-  remove: (id) => api.delete(`/favorites/${id}`)
+  addChannel: (channelId) => api.post(`/favorites/channel/${channelId}`),
+  addVideo: (videoId) => api.post(`/favorites/video/${videoId}`),
+  remove: (id) => api.delete(`/favorites/${id}`),
+  check: (type, id) => api.get(`/favorites/check/${type}/${id}`)
 }
 
 export const historyAPI = {

@@ -1,16 +1,8 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { useParams } from 'react-router-dom'
-import { channelsAPI, historyAPI } from '../services/api'
+import { channelsAPI, favoritesAPI, historyAPI } from '../services/api'
 import VideoPlayer from '../components/VideoPlayer'
 import toast from 'react-hot-toast'
-
-const readFavoriteIds = () => {
-  try {
-    return JSON.parse(localStorage.getItem('iptv_favorite_channel_ids') || '[]')
-  } catch (error) {
-    return []
-  }
-}
 
 const updateRecentChannels = (channel) => {
   try {
@@ -27,24 +19,23 @@ const ChannelPlayer = () => {
   const { id } = useParams()
   const [channel, setChannel] = useState(null)
   const [loading, setLoading] = useState(true)
-  const [favoriteIds, setFavoriteIds] = useState([])
+  const [favoriteId, setFavoriteId] = useState(null)
+  const [favoriteLoading, setFavoriteLoading] = useState(false)
   const [playerError, setPlayerError] = useState('')
   const [playerKey, setPlayerKey] = useState(0)
   const [playerVisible, setPlayerVisible] = useState(true)
   const watchStartTime = useRef(null)
-  const historyRecorded = useRef(false)
+  const currentChannelId = useRef(null)
 
   useEffect(() => {
     loadChannel()
-    setFavoriteIds(readFavoriteIds())
     watchStartTime.current = Date.now()
-    historyRecorded.current = false
 
     return () => {
-      if (channel && !historyRecorded.current) {
+      if (currentChannelId.current && watchStartTime.current) {
         const duration = Math.floor((Date.now() - watchStartTime.current) / 1000)
         if (duration > 5) {
-          historyAPI.addChannel(channel.id, duration).catch(() => { })
+          historyAPI.addChannel(currentChannelId.current, duration).catch(() => { })
         }
       }
     }
@@ -72,6 +63,7 @@ const ChannelPlayer = () => {
       const response = await channelsAPI.getById(id)
       const channelData = response.data.data?.channel || null
       setChannel(channelData)
+      currentChannelId.current = channelData?.id || null
       if (channelData) {
         updateRecentChannels({
           id: channelData.id,
@@ -82,9 +74,7 @@ const ChannelPlayer = () => {
           country: channelData.country
         })
         localStorage.setItem('iptv_last_opened_channel', JSON.stringify(channelData))
-
-        historyAPI.addChannel(channelData.id).catch(() => { })
-        historyRecorded.current = true
+        await loadFavoriteStatus(channelData.id)
       }
     } catch (error) {
       toast.error('Failed to load channel')
@@ -102,6 +92,43 @@ const ChannelPlayer = () => {
     return chips
   }, [channel])
 
+  const description =
+    channel?.description && channel.description.toLowerCase() !== 'undefined'
+      ? channel.description
+      : 'No description available'
+
+  const loadFavoriteStatus = async (channelId) => {
+    try {
+      const response = await favoritesAPI.check('channel', channelId)
+      setFavoriteId(response.data.data?.favoriteId || null)
+    } catch {
+      setFavoriteId(null)
+    }
+  }
+
+  const handleToggleFavorite = async () => {
+    if (!channel || favoriteLoading) return
+
+    try {
+      setFavoriteLoading(true)
+      if (favoriteId) {
+        await favoritesAPI.remove(favoriteId)
+        setFavoriteId(null)
+        toast.success('Removed from favorites')
+      } else {
+        const response = await favoritesAPI.addChannel(channel.id)
+        const newFavoriteId = response.data.data?.favorite?.id || null
+        setFavoriteId(newFavoriteId)
+        toast.success('Added to favorites')
+      }
+    } catch (error) {
+      const message = error.response?.data?.message || 'Failed to update favorites'
+      toast.error(message)
+    } finally {
+      setFavoriteLoading(false)
+    }
+  }
+
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-screen">
@@ -118,24 +145,6 @@ const ChannelPlayer = () => {
     )
   }
 
-  const isFavorite = favoriteIds.includes(channel.id)
-
-  const description =
-    channel.description && channel.description.toLowerCase() !== 'undefined'
-      ? channel.description
-      : 'No description available'
-
-  const handleToggleFavorite = () => {
-    setFavoriteIds((prev) => {
-      const next = prev.includes(channel.id)
-        ? prev.filter((item) => item !== channel.id)
-        : [...prev, channel.id]
-      localStorage.setItem('iptv_favorite_channel_ids', JSON.stringify(next))
-      toast.success(next.includes(channel.id) ? 'Added to favorites' : 'Removed from favorites')
-      return next
-    })
-  }
-
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
       <div className={`transition-all duration-300 ${playerVisible ? 'opacity-100' : 'opacity-0 pointer-events-none h-0 overflow-hidden'}`}>
@@ -147,7 +156,7 @@ const ChannelPlayer = () => {
           title={channel.name}
           showMeta={false}
           onToggleFavorite={handleToggleFavorite}
-          isFavorite={isFavorite}
+          isFavorite={Boolean(favoriteId)}
           onStreamError={(message) => setPlayerError(message)}
         />
         {playerError && (

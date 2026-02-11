@@ -568,11 +568,11 @@ const AdminDashboard = () => {
                                             <input
                                                 type="text"
                                                 readOnly
-                                                value={activationResult.urls.playlist}
+                                                value={activationResult.urls.siptv || activationResult.urls.playlist}
                                                 className="flex-1 px-3 py-2 bg-slate-600 rounded text-white font-mono text-sm"
                                             />
                                             <button
-                                                onClick={() => copyToClipboard(activationResult.urls.playlist)}
+                                                onClick={() => copyToClipboard(activationResult.urls.siptv || activationResult.urls.playlist)}
                                                 className="px-3 py-2 bg-primary-600 hover:bg-primary-700 text-white rounded"
                                             >
                                                 Copy
@@ -585,11 +585,11 @@ const AdminDashboard = () => {
                                             <input
                                                 type="text"
                                                 readOnly
-                                                value={activationResult.urls.epg}
+                                                value={activationResult.urls.siptvEpg || activationResult.urls.epg}
                                                 className="flex-1 px-3 py-2 bg-slate-600 rounded text-white font-mono text-sm"
                                             />
                                             <button
-                                                onClick={() => copyToClipboard(activationResult.urls.epg)}
+                                                onClick={() => copyToClipboard(activationResult.urls.siptvEpg || activationResult.urls.epg)}
                                                 className="px-3 py-2 bg-primary-600 hover:bg-primary-700 text-white rounded"
                                             >
                                                 Copy

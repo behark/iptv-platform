@@ -5,6 +5,14 @@ const prisma = require('../lib/prisma');
 
 const router = express.Router();
 
+const extractGroupCount = (group, field) => {
+  if (!group?._count) return 0;
+  if (typeof group._count === 'number') return group._count;
+  if (typeof group._count[field] === 'number') return group._count[field];
+  if (typeof group._count._all === 'number') return group._count._all;
+  return 0;
+};
+
 // @route   GET /api/videos
 // @desc    Get all videos
 // @access  Private (requires subscription)
@@ -64,7 +72,7 @@ router.get('/', authenticate, requireSubscription, async (req, res) => {
         videos,
         categories: categories
           .filter(c => c.category)
-          .map(c => ({ name: c.category, count: c._count }))
+          .map(c => ({ name: c.category, count: extractGroupCount(c, 'category') }))
       }
     });
   } catch (error) {
@@ -79,7 +87,7 @@ router.get('/', authenticate, requireSubscription, async (req, res) => {
 // @route   GET /api/videos/:id
 // @desc    Get single video
 // @access  Private (requires subscription)
-router.get('/:id', authenticate, requireSubscription, async (req, res) => {
+router.get('/:id([0-9a-fA-F-]{36})', authenticate, requireSubscription, async (req, res) => {
   try {
     const video = await prisma.video.findUnique({
       where: { id: req.params.id }
@@ -123,7 +131,7 @@ router.get('/:id', authenticate, requireSubscription, async (req, res) => {
 // @route   GET /api/videos/:id/subtitle
 // @desc    Get subtitle file for a video
 // @access  Private (requires subscription)
-router.get('/:id/subtitle', authenticate, requireSubscription, async (req, res) => {
+router.get('/:id([0-9a-fA-F-]{36})/subtitle', authenticate, requireSubscription, async (req, res) => {
   try {
     const video = await prisma.video.findUnique({
       where: { id: req.params.id }
