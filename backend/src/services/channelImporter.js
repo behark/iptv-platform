@@ -335,6 +335,112 @@ function dedupeChannelsByStreamUrl(channels) {
     return Array.from(byUrl.values());
 }
 
+function normalizeCountry(value) {
+    const normalized = normalizeAttr(value);
+    return normalized ? normalized.toUpperCase() : null;
+}
+
+function normalizeLanguage(value) {
+    const normalized = normalizeAttr(value);
+    return normalized ? normalized.toLowerCase() : null;
+}
+
+function isPlaceholderCountry(value) {
+    if (!isPresent(value)) return true;
+    const normalized = String(value).trim().toUpperCase();
+    return normalized === 'INT' || normalized === 'UNKNOWN';
+}
+
+function isPlaceholderLanguage(value) {
+    if (!isPresent(value)) return true;
+    const normalized = String(value).trim().toLowerCase();
+    return normalized === 'en' || normalized === 'unknown';
+}
+
+function buildChannelData(channel, overrides = {}) {
+    const overrideCountry = normalizeCountry(overrides.country);
+    const parsedCountry = normalizeCountry(channel.country);
+    const overrideLanguage = normalizeLanguage(overrides.language);
+    const parsedLanguage = normalizeLanguage(channel.language);
+    const overrideCategory = normalizeAttr(overrides.category);
+    const parsedCategory = normalizeAttr(channel.category);
+
+    return {
+        name: (channel.name || 'Unknown').substring(0, 255),
+        description: (channel.description || channel.name || '').substring(0, 255),
+        logo: normalizeAttr(channel.logo),
+        streamUrl: channel.streamUrl,
+        streamType: channel.streamType,
+        fileExt: channel.fileExt,
+        category: overrideCategory || parsedCategory || 'Uncategorized',
+        country: overrideCountry || parsedCountry || 'INT',
+        language: overrideLanguage || parsedLanguage || 'en',
+        epgId: normalizeAttr(channel.epgId),
+        isActive: true,
+        isLive: true
+    };
+}
+
+function buildExistingChannelUpdates(existingChannel, channelData) {
+    const updates = {};
+
+    if (channelData.logo && channelData.logo.trim() !== '' && !existingChannel.logo) {
+        updates.logo = channelData.logo;
+    }
+    if (!existingChannel.fileExt && channelData.fileExt) {
+        updates.fileExt = channelData.fileExt;
+    }
+    if (isPlaceholderCountry(existingChannel.country) && !isPlaceholderCountry(channelData.country)) {
+        updates.country = channelData.country;
+    }
+    if (isPlaceholderLanguage(existingChannel.language) && !isPlaceholderLanguage(channelData.language)) {
+        updates.language = channelData.language;
+    }
+    if (!existingChannel.epgId && channelData.epgId) {
+        updates.epgId = channelData.epgId;
+    }
+    if ((!existingChannel.description || existingChannel.description === existingChannel.name) && channelData.description) {
+        updates.description = channelData.description;
+    }
+    if (!isMeaningfulName(existingChannel.name) && isMeaningfulName(channelData.name)) {
+        updates.name = channelData.name;
+    }
+    if (!isMeaningfulCategory(existingChannel.category) && isMeaningfulCategory(channelData.category)) {
+        updates.category = channelData.category;
+    }
+    if (!existingChannel.isActive) {
+        updates.isActive = true;
+    }
+    if (!existingChannel.isLive && channelData.isLive) {
+        updates.isLive = true;
+    }
+
+    return updates;
+}
+
+async function upsertImportedChannel(channelData) {
+    const existingChannel = await prisma.channel.findFirst({
+        where: { streamUrl: channelData.streamUrl }
+    });
+
+    if (existingChannel) {
+        const updates = buildExistingChannelUpdates(existingChannel, channelData);
+        if (Object.keys(updates).length === 0) {
+            return 'skipped';
+        }
+
+        updates.updatedAt = new Date();
+        await prisma.channel.update({
+            where: { id: existingChannel.id },
+            data: updates
+        });
+        return 'updated';
+    }
+
+    await prisma.channel.create({ data: channelData });
+    return 'imported';
+}
+
 function parseM3U(content) {
     const lines = content.split('\n');
     const channels = [];
@@ -466,66 +572,11 @@ async function importFromFile(filePath, options = {}) {
                         }
                     }
 
-                    const channelData = {
-                        name: channel.name.substring(0, 255),
-                        description: (channel.description || channel.name || '').substring(0, 255),
-                        logo: channel.logo,
-                        streamUrl: channel.streamUrl,
-                        streamType: channel.streamType,
-                        fileExt: channel.fileExt,
-                        category: category || channel.category || 'Uncategorized',
-                        country: country || channel.country || 'INT',
-                        language: language || channel.language || 'en',
-                        epgId: channel.epgId,
-                        isActive: true,
-                        isLive: true
-                    };
-
-                    const existingChannel = await prisma.channel.findFirst({
-                        where: { streamUrl: channel.streamUrl }
-                    });
-
-                    if (existingChannel) {
-                        const updates = {};
-                        if (channelData.logo && channelData.logo.trim() !== '' && !existingChannel.logo) {
-                            updates.logo = channelData.logo;
-                        }
-                        if (!existingChannel.fileExt && channelData.fileExt) {
-                            updates.fileExt = channelData.fileExt;
-                        }
-                        if ((!existingChannel.country || existingChannel.country === 'INT') && channelData.country && channelData.country !== 'INT') {
-                            updates.country = channelData.country;
-                        }
-                        if ((!existingChannel.language || existingChannel.language === 'en') && channelData.language && channelData.language !== 'en') {
-                            updates.language = channelData.language;
-                        }
-                        if (!existingChannel.epgId && channelData.epgId) {
-                            updates.epgId = channelData.epgId;
-                        }
-                        if ((!existingChannel.description || existingChannel.description === existingChannel.name) && channelData.description) {
-                            updates.description = channelData.description;
-                        }
-                        if (!isMeaningfulName(existingChannel.name) && isMeaningfulName(channelData.name)) {
-                            updates.name = channelData.name;
-                        }
-                        if (!isMeaningfulCategory(existingChannel.category) && isMeaningfulCategory(channelData.category)) {
-                            updates.category = channelData.category;
-                        }
-
-                        if (Object.keys(updates).length > 0) {
-                            updates.updatedAt = new Date();
-                            await prisma.channel.update({
-                                where: { id: existingChannel.id },
-                                data: updates
-                            });
-                            updated++;
-                        } else {
-                            skipped++;
-                        }
-                    } else {
-                        await prisma.channel.create({ data: channelData });
-                        imported++;
-                    }
+                    const channelData = buildChannelData(channel, { category, country, language });
+                    const result = await upsertImportedChannel(channelData);
+                    if (result === 'imported') imported++;
+                    else if (result === 'updated') updated++;
+                    else skipped++;
                 } catch (error) {
                     failed++;
                     if (process.env.DEBUG) {
@@ -609,66 +660,11 @@ async function importFromUrl(url, options = {}) {
                         }
                     }
 
-                    const channelData = {
-                        name: channel.name.substring(0, 255),
-                        description: (channel.description || channel.name || '').substring(0, 255),
-                        logo: channel.logo,
-                        streamUrl: channel.streamUrl,
-                        streamType: channel.streamType,
-                        fileExt: channel.fileExt,
-                        category: category || channel.category || 'Uncategorized',
-                        country: country || channel.country || 'INT',
-                        language: language || channel.language || 'en',
-                        epgId: channel.epgId,
-                        isActive: true,
-                        isLive: true
-                    };
-
-                    const existingChannel = await prisma.channel.findFirst({
-                        where: { streamUrl: channel.streamUrl }
-                    });
-
-                    if (existingChannel) {
-                        const updates = {};
-                        if (channelData.logo && channelData.logo.trim() !== '' && !existingChannel.logo) {
-                            updates.logo = channelData.logo;
-                        }
-                        if (!existingChannel.fileExt && channelData.fileExt) {
-                            updates.fileExt = channelData.fileExt;
-                        }
-                        if ((!existingChannel.country || existingChannel.country === 'INT') && channelData.country && channelData.country !== 'INT') {
-                            updates.country = channelData.country;
-                        }
-                        if ((!existingChannel.language || existingChannel.language === 'en') && channelData.language && channelData.language !== 'en') {
-                            updates.language = channelData.language;
-                        }
-                        if (!existingChannel.epgId && channelData.epgId) {
-                            updates.epgId = channelData.epgId;
-                        }
-                        if ((!existingChannel.description || existingChannel.description === existingChannel.name) && channelData.description) {
-                            updates.description = channelData.description;
-                        }
-                        if (!isMeaningfulName(existingChannel.name) && isMeaningfulName(channelData.name)) {
-                            updates.name = channelData.name;
-                        }
-                        if (!isMeaningfulCategory(existingChannel.category) && isMeaningfulCategory(channelData.category)) {
-                            updates.category = channelData.category;
-                        }
-
-                        if (Object.keys(updates).length > 0) {
-                            updates.updatedAt = new Date();
-                            await prisma.channel.update({
-                                where: { id: existingChannel.id },
-                                data: updates
-                            });
-                            updated++;
-                        } else {
-                            skipped++;
-                        }
-                    } else {
-                        await prisma.channel.create({ data: channelData });
-                        imported++;
-                    }
+                    const channelData = buildChannelData(channel, { category, country, language });
+                    const result = await upsertImportedChannel(channelData);
+                    if (result === 'imported') imported++;
+                    else if (result === 'updated') updated++;
+                    else skipped++;
                 } catch (error) {
                     failed++;
                     if (process.env.DEBUG) {
@@ -841,44 +837,17 @@ async function importFromLocalPlaylist(filePath, filterOptions = {}) {
     console.log(`After dedup: ${channels.length} unique channels`);
 
     let imported = 0;
+    let updated = 0;
     let skipped = 0;
     let failed = 0;
 
     for (const channel of channels) {
         try {
-            const channelData = {
-                name: channel.name.substring(0, 255),
-                description: (channel.description || channel.name || '').substring(0, 255),
-                logo: channel.logo,
-                streamUrl: channel.streamUrl,
-                streamType: channel.streamType,
-                fileExt: channel.fileExt,
-                category: channel.category || 'Uncategorized',
-                country: channel.country || 'INT',
-                language: channel.language || 'en',
-                epgId: channel.epgId,
-                isActive: true,
-                isLive: true
-            };
-
-            const existing = await prisma.channel.findFirst({
-                where: { streamUrl: channel.streamUrl }
-            });
-
-            if (existing) {
-                const updates = {};
-                if (channel.logo && !existing.logo) updates.logo = channel.logo;
-                if (channel.name && existing.name === 'Unknown') updates.name = channel.name.substring(0, 255);
-                if (!existing.fileExt && channel.fileExt) updates.fileExt = channel.fileExt;
-                if (Object.keys(updates).length > 0) {
-                    await prisma.channel.update({ where: { id: existing.id }, data: updates });
-                }
-                skipped++;
-                continue;
-            }
-
-            await prisma.channel.create({ data: channelData });
-            imported++;
+            const channelData = buildChannelData(channel);
+            const result = await upsertImportedChannel(channelData);
+            if (result === 'imported') imported++;
+            else if (result === 'updated') updated++;
+            else skipped++;
 
             if (imported % 100 === 0) {
                 process.stdout.write(`\r  Imported: ${imported}`);
@@ -888,8 +857,8 @@ async function importFromLocalPlaylist(filePath, filterOptions = {}) {
         }
     }
 
-    console.log(`\nResult: imported=${imported} skipped=${skipped} failed=${failed}`);
-    return { imported, skipped, failed, total: channels.length };
+    console.log(`\nResult: imported=${imported} updated=${updated} skipped=${skipped} failed=${failed}`);
+    return { imported, updated, skipped, failed, total: channels.length };
 }
 
 async function getStats() {

@@ -551,6 +551,7 @@ async function checkStreamUrl(url) {
 async function importChannels(channels, options = {}) {
     const { dryRun = false, verify = false } = options;
     let imported = 0;
+    let updated = 0;
     let skipped = 0;
     let failed = 0;
     let offline = 0;
@@ -575,15 +576,18 @@ async function importChannels(channels, options = {}) {
                 if (channel.logo && !existing.logo) updates.logo = channel.logo;
                 if (channel.epgId && !existing.epgId) updates.epgId = channel.epgId;
                 if (channel.name && existing.name === 'Unknown') updates.name = channel.name;
+                if (!existing.isActive) updates.isActive = true;
+                if (!existing.isLive) updates.isLive = true;
                 if (Object.keys(updates).length > 0) {
                     if (!dryRun) {
                         await prisma.channel.update({ where: { id: existing.id }, data: updates });
                     }
                     console.log(`  [UPDATE] ${channel.name} (${Object.keys(updates).join(', ')})`);
+                    updated++;
                 } else {
                     console.log(`  [SKIP] ${channel.name} (already exists)`);
+                    skipped++;
                 }
-                skipped++;
                 continue;
             }
 
@@ -616,7 +620,7 @@ async function importChannels(channels, options = {}) {
         }
     }
 
-    return { imported, skipped, failed, offline };
+    return { imported, updated, skipped, failed, offline };
 }
 
 async function showStats() {
@@ -663,19 +667,19 @@ async function main() {
         if (!radioOnly) {
             console.log(`\n--- TV Channels (${GJIRAFA_TV_CHANNELS.length}) ---`);
             const tvResult = await importChannels(GJIRAFA_TV_CHANNELS, { dryRun, verify });
-            console.log(`\nTV: imported=${tvResult.imported} skipped=${tvResult.skipped} failed=${tvResult.failed}${verify ? ` offline=${tvResult.offline}` : ''}`);
+            console.log(`\nTV: imported=${tvResult.imported} updated=${tvResult.updated} skipped=${tvResult.skipped} failed=${tvResult.failed}${verify ? ` offline=${tvResult.offline}` : ''}`);
         }
 
         if (!tvOnly) {
             console.log(`\n--- Radio Stations (${GJIRAFA_RADIO_CHANNELS.length}) ---`);
             const radioResult = await importChannels(GJIRAFA_RADIO_CHANNELS, { dryRun, verify });
-            console.log(`\nRadio: imported=${radioResult.imported} skipped=${radioResult.skipped} failed=${radioResult.failed}${verify ? ` offline=${radioResult.offline}` : ''}`);
+            console.log(`\nRadio: imported=${radioResult.imported} updated=${radioResult.updated} skipped=${radioResult.skipped} failed=${radioResult.failed}${verify ? ` offline=${radioResult.offline}` : ''}`);
         }
 
         if (!radioOnly) {
             console.log(`\n--- Additional AL/XK Channels (${ADDITIONAL_AL_XK_CHANNELS.length}) ---`);
             const extraResult = await importChannels(ADDITIONAL_AL_XK_CHANNELS, { dryRun, verify });
-            console.log(`\nAdditional: imported=${extraResult.imported} skipped=${extraResult.skipped} failed=${extraResult.failed}${verify ? ` offline=${extraResult.offline}` : ''}`);
+            console.log(`\nAdditional: imported=${extraResult.imported} updated=${extraResult.updated} skipped=${extraResult.skipped} failed=${extraResult.failed}${verify ? ` offline=${extraResult.offline}` : ''}`);
         }
 
         console.log('\n--- After Import ---');
@@ -683,6 +687,14 @@ async function main() {
 
     } catch (error) {
         console.error('Error:', error.message);
+        if (
+            error.message.includes("Can't reach database server") &&
+            process.env.PRODUCTION_DATABASE_URL &&
+            (!process.env.DATABASE_URL || process.env.DATABASE_URL.includes('localhost'))
+        ) {
+            console.error('Tip: run with production DB explicitly when local Postgres is offline:');
+            console.error('  DATABASE_URL="$PRODUCTION_DATABASE_URL" node scripts/import-gjirafa.js --verify --dry-run');
+        }
         process.exit(1);
     } finally {
         await prisma.$disconnect();

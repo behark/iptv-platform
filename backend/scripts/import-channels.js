@@ -22,18 +22,46 @@ const {
 const args = process.argv.slice(2);
 const command = args[0];
 
+function hasFlag(flag) {
+    return args.includes(flag);
+}
+
+function getOptionValue(name, fallback = null) {
+    const inline = args.find(arg => arg.startsWith(`--${name}=`));
+    if (inline) {
+        const value = inline.split('=').slice(1).join('=');
+        return value !== '' ? value : fallback;
+    }
+
+    const index = args.findIndex(arg => arg === `--${name}`);
+    if (index !== -1 && args[index + 1] && !args[index + 1].startsWith('--')) {
+        return args[index + 1];
+    }
+
+    return fallback;
+}
+
 async function main() {
     console.log('🎬 IPTV Channel Importer\n');
 
     try {
+        const validateStreams = hasFlag('--validate');
+        const batchSizeValue = getOptionValue('batch-size');
+        const batchSize = batchSizeValue ? Number.parseInt(batchSizeValue, 10) : undefined;
+        const importOptions = {
+            ...(validateStreams ? { validateStreams: true } : {}),
+            ...(Number.isInteger(batchSize) && batchSize > 0 ? { batchSize } : {})
+        };
+
         switch (command) {
             case 'all':
                 console.log('📥 Importing ALL channels from iptv-org...');
                 console.log('This may take several minutes.\n');
-                const allResult = await importFromUrl('https://iptv-org.github.io/iptv/index.m3u');
+                const allResult = await importFromUrl('https://iptv-org.github.io/iptv/index.m3u', importOptions);
                 console.log('\n✅ Import complete!');
                 console.log(`   Total: ${allResult.total}`);
                 console.log(`   Imported: ${allResult.imported}`);
+                console.log(`   Updated: ${allResult.updated}`);
                 console.log(`   Failed: ${allResult.failed}`);
                 break;
 
@@ -46,8 +74,8 @@ async function main() {
                     break;
                 }
                 console.log(`📁 Importing category: ${category}`);
-                const catResult = await importByCategory(category);
-                console.log(`\n✅ Imported ${catResult.imported} channels`);
+                const catResult = await importByCategory(category, importOptions);
+                console.log(`\n✅ Imported ${catResult.imported} channels (updated: ${catResult.updated})`);
                 break;
 
             case 'country':
@@ -59,32 +87,32 @@ async function main() {
                     break;
                 }
                 console.log(`🌍 Importing country: ${country.toUpperCase()}`);
-                const countryResult = await importByCountry(country);
-                console.log(`\n✅ Imported ${countryResult.imported} channels`);
+                const countryResult = await importByCountry(country, importOptions);
+                console.log(`\n✅ Imported ${countryResult.imported} channels (updated: ${countryResult.updated})`);
                 break;
 
             case 'categories':
                 console.log('📁 Importing all categories...\n');
-                const catsResult = await importAllCategories();
+                const catsResult = await importAllCategories(importOptions);
                 console.log('\n✅ All categories imported!');
                 Object.entries(catsResult).forEach(([cat, res]) => {
                     if (res.error) {
                         console.log(`  ${cat}: ❌ ${res.error}`);
                     } else {
-                        console.log(`  ${cat}: ${res.imported} channels`);
+                        console.log(`  ${cat}: ${res.imported} imported, ${res.updated || 0} updated`);
                     }
                 });
                 break;
 
             case 'popular':
                 console.log('🌍 Importing popular countries (US, UK, DE, FR, ES, IN, BR)...\n');
-                const popResult = await importPopularCountries();
+                const popResult = await importPopularCountries(importOptions);
                 console.log('\n✅ Popular countries imported!');
                 Object.entries(popResult).forEach(([country, res]) => {
                     if (res.error) {
                         console.log(`  ${country.toUpperCase()}: ❌ ${res.error}`);
                     } else {
-                        console.log(`  ${country.toUpperCase()}: ${res.imported} channels`);
+                        console.log(`  ${country.toUpperCase()}: ${res.imported} imported, ${res.updated || 0} updated`);
                     }
                 });
                 break;
@@ -125,8 +153,8 @@ async function main() {
                     break;
                 }
                 console.log(`📥 Importing from custom URL: ${url}\n`);
-                const urlResult = await importFromUrl(url);
-                console.log(`\n✅ Imported ${urlResult.imported} channels`);
+                const urlResult = await importFromUrl(url, importOptions);
+                console.log(`\n✅ Imported ${urlResult.imported} channels (updated: ${urlResult.updated})`);
                 break;
 
             case 'file':
@@ -136,13 +164,13 @@ async function main() {
                     break;
                 }
                 console.log(`📥 Importing from local file: ${file}\n`);
-                const fileResult = await importFromFile(file);
-                console.log(`\n✅ Imported ${fileResult.imported} channels`);
+                const fileResult = await importFromFile(file, importOptions);
+                console.log(`\n✅ Imported ${fileResult.imported} channels (updated: ${fileResult.updated})`);
                 break;
 
             case 'balkan':
                 console.log('🌍 Importing ALL Balkan channels (countries + languages)...\n');
-                const balkanResult = await importBalkanChannels();
+                const balkanResult = await importBalkanChannels(importOptions);
                 console.log('\n✅ Balkan import complete!');
                 break;
 
@@ -165,8 +193,8 @@ async function main() {
                     break;
                 }
                 console.log(`🗣️ Importing language: ${lang}`);
-                const langResult = await importByLanguage(lang);
-                console.log(`\n✅ Imported ${langResult.imported} channels`);
+                const langResult = await importByLanguage(lang, importOptions);
+                console.log(`\n✅ Imported ${langResult.imported} channels (updated: ${langResult.updated})`);
                 break;
 
             case 'quick':
@@ -175,8 +203,8 @@ async function main() {
                 for (const cat of quickCategories) {
                     console.log(`\n📁 Importing ${cat}...`);
                     try {
-                        const result = await importByCategory(cat);
-                        console.log(`   ✅ ${result.imported} channels`);
+                        const result = await importByCategory(cat, importOptions);
+                        console.log(`   ✅ ${result.imported} imported, ${result.updated || 0} updated`);
                     } catch (error) {
                         console.log(`   ❌ Failed: ${error.message}`);
                     }
@@ -200,8 +228,13 @@ async function main() {
                 console.log('  file <path>  Import from local M3U file');
                 console.log('  stats        Show channel statistics');
                 console.log('  cleanup      Check for dead channels');
+                console.log('\nGlobal options:');
+                console.log('  --validate         Validate stream URLs before importing');
+                console.log('  --batch-size <n>   Number of channels per batch (default: 100)');
                 console.log('\nExamples:');
                 console.log('  node import-channels.js quick');
+                console.log('  node import-channels.js country al --validate');
+                console.log('  node import-channels.js all --batch-size 50');
                 console.log('  node import-channels.js balkan');
                 console.log('  node import-channels.js language sqi');
                 console.log('  node import-channels.js category news');
@@ -212,6 +245,14 @@ async function main() {
         }
     } catch (error) {
         console.error('\n❌ Error:', error.message);
+        if (
+            error.message.includes("Can't reach database server") &&
+            process.env.PRODUCTION_DATABASE_URL &&
+            (!process.env.DATABASE_URL || process.env.DATABASE_URL.includes('localhost'))
+        ) {
+            console.error('ℹ️  Tip: run with production DB explicitly when local Postgres is offline:');
+            console.error('   DATABASE_URL="$PRODUCTION_DATABASE_URL" node scripts/import-channels.js <command>');
+        }
         process.exit(1);
     }
 
