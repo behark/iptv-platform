@@ -11,6 +11,11 @@ const prisma = new PrismaClient();
 
 const OUTPUT_FILE = process.argv[2] || path.join(__dirname, '../../exports/iptv_full_playlist.m3u');
 
+const sanitizeM3uValue = (value) => {
+  if (!value || value === '\\N') return '';
+  return String(value).replace(/"/g, "'").replace(/\r?\n/g, ' ').trim();
+};
+
 async function main() {
   console.log('='.repeat(60));
   console.log('Exporting channels and VODs to M3U playlist');
@@ -35,26 +40,18 @@ async function main() {
 
   console.log(`Found ${videos.length} videos`);
 
-  // Build M3U content
+  // Build M3U content — sortOrder already encodes country tiers + category + alpha
   let m3uContent = '#EXTM3U\n';
 
-  // Add channels first, grouped by country priority
-  const kosovoChannels = channels.filter(c => c.country === 'XK');
-  const albaniaChannels = channels.filter(c => c.country === 'AL');
-  const otherChannels = channels.filter(c => c.country !== 'XK' && c.country !== 'AL');
-
-  // Kosovo channels first
-  for (const channel of kosovoChannels) {
-    m3uContent += formatChannelEntry(channel);
+  // Count channels per country for summary
+  const countryCount = {};
+  for (const channel of channels) {
+    const cc = channel.country || 'INT';
+    countryCount[cc] = (countryCount[cc] || 0) + 1;
   }
 
-  // Albania channels second
-  for (const channel of albaniaChannels) {
-    m3uContent += formatChannelEntry(channel);
-  }
-
-  // Other channels
-  for (const channel of otherChannels) {
+  // Single loop — channels already sorted by sortOrder, name
+  for (const channel of channels) {
     m3uContent += formatChannelEntry(channel);
   }
 
@@ -81,43 +78,66 @@ async function main() {
   console.log(`Output file: ${OUTPUT_FILE}`);
   console.log(`Total entries: ${channels.length + videos.length}`);
   console.log(`  - Channels: ${channels.length}`);
-  console.log(`    - Kosovo: ${kosovoChannels.length}`);
-  console.log(`    - Albania: ${albaniaChannels.length}`);
-  console.log(`    - Other: ${otherChannels.length}`);
+  console.log(`    - Kosovo (XK): ${countryCount['XK'] || 0}`);
+  console.log(`    - Albania (AL): ${countryCount['AL'] || 0}`);
+  const balkanCodes = ['BA', 'HR', 'RS', 'ME', 'MK', 'SI', 'BG', 'RO', 'GR'];
+  const balkanTotal = balkanCodes.reduce((sum, c) => sum + (countryCount[c] || 0), 0);
+  console.log(`    - Other Balkans: ${balkanTotal}`);
+  const priorityCountries = new Set(['XK', 'AL', ...balkanCodes, 'INT']);
+  const worldTotal = Object.entries(countryCount)
+    .filter(([cc]) => !priorityCountries.has(cc))
+    .reduce((sum, [, n]) => sum + n, 0);
+  console.log(`    - World: ${worldTotal}`);
+  console.log(`    - International/Unknown: ${countryCount['INT'] || 0}`);
   console.log(`  - Videos: ${videos.length}`);
 }
 
 function formatChannelEntry(channel) {
-  const tvgId = channel.epgId || `${channel.name.replace(/\s+/g, '')}.${channel.country || 'int'}`;
-  const tvgName = channel.name;
-  const tvgLogo = channel.logo || '';
-  const groupTitle = channel.category || 'General';
-  const tvgCountry = channel.country || 'INT';
-  const tvgLanguage = channel.language || 'en';
+  if (!channel.streamUrl) return '';
 
-  let extinf = `#EXTINF:-1 tvg-id="${tvgId}" tvg-name="${tvgName}"`;
-  if (tvgLogo) extinf += ` tvg-logo="${tvgLogo}"`;
-  extinf += ` group-title="${groupTitle}" tvg-country="${tvgCountry}" tvg-language="${tvgLanguage}",${tvgName}\n`;
-  extinf += `${channel.streamUrl}\n`;
+  const name = sanitizeM3uValue(channel.name || 'Channel');
+  const tvgId = sanitizeM3uValue(channel.epgId) || `${name.replace(/\s+/g, '')}.${channel.country || 'int'}`;
 
-  return extinf;
+  const attrs = [];
+  attrs.push(`tvg-id="${tvgId}"`);
+  attrs.push(`tvg-name="${name}"`);
+
+  const logo = sanitizeM3uValue(channel.logo);
+  if (logo) attrs.push(`tvg-logo="${logo}"`);
+
+  const groupTitle = sanitizeM3uValue(channel.category || 'General');
+  attrs.push(`group-title="${groupTitle}"`);
+
+  const country = sanitizeM3uValue(channel.country);
+  if (country) attrs.push(`tvg-country="${country}"`);
+
+  const language = sanitizeM3uValue(channel.language);
+  if (language) attrs.push(`tvg-language="${language}"`);
+
+  return `#EXTINF:-1 ${attrs.join(' ')},${name}\n${channel.streamUrl}\n`;
 }
 
 function formatVideoEntry(video) {
+  if (!video.videoUrl) return '';
+
+  const name = sanitizeM3uValue(video.title || 'Video');
   const tvgId = `vod-${video.id}`;
-  const tvgName = video.title;
-  const tvgLogo = video.thumbnail || video.posterUrl || '';
-  const groupTitle = `VOD - ${video.genre || 'Movies'}`;
+  const groupTitle = `VOD - ${sanitizeM3uValue(video.genre || 'Movies')}`;
   const duration = video.duration || -1;
 
-  let extinf = `#EXTINF:${duration} tvg-id="${tvgId}" tvg-name="${tvgName}"`;
-  if (tvgLogo) extinf += ` tvg-logo="${tvgLogo}"`;
-  extinf += ` group-title="${groupTitle}",${tvgName}`;
-  if (video.year) extinf += ` (${video.year})`;
-  extinf += '\n';
-  extinf += `${video.videoUrl}\n`;
+  const attrs = [];
+  attrs.push(`tvg-id="${tvgId}"`);
+  attrs.push(`tvg-name="${name}"`);
 
-  return extinf;
+  const logo = sanitizeM3uValue(video.thumbnail || video.posterUrl);
+  if (logo) attrs.push(`tvg-logo="${logo}"`);
+
+  attrs.push(`group-title="${groupTitle}"`);
+
+  let displayName = name;
+  if (video.year) displayName += ` (${video.year})`;
+
+  return `#EXTINF:${duration} ${attrs.join(' ')},${displayName}\n${video.videoUrl}\n`;
 }
 
 main()

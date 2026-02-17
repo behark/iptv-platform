@@ -1,15 +1,19 @@
 #!/usr/bin/env node
 /**
  * Sync local channels to production database
- * Usage: PROD_DATABASE_URL="..." node scripts/sync-channels-to-production.js
+ * Uses batch operations for speed. Matches by streamUrl.
+ * Also syncs channel access to Premium Plan.
+ *
+ * Usage: node scripts/sync-channels-to-production.js
+ *   (reads PRODUCTION_DATABASE_URL from .env)
  */
 
 const { PrismaClient } = require('@prisma/client');
 
-const PROD_URL = process.env.PROD_DATABASE_URL;
+const PROD_URL = process.env.PRODUCTION_DATABASE_URL || process.env.PROD_DATABASE_URL;
 
 if (!PROD_URL) {
-  console.error('Error: PROD_DATABASE_URL environment variable is required');
+  console.error('Error: PRODUCTION_DATABASE_URL environment variable is required');
   process.exit(1);
 }
 
@@ -23,119 +27,161 @@ async function main() {
   console.log('Syncing local channels to production database');
   console.log('='.repeat(60));
 
-  // Get local channels
+  // Fetch everything upfront
   const localChannels = await localPrisma.channel.findMany({
     where: { isActive: true }
   });
+  console.log(`Local active channels: ${localChannels.length}`);
 
-  console.log(`Found ${localChannels.length} local active channels\n`);
+  const prodChannels = await prodPrisma.channel.findMany({
+    select: { id: true, streamUrl: true }
+  });
+  console.log(`Production channels: ${prodChannels.length}`);
 
-  let synced = 0;
-  let updated = 0;
-  let skipped = 0;
-  let failed = 0;
-
-  const batchSize = 100;
-  for (let i = 0; i < localChannels.length; i += batchSize) {
-    const batch = localChannels.slice(i, i + batchSize);
-    
-    for (const channel of batch) {
-      try {
-        // Check if already exists in production by streamUrl
-        const existing = await prodPrisma.channel.findFirst({
-          where: { streamUrl: channel.streamUrl }
-        });
-
-        if (existing) {
-          // Update if local has newer data
-          const updates = {};
-          if (channel.name && channel.name !== existing.name) updates.name = channel.name;
-          if (channel.logo && !existing.logo) updates.logo = channel.logo;
-          if (channel.category && channel.category !== existing.category) updates.category = channel.category;
-          if (channel.country && channel.country !== existing.country) updates.country = channel.country;
-          if (channel.language && !existing.language) updates.language = channel.language;
-          if (channel.sortOrder !== existing.sortOrder) updates.sortOrder = channel.sortOrder;
-
-          if (Object.keys(updates).length > 0) {
-            await prodPrisma.channel.update({
-              where: { id: existing.id },
-              data: updates
-            });
-            updated++;
-          } else {
-            skipped++;
-          }
-          continue;
-        }
-
-        // Create in production (generate new ID)
-        const { id, createdAt, updatedAt, ...channelData } = channel;
-        await prodPrisma.channel.create({
-          data: channelData
-        });
-
-        synced++;
-      } catch (error) {
-        failed++;
-        if (failed <= 10) {
-          console.log(`❌ Failed: ${channel.name} - ${error.message}`);
-        }
-      }
-    }
-    
-    console.log(`Progress: ${Math.min(i + batchSize, localChannels.length)}/${localChannels.length} (New: ${synced}, Updated: ${updated}, Skipped: ${skipped})`);
+  // Build production lookup by streamUrl
+  const prodByUrl = new Map();
+  for (const ch of prodChannels) {
+    prodByUrl.set(ch.streamUrl, ch.id);
   }
 
-  console.log('\n' + '='.repeat(60));
-  console.log('SYNC COMPLETE!');
-  console.log('='.repeat(60));
-  console.log(`New channels synced: ${synced}`);
-  console.log(`Channels updated: ${updated}`);
-  console.log(`Channels skipped (no changes): ${skipped}`);
-  console.log(`Failed: ${failed}`);
+  const toUpdate = [];
+  const toInsert = [];
 
-  // Also sync channel access to plans
-  console.log('\nSyncing channel access to plans...');
-  
-  // Get the Premium Plan from production
+  for (const channel of localChannels) {
+    const prodId = prodByUrl.get(channel.streamUrl);
+    if (prodId) {
+      toUpdate.push({ prodId, channel });
+    } else {
+      toInsert.push(channel);
+    }
+  }
+
+  console.log(`\nTo update: ${toUpdate.length}`);
+  console.log(`To insert: ${toInsert.length}`);
+
+  // Batch updates
+  const batchSize = 200;
+  let processed = 0;
+  let failed = 0;
+
+  console.log('\n--- Updating existing channels ---');
+  for (let i = 0; i < toUpdate.length; i += batchSize) {
+    const batch = toUpdate.slice(i, i + batchSize);
+    const ops = batch.map(({ prodId, channel }) =>
+      prodPrisma.channel.update({
+        where: { id: prodId },
+        data: {
+          name: channel.name,
+          description: channel.description,
+          logo: channel.logo,
+          streamType: channel.streamType,
+          fileExt: channel.fileExt,
+          category: channel.category,
+          language: channel.language,
+          country: channel.country,
+          isLive: channel.isLive,
+          isActive: channel.isActive,
+          epgId: channel.epgId,
+          sortOrder: channel.sortOrder,
+        }
+      })
+    );
+    try {
+      await prodPrisma.$transaction(ops);
+    } catch (err) {
+      // Fallback: try individually
+      for (const op of ops) {
+        try { await op; } catch (e) { failed++; }
+      }
+    }
+    processed += batch.length;
+    if (processed % 2000 === 0 || processed === toUpdate.length) {
+      console.log(`  Updated ${processed}/${toUpdate.length}`);
+    }
+  }
+
+  console.log('\n--- Inserting new channels ---');
+  processed = 0;
+  for (let i = 0; i < toInsert.length; i += batchSize) {
+    const batch = toInsert.slice(i, i + batchSize);
+    const ops = batch.map(ch =>
+      prodPrisma.channel.create({
+        data: {
+          name: ch.name,
+          description: ch.description,
+          logo: ch.logo,
+          streamUrl: ch.streamUrl,
+          streamType: ch.streamType,
+          fileExt: ch.fileExt,
+          category: ch.category,
+          language: ch.language,
+          country: ch.country,
+          isLive: ch.isLive,
+          isActive: ch.isActive,
+          epgId: ch.epgId,
+          sortOrder: ch.sortOrder,
+        }
+      })
+    );
+    try {
+      await prodPrisma.$transaction(ops);
+    } catch (err) {
+      // Fallback: try individually (some may have duplicate streamUrls)
+      for (const op of ops) {
+        try { await op; } catch (e) { failed++; }
+      }
+    }
+    processed += batch.length;
+    if (processed % 2000 === 0 || processed === toInsert.length) {
+      console.log(`  Inserted ${processed}/${toInsert.length}`);
+    }
+  }
+
+  if (failed > 0) console.log(`\n  (${failed} individual operations failed)`);
+
+  // Sync channel access to Premium Plan
+  console.log('\n--- Syncing channel access to Premium Plan ---');
   const premiumPlan = await prodPrisma.plan.findFirst({
     where: { name: 'Premium Plan' }
   });
 
   if (premiumPlan) {
-    // Get all production channels
-    const prodChannels = await prodPrisma.channel.findMany({
+    const allProdActive = await prodPrisma.channel.findMany({
       where: { isActive: true },
       select: { id: true }
     });
 
-    // Get existing access
     const existingAccess = await prodPrisma.channelAccess.findMany({
       where: { planId: premiumPlan.id },
       select: { channelId: true }
     });
-
     const existingIds = new Set(existingAccess.map(a => a.channelId));
-    const toAdd = prodChannels.filter(c => !existingIds.has(c.id));
+    const toAdd = allProdActive.filter(c => !existingIds.has(c.id));
 
     if (toAdd.length > 0) {
-      console.log(`Adding ${toAdd.length} channels to Premium Plan...`);
-      
       for (let i = 0; i < toAdd.length; i += 500) {
         const batch = toAdd.slice(i, i + 500);
         await prodPrisma.channelAccess.createMany({
-          data: batch.map(c => ({
-            channelId: c.id,
-            planId: premiumPlan.id
-          })),
+          data: batch.map(c => ({ channelId: c.id, planId: premiumPlan.id })),
           skipDuplicates: true
         });
       }
-      console.log(`✅ Added ${toAdd.length} channels to Premium Plan`);
+      console.log(`  Added ${toAdd.length} channels to Premium Plan`);
     } else {
-      console.log('All channels already have plan access');
+      console.log('  All channels already have plan access');
     }
+  } else {
+    console.log('  No Premium Plan found, skipping access sync');
   }
+
+  // Final counts
+  const finalTotal = await prodPrisma.channel.count();
+  const finalActive = await prodPrisma.channel.count({ where: { isActive: true } });
+  console.log('\n' + '='.repeat(60));
+  console.log('SYNC COMPLETE!');
+  console.log('='.repeat(60));
+  console.log(`Production total channels: ${finalTotal}`);
+  console.log(`Production active channels: ${finalActive}`);
 }
 
 main()

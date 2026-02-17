@@ -109,10 +109,77 @@ function findLogo(channel, logoIndex) {
     return null;
 }
 
+function normalizeName(name) {
+    return name.toLowerCase().replace(/\s*\(.*?\)\s*/g, '').replace(/\s*\[.*?\]\s*/g, '').replace(/[^a-z0-9]/g, '');
+}
+
+async function selfEnrich(channelIds, dryRun) {
+    if (channelIds.length === 0) return { enriched: 0 };
+
+    console.log(`\n--- Self-enrichment pass (matching against own DB) ---`);
+
+    const stillMissing = await prisma.channel.findMany({
+        where: { id: { in: channelIds }, isActive: true },
+        select: { id: true, name: true, country: true }
+    });
+
+    if (stillMissing.length === 0) return { enriched: 0 };
+
+    // Build a map of normalizedName -> logo from channels that DO have logos
+    const withLogos = await prisma.channel.findMany({
+        where: {
+            isActive: true,
+            logo: { not: null },
+            NOT: { logo: '' }
+        },
+        select: { name: true, logo: true }
+    });
+
+    const selfLogoMap = new Map();
+    for (const ch of withLogos) {
+        if (!ch.name || !ch.logo) continue;
+        const key = normalizeName(ch.name);
+        if (key.length > 2 && !selfLogoMap.has(key)) {
+            selfLogoMap.set(key, ch.logo);
+        }
+    }
+    console.log(`Self-logo index: ${selfLogoMap.size} unique names with logos`);
+
+    let enriched = 0;
+    for (const channel of stillMissing) {
+        if (!channel.name) continue;
+        const key = normalizeName(channel.name);
+        if (key.length <= 2) continue;
+
+        const logo = selfLogoMap.get(key);
+        if (logo) {
+            if (dryRun) {
+                console.log(`  [DRY-SELF] ${channel.name} (${channel.country}) -> ${logo}`);
+            } else {
+                await prisma.channel.update({
+                    where: { id: channel.id },
+                    data: { logo }
+                });
+            }
+            enriched++;
+        }
+    }
+
+    console.log(`Self-enrichment: ${enriched} channels matched`);
+    return { enriched };
+}
+
 async function enrichLogos(options = {}) {
     const { country = null, dryRun = false, limit = null } = options;
 
-    const where = { logo: null, isActive: true };
+    // Match both NULL and empty-string logos
+    const where = {
+        isActive: true,
+        OR: [
+            { logo: null },
+            { logo: '' }
+        ]
+    };
     if (country) {
         where.country = country.toUpperCase();
     }
@@ -124,8 +191,11 @@ async function enrichLogos(options = {}) {
         ...(limit ? { take: limit } : {})
     });
 
-    const totalMissing = await prisma.channel.count({ where });
+    const totalMissing = channelsWithoutLogo.length;
     console.log(`\nFound ${totalMissing} channels without logos${country ? ` (country: ${country})` : ''}`);
+    const nullCount = channelsWithoutLogo.filter(c => c.logo === null).length;
+    const emptyCount = channelsWithoutLogo.filter(c => c.logo === '').length;
+    console.log(`  (${nullCount} NULL, ${emptyCount} empty string)`);
 
     if (channelsWithoutLogo.length === 0) {
         console.log('All channels already have logos!');
@@ -142,6 +212,7 @@ async function enrichLogos(options = {}) {
 
     let enriched = 0;
     let noMatch = 0;
+    const unmatchedIds = [];
 
     for (const channel of channelsWithoutLogo) {
         const match = findLogo(channel, logoIndex);
@@ -156,16 +227,26 @@ async function enrichLogos(options = {}) {
             }
             enriched++;
         } else {
+            unmatchedIds.push(channel.id);
             noMatch++;
         }
     }
 
-    console.log(`\nLogo enrichment ${dryRun ? '(DRY RUN) ' : ''}complete:`);
-    console.log(`  Enriched: ${enriched}`);
-    console.log(`  No match: ${noMatch}`);
-    console.log(`  Total processed: ${channelsWithoutLogo.length}`);
+    console.log(`\niptv-org enrichment: ${enriched} matched, ${noMatch} unmatched`);
 
-    return { enriched, noMatch, total: channelsWithoutLogo.length };
+    // Self-enrichment pass: match remaining logoless channels against our own DB
+    const selfResult = await selfEnrich(unmatchedIds, dryRun);
+    const totalEnriched = enriched + selfResult.enriched;
+    const finalNoMatch = noMatch - selfResult.enriched;
+
+    console.log(`\nLogo enrichment ${dryRun ? '(DRY RUN) ' : ''}complete:`);
+    console.log(`  Enriched (iptv-org): ${enriched}`);
+    console.log(`  Enriched (self):     ${selfResult.enriched}`);
+    console.log(`  Total enriched:      ${totalEnriched}`);
+    console.log(`  No match:            ${finalNoMatch}`);
+    console.log(`  Total processed:     ${channelsWithoutLogo.length}`);
+
+    return { enriched: totalEnriched, noMatch: finalNoMatch, total: channelsWithoutLogo.length };
 }
 
 async function main() {
