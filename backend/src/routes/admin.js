@@ -4,6 +4,7 @@ const { body, param, query, validationResult } = require('express-validator');
 const prisma = require('../lib/prisma');
 const { authenticate, authorize } = require('../middleware/auth');
 const { getPlaylistTokenExpiry } = require('../services/deviceAccess');
+const { pushToSmartIptv } = require('../utils/smartIptvPush');
 
 const router = express.Router();
 
@@ -1277,9 +1278,14 @@ router.post('/devices/activate',
       // Smart IPTV upload page URL
       const smartIptvUploadUrl = 'https://siptv.app/mylist/';
 
+      // Auto-push playlist to Smart IPTV service
+      const smartIptvPush = await pushToSmartIptv(normalizedMac, siptvPlaylistUrl, siptvEpgUrl);
+
       res.status(201).json({
         success: true,
-        message: 'Device activated successfully',
+        message: smartIptvPush.success
+          ? 'Device activated and playlist pushed to Smart IPTV'
+          : 'Device activated (Smart IPTV auto-push failed - upload manually)',
         data: {
           device: {
             id: device.id,
@@ -1316,7 +1322,10 @@ router.post('/devices/activate',
             playlistUrl: siptvPlaylistUrl,
             epgUrl: siptvEpgUrl,
             mac: normalizedMac,
-            instructions: `1. Go to ${smartIptvUploadUrl}\n2. Enter MAC: ${normalizedMac}\n3. Paste URL: ${siptvPlaylistUrl}\n4. Click "Send"\n5. Restart the Smart IPTV app on your TV`
+            autoPush: smartIptvPush,
+            instructions: smartIptvPush.success
+              ? 'Playlist automatically uploaded to Smart IPTV. Just restart the app on the TV.'
+              : `1. Go to ${smartIptvUploadUrl}\n2. Enter MAC: ${normalizedMac}\n3. Paste URL: ${siptvPlaylistUrl}\n4. Click "Send"\n5. Restart the Smart IPTV app on your TV`
           }
         }
       });

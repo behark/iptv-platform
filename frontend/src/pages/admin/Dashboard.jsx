@@ -110,7 +110,11 @@ const AdminDashboard = () => {
                 subscriptionDays: selectedPlan !== 'admin' ? subscriptionDays : undefined
             })
             setActivationResult(response.data.data)
-            toast.success('Device activated successfully!')
+            const pushOk = response.data.data?.smartIptv?.autoPush?.success
+            toast.success(pushOk
+                ? 'Device activated & playlist pushed to Smart IPTV!'
+                : 'Device activated (manual upload needed)'
+            )
             loadDevices()
         } catch (error) {
             toast.error(error.response?.data?.message || 'Failed to activate device')
@@ -597,22 +601,40 @@ const AdminDashboard = () => {
                                         </div>
                                     </div>
                                     <div className="pt-3 border-t border-slate-600">
-                                        <p className="text-sm text-yellow-400 mb-2">Next Steps for Smart IPTV:</p>
-                                        <ol className="text-sm text-gray-300 list-decimal list-inside space-y-1">
-                                            <li>Go to <a href="https://siptv.app/mylist/" target="_blank" rel="noopener noreferrer" className="text-primary-400 hover:underline">siptv.app/mylist</a></li>
-                                            <li>Enter MAC: <span className="font-mono text-white">{activationResult.device.macAddress}</span></li>
-                                            <li>Paste the Playlist URL above</li>
-                                            <li>Click "Send"</li>
-                                            <li>Restart the Smart IPTV app on the TV</li>
-                                        </ol>
-                                        <a
-                                            href="https://siptv.app/mylist/"
-                                            target="_blank"
-                                            rel="noopener noreferrer"
-                                            className="inline-block mt-3 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm"
-                                        >
-                                            Open Smart IPTV Upload Page
-                                        </a>
+                                        {activationResult.smartIptv?.autoPush?.success ? (
+                                            <div className="flex items-center gap-2 p-3 bg-green-900/50 border border-green-600 rounded-lg">
+                                                <span className="text-green-400 text-lg">&#10003;</span>
+                                                <div>
+                                                    <p className="text-sm text-green-400 font-medium">Playlist automatically pushed to Smart IPTV!</p>
+                                                    <p className="text-xs text-gray-300 mt-1">Tell the client to restart the Smart IPTV app on their TV.</p>
+                                                </div>
+                                            </div>
+                                        ) : (
+                                            <>
+                                                {activationResult.smartIptv?.autoPush && !activationResult.smartIptv.autoPush.success && (
+                                                    <div className="flex items-center gap-2 p-2 mb-2 bg-yellow-900/50 border border-yellow-600 rounded-lg">
+                                                        <span className="text-yellow-400 text-sm">&#9888;</span>
+                                                        <p className="text-xs text-yellow-400">Auto-push failed. Please upload manually:</p>
+                                                    </div>
+                                                )}
+                                                <p className="text-sm text-yellow-400 mb-2">Next Steps for Smart IPTV:</p>
+                                                <ol className="text-sm text-gray-300 list-decimal list-inside space-y-1">
+                                                    <li>Go to <a href="https://siptv.app/mylist/" target="_blank" rel="noopener noreferrer" className="text-primary-400 hover:underline">siptv.app/mylist</a></li>
+                                                    <li>Enter MAC: <span className="font-mono text-white">{activationResult.device.macAddress}</span></li>
+                                                    <li>Paste the Playlist URL above</li>
+                                                    <li>Click "Send"</li>
+                                                    <li>Restart the Smart IPTV app on the TV</li>
+                                                </ol>
+                                                <a
+                                                    href="https://siptv.app/mylist/"
+                                                    target="_blank"
+                                                    rel="noopener noreferrer"
+                                                    className="inline-block mt-3 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm"
+                                                >
+                                                    Open Smart IPTV Upload Page
+                                                </a>
+                                            </>
+                                        )}
                                     </div>
                                 </div>
                             </div>
