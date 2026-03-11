@@ -611,28 +611,22 @@ const AdminDashboard = () => {
                                             </div>
                                         ) : (
                                             <>
-                                                {activationResult.smartIptv?.autoPush && !activationResult.smartIptv.autoPush.success && (
-                                                    <div className="flex items-center gap-2 p-2 mb-2 bg-yellow-900/50 border border-yellow-600 rounded-lg">
-                                                        <span className="text-yellow-400 text-sm">&#9888;</span>
-                                                        <p className="text-xs text-yellow-400">Auto-push failed. Please upload manually:</p>
-                                                    </div>
-                                                )}
-                                                <p className="text-sm text-yellow-400 mb-2">Next Steps for Smart IPTV:</p>
-                                                <ol className="text-sm text-gray-300 list-decimal list-inside space-y-1">
-                                                    <li>Go to <a href="https://siptv.app/mylist/" target="_blank" rel="noopener noreferrer" className="text-primary-400 hover:underline">siptv.app/mylist</a></li>
-                                                    <li>Enter MAC: <span className="font-mono text-white">{activationResult.device.macAddress}</span></li>
-                                                    <li>Paste the Playlist URL above</li>
-                                                    <li>Click "Send"</li>
-                                                    <li>Restart the Smart IPTV app on the TV</li>
-                                                </ol>
-                                                <a
-                                                    href="https://siptv.app/mylist/"
-                                                    target="_blank"
-                                                    rel="noopener noreferrer"
-                                                    className="inline-block mt-3 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm"
-                                                >
-                                                    Open Smart IPTV Upload Page
-                                                </a>
+                                                <p className="text-sm text-gray-300 mb-3">Upload the playlist to Smart IPTV:</p>
+                                                <div className="flex flex-wrap gap-2">
+                                                    <button
+                                                        onClick={() => {
+                                                            const mac = activationResult.device.macAddress
+                                                            const url = activationResult.urls.siptv || activationResult.urls.playlist
+                                                            navigator.clipboard.writeText(url)
+                                                            toast.success(`Playlist URL copied! MAC: ${mac}`)
+                                                            window.open('https://siptv.app/mylist/', '_blank')
+                                                        }}
+                                                        className="inline-block px-5 py-2.5 bg-green-600 hover:bg-green-700 text-white rounded-lg text-sm font-medium"
+                                                    >
+                                                        Copy URL &amp; Open siptv.app
+                                                    </button>
+                                                </div>
+                                                <p className="text-xs text-gray-500 mt-2">Opens siptv.app/mylist and copies the playlist URL. Enter MAC <span className="font-mono text-gray-400">{activationResult.device.macAddress}</span>, paste URL, click Send.</p>
                                             </>
                                         )}
                                     </div>
