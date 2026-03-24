@@ -10,6 +10,8 @@ const { sendPasswordResetEmail } = require('../services/emailService');
 
 const router = express.Router();
 
+const getJwtExpire = () => (process.env.JWT_EXPIRE || '7d').trim().replace(/['"]/g, '') || '7d';
+
 const getResetTokenTtlMs = () => {
   const raw = Number.parseInt(process.env.RESET_TOKEN_TTL_MINUTES || '60', 10);
   const minutes = Number.isFinite(raw) && raw > 0 ? raw : 60;
@@ -92,7 +94,7 @@ router.post('/register', [
     const token = jwt.sign(
       { userId: user.id },
       process.env.JWT_SECRET,
-      { expiresIn: process.env.JWT_EXPIRE || '7d' }
+      { expiresIn: getJwtExpire() }
     );
 
     res.status(201).json({
@@ -175,7 +177,7 @@ router.post('/login', [
     const token = jwt.sign(
       { userId: user.id },
       process.env.JWT_SECRET,
-      { expiresIn: process.env.JWT_EXPIRE || '7d' }
+      { expiresIn: getJwtExpire() }
     );
 
     res.json({
@@ -236,7 +238,7 @@ router.post('/refresh', authenticate, async (req, res) => {
     const token = jwt.sign(
       { userId: req.user.id },
       process.env.JWT_SECRET,
-      { expiresIn: process.env.JWT_EXPIRE || '7d' }
+      { expiresIn: getJwtExpire() }
     );
 
     // Blacklist old token
