@@ -48,3 +48,6 @@ coverage/
 # Misc
 .cache/
 .temp/
+.vercel
+cleanup_report.txt
+backend/scripts/__pycache__/

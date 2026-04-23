@@ -3,7 +3,9 @@ const cors = require('cors');
 const helmet = require('helmet');
 const morgan = require('morgan');
 const rateLimit = require('express-rate-limit');
-require('dotenv').config();
+if (!process.env.VERCEL) {
+  require('dotenv').config();
+}
 
 const authRoutes = require('./routes/auth');
 const userRoutes = require('./routes/users');
@@ -131,8 +133,26 @@ if (process.env.NODE_ENV === 'production') {
 }
 
 // Health check
-app.get('/health', (req, res) => {
-  res.json({ status: 'ok', timestamp: new Date().toISOString() });
+app.get('/health', async (req, res) => {
+  const prisma = require('./lib/prisma');
+  let dbStatus = 'unknown';
+  let dbError = null;
+  try {
+    const count = await prisma.user.count();
+    dbStatus = `connected (${count} users)`;
+  } catch (e) {
+    dbStatus = 'error';
+    dbError = e.message;
+  }
+  res.json({
+    status: 'ok',
+    timestamp: new Date().toISOString(),
+    db: dbStatus,
+    dbError,
+    hasDbUrl: !!process.env.DATABASE_URL,
+    dbUrlPrefix: process.env.DATABASE_URL ? process.env.DATABASE_URL.substring(0, 30) + '...' : 'not set',
+    vercel: !!process.env.VERCEL
+  });
 });
 
 // API Routes
@@ -171,34 +191,56 @@ app.use((req, res) => {
   });
 });
 
-const PORT = process.env.PORT || 5000;
-
-const server = app.listen(PORT, () => {
-  console.log(`🚀 IPTV Backend Server running on port ${PORT}`);
-  console.log(`📡 Environment: ${process.env.NODE_ENV || 'development'}`);
-});
-
-// Graceful shutdown
-const gracefulShutdown = (signal) => {
-  console.log(`\n${signal} received. Shutting down gracefully...`);
-  server.close(() => {
-    console.log('HTTP server closed.');
-    const prisma = require('./lib/prisma');
-    prisma.$disconnect().then(() => {
-      console.log('Database connection closed.');
-      process.exit(0);
-    }).catch(() => {
-      process.exit(1);
-    });
-  });
-  // Force shutdown after 10 seconds
-  setTimeout(() => {
-    console.error('Forced shutdown after timeout.');
-    process.exit(1);
-  }, 10000);
-};
-
-process.on('SIGTERM', () => gracefulShutdown('SIGTERM'));
-process.on('SIGINT', () => gracefulShutdown('SIGINT'));
-
+// Export for Vercel serverless
 module.exports = app;
+
+// Only listen when not running on Vercel (serverless)
+if (!process.env.VERCEL) {
+  const PORT = process.env.PORT || 5000;
+
+  const server = app.listen(PORT, () => {
+    console.log(`🚀 IPTV Backend Server running on port ${PORT}`);
+    console.log(`📡 Environment: ${process.env.NODE_ENV || 'development'}`);
+  });
+
+  // Graceful shutdown
+  const gracefulShutdown = (signal) => {
+    console.log(`\n${signal} received. Shutting down gracefully...`);
+    server.close(() => {
+      console.log('HTTP server closed.');
+      const prisma = require('./lib/prisma');
+      prisma.$disconnect().then(() => {
+        console.log('Database connection closed.');
+        process.exit(0);
+      }).catch(() => {
+        process.exit(1);
+      });
+    });
+    // Force shutdown after 10 seconds
+    setTimeout(() => {
+      console.error('Forced shutdown after timeout.');
+      process.exit(1);
+    }, 10000);
+  };
+
+  process.on('SIGTERM', () => gracefulShutdown('SIGTERM'));
+  process.on('SIGINT', () => gracefulShutdown('SIGINT'));
+}
+
+// Debug login endpoint
+app.post('/debug-login', async (req, res) => {
+  try {
+    const prisma = require('./lib/prisma');
+    const bcrypt = require('bcryptjs');
+    const jwt = require('jsonwebtoken');
+    const { email, password } = req.body;
+    const user = await prisma.user.findUnique({ where: { email } });
+    if (!user) return res.json({ step: 'findUser', error: 'not found' });
+    const isMatch = await bcrypt.compare(password, user.password);
+    if (!isMatch) return res.json({ step: 'compare', error: 'no match' });
+    const token = jwt.sign({ userId: user.id }, process.env.JWT_SECRET, { expiresIn: process.env.JWT_EXPIRE || '7d' });
+    res.json({ step: 'done', success: true, token: token.substring(0, 20) + '...', jwtSecret: !!process.env.JWT_SECRET });
+  } catch (e) {
+    res.json({ step: 'error', message: e.message, stack: e.stack?.split('\n').slice(0, 3) });
+  }
+});
