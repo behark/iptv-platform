@@ -32,19 +32,31 @@ async function pushToSmartIptv(mac, playlistUrl, epgUrl) {
     }
     const body = parts.join('\r\n') + `\r\n--${boundary}--\r\n`;
 
-    const response = await fetch(SIPTV_UPLOAD_URL, {
-      method: 'POST',
-      headers: {
-        'Content-Type': `multipart/form-data; boundary=${boundary}`,
-        'User-Agent': 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36',
-        'Referer': 'https://siptv.app/mylist/',
-        'Origin': 'https://siptv.app',
-        'Cookie': 'origin=valid; captcha2=1',
-      },
-      body,
-    });
+    // Hard timeout so a slow/hanging siptv.app can never block device activation.
+    // This runs in the request path on a serverless function with a limited time
+    // budget; without it, a stalled upload would tip activation into a 500.
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 3000);
 
-    const text = await response.text();
+    let text;
+    try {
+      const response = await fetch(SIPTV_UPLOAD_URL, {
+        method: 'POST',
+        headers: {
+          'Content-Type': `multipart/form-data; boundary=${boundary}`,
+          'User-Agent': 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36',
+          'Referer': 'https://siptv.app/mylist/',
+          'Origin': 'https://siptv.app',
+          'Cookie': 'origin=valid; captcha2=1',
+        },
+        body,
+        signal: controller.signal,
+      });
+
+      text = await response.text();
+    } finally {
+      clearTimeout(timeout);
+    }
     const successIndicators = ['success', 'uploaded', 'added'];
     const failIndicators = ['reload the page', 'not found', 'not activated', 'captcha', 'recaptcha'];
 
