@@ -27,7 +27,7 @@ model User {
   subscriptions Subscription[]
   watchHistory  WatchHistory[]
   favorites     Favorite[]
-  playlistToken PlaylistToken?
+  playlistTokens PlaylistToken[]
   devices       Device[]
   passwordResetTokens PasswordResetToken[]
 
@@ -251,7 +251,7 @@ model Favorite {
 
 model PlaylistToken {
   id            String    @id @default(uuid())
-  userId        String    @unique @map("user_id")
+  userId        String    @map("user_id")
   token         String    @unique
   expiresAt     DateTime? @map("expires_at")
   lastUsedAt    DateTime? @map("last_used_at")
