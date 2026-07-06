@@ -148,9 +148,8 @@ app.get('/health', async (req, res) => {
     status: 'ok',
     timestamp: new Date().toISOString(),
     db: dbStatus,
-    dbError,
+    dbError: process.env.NODE_ENV === 'development' ? dbError : undefined,
     hasDbUrl: !!process.env.DATABASE_URL,
-    dbUrlPrefix: process.env.DATABASE_URL ? process.env.DATABASE_URL.substring(0, 30) + '...' : 'not set',
     vercel: !!process.env.VERCEL
   });
 });
@@ -226,21 +225,3 @@ if (!process.env.VERCEL) {
   process.on('SIGTERM', () => gracefulShutdown('SIGTERM'));
   process.on('SIGINT', () => gracefulShutdown('SIGINT'));
 }
-
-// Debug login endpoint
-app.post('/debug-login', async (req, res) => {
-  try {
-    const prisma = require('./lib/prisma');
-    const bcrypt = require('bcryptjs');
-    const jwt = require('jsonwebtoken');
-    const { email, password } = req.body;
-    const user = await prisma.user.findUnique({ where: { email } });
-    if (!user) return res.json({ step: 'findUser', error: 'not found' });
-    const isMatch = await bcrypt.compare(password, user.password);
-    if (!isMatch) return res.json({ step: 'compare', error: 'no match' });
-    const token = jwt.sign({ userId: user.id }, process.env.JWT_SECRET, { expiresIn: process.env.JWT_EXPIRE || '7d' });
-    res.json({ step: 'done', success: true, token: token.substring(0, 20) + '...', jwtSecret: !!process.env.JWT_SECRET });
-  } catch (e) {
-    res.json({ step: 'error', message: e.message, stack: e.stack?.split('\n').slice(0, 3) });
-  }
-});
