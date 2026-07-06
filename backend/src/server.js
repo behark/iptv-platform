@@ -22,6 +22,7 @@ const historyRoutes = require('./routes/history');
 const adminRoutes = require('./routes/admin');
 const searchRoutes = require('./routes/search');
 const vodRoutes = require('./routes/vod');
+const streamRoutes = require('./routes/stream');
 
 const app = express();
 
@@ -82,7 +83,7 @@ app.use(cors({
 const limiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
   max: 1000, // limit each IP to 1000 requests per windowMs
-  skip: (req) => req.path.startsWith('/exports'),
+  skip: (req) => req.path.startsWith('/exports') || req.path.startsWith('/stream'),
   standardHeaders: true,
   legacyHeaders: false
 });
@@ -171,6 +172,7 @@ app.use('/api/history', historyRoutes);
 app.use('/api/admin', adminRoutes);
 app.use('/api/search', searchRoutes);
 app.use('/api/vod', vodRoutes);
+app.use('/api/stream', streamRoutes);
 
 // Error handling middleware
 app.use((err, req, res, next) => {

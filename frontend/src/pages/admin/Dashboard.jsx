@@ -24,6 +24,9 @@ const AdminDashboard = () => {
     const [planSelections, setPlanSelections] = useState({})
     const [activationResult, setActivationResult] = useState(null)
     const [activating, setActivating] = useState(false)
+    const [validation, setValidation] = useState({ limit: 200, country: '', category: '' })
+    const [validating, setValidating] = useState(false)
+    const [validationResult, setValidationResult] = useState(null)
 
     useEffect(() => {
         if (user?.role !== 'ADMIN') {
@@ -126,6 +129,38 @@ const AdminDashboard = () => {
     const copyToClipboard = (text) => {
         navigator.clipboard.writeText(text)
         toast.success('Copied to clipboard!')
+    }
+
+    const runValidation = async (dryRun) => {
+        if (!dryRun && !window.confirm('Deactivate every dead channel found in this run?')) return
+        setValidating(true)
+        setValidationResult(null)
+        try {
+            const response = await api.post('/admin/channels/validate', {
+                dryRun,
+                limit: Number(validation.limit) || 200,
+                country: validation.country.trim() || undefined,
+                category: validation.category.trim() || undefined
+            })
+            setValidationResult(response.data.data)
+            toast.success(response.data.message)
+            if (!dryRun) loadChannels()
+        } catch (error) {
+            toast.error(error.response?.data?.message || 'Validation failed')
+        } finally {
+            setValidating(false)
+        }
+    }
+
+    const deleteInactiveChannels = async () => {
+        if (!window.confirm('Permanently delete ALL inactive channels? This cannot be undone.')) return
+        try {
+            const response = await api.delete('/admin/channels/inactive')
+            toast.success(response.data.message)
+            loadChannels()
+        } catch (error) {
+            toast.error(error.response?.data?.message || 'Delete failed')
+        }
     }
 
     useEffect(() => {
@@ -444,7 +479,88 @@ const AdminDashboard = () => {
             )}
 
             {activeTab === 'channels' && (
-                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-6">
+                <div className="space-y-6">
+                    <div className="bg-slate-800 rounded-lg p-6">
+                        <h2 className="text-xl font-semibold text-white mb-1">Channel Health</h2>
+                        <p className="text-gray-400 mb-4 text-sm">Probe streams and remove dead ones. A dry run reports without changing anything; disabling flips dead channels to inactive (reversible). Delete removes inactive channels for good.</p>
+                        <div className="grid sm:grid-cols-3 gap-4 mb-4">
+                            <div>
+                                <label className="block text-sm font-medium text-gray-300 mb-1">Limit</label>
+                                <input
+                                    type="number"
+                                    min="1"
+                                    max="5000"
+                                    value={validation.limit}
+                                    onChange={(e) => setValidation((v) => ({ ...v, limit: e.target.value }))}
+                                    className="w-full px-4 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white focus:outline-none focus:border-primary-500"
+                                />
+                            </div>
+                            <div>
+                                <label className="block text-sm font-medium text-gray-300 mb-1">Country (optional)</label>
+                                <input
+                                    type="text"
+                                    value={validation.country}
+                                    onChange={(e) => setValidation((v) => ({ ...v, country: e.target.value }))}
+                                    placeholder="e.g. XK, AL, DE"
+                                    className="w-full px-4 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:border-primary-500"
+                                />
+                            </div>
+                            <div>
+                                <label className="block text-sm font-medium text-gray-300 mb-1">Category (optional)</label>
+                                <input
+                                    type="text"
+                                    value={validation.category}
+                                    onChange={(e) => setValidation((v) => ({ ...v, category: e.target.value }))}
+                                    placeholder="e.g. Sports"
+                                    className="w-full px-4 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:border-primary-500"
+                                />
+                            </div>
+                        </div>
+                        <div className="flex flex-wrap gap-3">
+                            <button
+                                type="button"
+                                onClick={() => runValidation(true)}
+                                disabled={validating}
+                                className="rounded-lg bg-slate-600 px-4 py-2 text-sm font-semibold text-white hover:bg-slate-500 disabled:opacity-50"
+                            >
+                                {validating ? 'Checking...' : 'Dry run (report only)'}
+                            </button>
+                            <button
+                                type="button"
+                                onClick={() => runValidation(false)}
+                                disabled={validating}
+                                className="rounded-lg bg-amber-600 px-4 py-2 text-sm font-semibold text-white hover:bg-amber-500 disabled:opacity-50"
+                            >
+                                Validate & deactivate dead
+                            </button>
+                            <button
+                                type="button"
+                                onClick={deleteInactiveChannels}
+                                disabled={validating}
+                                className="rounded-lg bg-red-700 px-4 py-2 text-sm font-semibold text-white hover:bg-red-600 disabled:opacity-50"
+                            >
+                                Delete inactive channels
+                            </button>
+                        </div>
+                        {validationResult && (
+                            <div className="mt-4 rounded-lg bg-slate-900/70 p-4 text-sm">
+                                <p className="text-white">
+                                    Checked <span className="font-semibold">{validationResult.results?.total}</span> ·
+                                    <span className="text-green-400"> {validationResult.results?.valid} alive</span> ·
+                                    <span className="text-red-400"> {validationResult.results?.invalid} dead</span>
+                                    {validationResult.dryRun && <span className="text-gray-400"> (dry run — no changes)</span>}
+                                </p>
+                                {validationResult.deadChannels?.length > 0 && (
+                                    <ul className="mt-2 max-h-40 overflow-y-auto text-gray-400">
+                                        {validationResult.deadChannels.map((c) => (
+                                            <li key={c.id} className="truncate">✗ [{c.country || '??'}] {c.name} — {c.category || 'No category'}</li>
+                                        ))}
+                                    </ul>
+                                )}
+                            </div>
+                        )}
+                    </div>
+                    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-6">
                     {channels.map((channel) => (
                         <div key={channel.id} className="bg-slate-800 rounded-lg overflow-hidden">
                             {channel.logo ? (
@@ -460,6 +576,7 @@ const AdminDashboard = () => {
                             </div>
                         </div>
                     ))}
+                    </div>
                 </div>
             )}
 

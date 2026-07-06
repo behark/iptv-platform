@@ -5,6 +5,10 @@ const WEB_NATIVE_FILE_EXTS = new Set(['mp4', 'webm', 'ogv'])
 const IPTV_ONLY_TYPES = new Set(['DASH', 'MPEGTS', 'RTMP_INGEST'])
 const EXTERNAL_HOSTS = ['dailymotion.com', 'vimeo.com', 'twitch.tv', 'facebook.com', 'rumble.com', 'odysee.com']
 
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3002/api'
+
+const buildProxyUrl = (url) => `${API_URL}/stream?url=${encodeURIComponent(url)}`
+
 const extractFileExt = (url) => {
   if (!url) return null
   const match = url.toLowerCase().match(/\.([a-z0-9]{2,8})(?:[?#]|$)/)
@@ -43,10 +47,13 @@ const VideoPlayer = ({
 }) => {
   const videoRef = useRef(null)
   const hlsRef = useRef(null)
+  const recoverAttempts = useRef(0)
   const [isLoading, setIsLoading] = useState(true)
   const [errorMessage, setErrorMessage] = useState('')
   const [isMuted, setIsMuted] = useState(false)
   const [captionsEnabled, setCaptionsEnabled] = useState(false)
+  const [useProxy, setUseProxy] = useState(false)
+  const [reloadNonce, setReloadNonce] = useState(0)
 
   const normalizedStreamType = (propStreamType || detectStreamType(streamUrl) || 'UNKNOWN').toUpperCase()
   const resolvedFileExt = fileExt || extractFileExt(streamUrl)
@@ -136,6 +143,7 @@ const VideoPlayer = ({
 
     setIsLoading(true)
     setErrorMessage('')
+    recoverAttempts.current = 0
 
     // Clean up previous HLS instance
     if (hlsRef.current) {
@@ -144,10 +152,24 @@ const VideoPlayer = ({
     }
 
     const playbackType = normalizedStreamType === 'UNKNOWN' ? 'HLS' : normalizedStreamType
+    const sourceUrl = useProxy ? buildProxyUrl(streamUrl) : streamUrl
+
+    // A direct-fetch failure (CORS / mixed-content / dead edge) retries once through
+    // the backend proxy before giving up.
+    const failToProxyOrError = () => {
+      if (!useProxy) {
+        setUseProxy(true)
+        return
+      }
+      const message = 'Stream unavailable. It may be offline or geo-restricted.'
+      setIsLoading(false)
+      setErrorMessage(message)
+      onStreamError?.(message)
+    }
 
     if (playbackType === 'FILE') {
       // Direct video URL (MP4, WebM, etc.) - use native HTML5 video
-      video.src = streamUrl
+      video.src = sourceUrl
       return
     }
 
@@ -157,15 +179,21 @@ const VideoPlayer = ({
           enableWorker: true,
           lowLatencyMode: true
         })
-        hls.loadSource(streamUrl)
+        hls.loadSource(sourceUrl)
         hls.attachMedia(video)
         hlsRef.current = hls
         hls.on(Hls.Events.ERROR, (_, data) => {
-          if (data?.fatal) {
-            const message = 'Stream unavailable. Please try again.'
-            setErrorMessage(message)
-            onStreamError?.(message)
+          if (!data?.fatal) return
+          if (data.type === Hls.ErrorTypes.MEDIA_ERROR && recoverAttempts.current < 2) {
+            recoverAttempts.current += 1
+            hls.recoverMediaError()
+            return
           }
+          if (data.type === Hls.ErrorTypes.NETWORK_ERROR) {
+            failToProxyOrError()
+            return
+          }
+          failToProxyOrError()
         })
 
         return () => {
@@ -175,21 +203,39 @@ const VideoPlayer = ({
         }
       } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
         // Native HLS support (Safari)
-        video.src = streamUrl
+        video.src = sourceUrl
       }
     } else {
       // Fallback - direct video URL
-      video.src = streamUrl
+      video.src = sourceUrl
     }
-  }, [streamUrl, normalizedStreamType, isYouTube, isExternal, isIptvOnly])
+  }, [streamUrl, normalizedStreamType, isYouTube, isExternal, isIptvOnly, useProxy, reloadNonce])
+
+  // New channel: start direct again (don't carry a previous channel's proxy fallback).
+  useEffect(() => {
+    setUseProxy(false)
+    setErrorMessage('')
+  }, [streamUrl])
 
   const handleLoaded = () => setIsLoading(false)
   const handleWaiting = () => setIsLoading(true)
   const handleError = () => {
+    // Native <video> failure (FILE / Safari-HLS): retry via proxy once, then surface.
+    if (!useProxy && !isYouTube && !isExternal && !isIptvOnly) {
+      setUseProxy(true)
+      return
+    }
     setIsLoading(false)
-    const message = 'Stream unavailable. Please try again.'
+    const message = 'Stream unavailable. It may be offline or geo-restricted.'
     setErrorMessage(message)
     onStreamError?.(message)
+  }
+
+  const handleManualRetry = () => {
+    setUseProxy(false)
+    setErrorMessage('')
+    setIsLoading(true)
+    setReloadNonce((n) => n + 1)
   }
 
   const handleToggleMute = () => {
@@ -329,11 +375,11 @@ const VideoPlayer = ({
           📺
         </button>
       </div>
-      {isLoading && (
+      {isLoading && !errorMessage && (
         <div className="absolute inset-0 flex items-center justify-center bg-black/60 text-white">
           <div className="flex items-center gap-3">
             <div className="animate-spin rounded-full h-10 w-10 border-t-2 border-b-2 border-primary-500"></div>
-            <span className="text-sm">Loading stream...</span>
+            <span className="text-sm">{useProxy ? 'Trying backup route...' : 'Loading stream...'}</span>
           </div>
         </div>
       )}
@@ -341,6 +387,13 @@ const VideoPlayer = ({
         <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/70 text-white px-4 text-center">
           <p className="text-base font-semibold">{errorMessage}</p>
           <p className="text-sm text-slate-300 mt-2">Check your connection or try again.</p>
+          <button
+            type="button"
+            onClick={handleManualRetry}
+            className="mt-4 rounded-lg bg-primary-500 px-4 py-2 text-sm font-semibold text-white hover:bg-primary-600"
+          >
+            Retry
+          </button>
         </div>
       )}
       {(unknownWarning || fileWarning) && (
